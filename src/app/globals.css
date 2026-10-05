@@ -1,26 +1,74 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Warm Professional Theme Design Tokens */
+  --background: #fafaf8;
+  --surface: #ffffff;
+  --surface-raised: #f5f4ef;
+  --border: #e8e4df;
+  --border-strong: #d5cfc7;
+  
+  --text-primary: #1a1714;
+  --text-secondary: #4a443e;
+  --text-muted: #6b6560;
+  
+  /* Primary & Accent Palettes */
+  --amber: #d97706;
+  --amber-hover: #b45309;
+  --amber-light: #fef3c7;
+  --amber-50: #fffbeb;
+  
+  --emerald: #059669;
+  --emerald-hover: #047857;
+  --emerald-light: #d1fae5;
+  
+  --terracotta: #dc6b4a;
+  --terracotta-hover: #b85032;
+  --terracotta-light: #fdeee9;
+  
+  --orange: #ea580c;
+  --orange-light: #ffedd5;
+  
+  /* Foreground default matching text-primary */
+  --foreground: var(--text-primary);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  
+  --color-amber: var(--amber);
+  --color-amber-hover: var(--amber-hover);
+  --color-amber-light: var(--amber-light);
+  --color-amber-50: var(--amber-50);
+  
+  --color-emerald: var(--emerald);
+  --color-emerald-hover: var(--emerald-hover);
+  --color-emerald-light: var(--emerald-light);
+  
+  --color-terracotta: var(--terracotta);
+  --color-terracotta-hover: var(--terracotta-hover);
+  --color-terracotta-light: var(--terracotta-light);
+  
+  --color-orange: var(--orange);
+  --color-orange-light: var(--orange-light);
+  
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-outfit);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }

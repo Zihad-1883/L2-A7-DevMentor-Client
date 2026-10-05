@@ -35,7 +35,6 @@ export default function ResetPasswordPage() {
   const onSubmit = async (data: ResetPasswordInput) => {
     setIsLoading(true);
     try {
-      // In Better Auth or custom flow, reset password with token & new password
       await new Promise((resolve) => setTimeout(resolve, 800));
       toast.success("Password has been reset successfully! Please sign in.");
       router.push("/login");
@@ -58,7 +57,6 @@ export default function ResetPasswordPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Password */}
         <div className="space-y-1.5">
           <label className="text-xs font-semibold uppercase tracking-wider text-text-muted">
             New Password
@@ -79,7 +77,6 @@ export default function ResetPasswordPage() {
           )}
         </div>
 
-        {/* Confirm Password */}
         <div className="space-y-1.5">
           <label className="text-xs font-semibold uppercase tracking-wider text-text-muted">
             Confirm New Password
@@ -100,7 +97,6 @@ export default function ResetPasswordPage() {
           )}
         </div>
 
-        {/* Submit Button */}
         <Button
           type="submit"
           disabled={isLoading}

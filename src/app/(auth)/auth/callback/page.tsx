@@ -24,7 +24,6 @@ export default function AuthCallbackPage() {
 
         toast.success("Successfully authenticated!");
 
-        // Determine destination based on role
         if (role === "admin") {
           router.push("/admin");
         } else if (role === "mentor") {

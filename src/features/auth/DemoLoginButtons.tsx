@@ -20,7 +20,7 @@ export default function DemoLoginButtons({ onSuccess }: DemoLoginButtonsProps) {
       role: "student",
       label: "Demo Student",
       email: "student@devmentor.com",
-      password: "Password@123",
+      password: "Student@123456",
       redirect: "/dashboard",
       icon: GraduationCap,
       variant: "outline" as const,
@@ -30,7 +30,7 @@ export default function DemoLoginButtons({ onSuccess }: DemoLoginButtonsProps) {
       role: "mentor",
       label: "Demo Mentor",
       email: "mentor@devmentor.com",
-      password: "Password@123",
+      password: "Mentor@123456",
       redirect: "/mentor",
       icon: Code2,
       variant: "outline" as const,
@@ -63,7 +63,14 @@ export default function DemoLoginButtons({ onSuccess }: DemoLoginButtonsProps) {
 
       toast.success(`Welcome back! Signed in as ${acc.label}`);
       if (onSuccess) onSuccess();
-      router.push(acc.redirect);
+
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirectTo = searchParams.get("redirectTo");
+      if (redirectTo && redirectTo.startsWith(`/${acc.role === "student" ? "dashboard" : acc.role}`)) {
+        router.push(redirectTo);
+      } else {
+        router.push(acc.redirect);
+      }
     } catch {
       toast.error("Network error during demo login. Please check server.");
     } finally {

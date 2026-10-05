@@ -31,8 +31,6 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: ForgotPasswordInput) => {
     setIsLoading(true);
     try {
-      // In Better Auth or custom flow, trigger password reset request
-      // Simulating API call response
       await new Promise((resolve) => setTimeout(resolve, 800));
       setSubmittedEmail(data.email);
       setIsSubmitted(true);

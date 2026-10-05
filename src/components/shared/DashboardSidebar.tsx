@@ -41,7 +41,6 @@ export default function DashboardSidebar() {
     { label: "My Cohorts", href: "/dashboard/cohorts", icon: Users },
     { label: "Code Reviews", href: "/dashboard/code-reviews", icon: Code2 },
     { label: "Exams", href: "/dashboard/exams", icon: GraduationCap },
-    { label: "Materials", href: "/dashboard/materials", icon: FileText },
     { label: "Wallet", href: "/dashboard/wallet", icon: Wallet },
     { label: "Profile", href: "/dashboard/profile", icon: User },
   ];
@@ -52,7 +51,6 @@ export default function DashboardSidebar() {
     { label: "My Cohorts", href: "/mentor/cohorts", icon: Users },
     { label: "Code Reviews", href: "/mentor/code-reviews", icon: Code2 },
     { label: "Exam Builder", href: "/mentor/exams", icon: GraduationCap },
-    { label: "Materials", href: "/mentor/materials", icon: FileText },
     { label: "Earnings & Payouts", href: "/mentor/earnings", icon: DollarSign },
     { label: "Profile", href: "/mentor/profile", icon: User },
   ];
@@ -71,26 +69,25 @@ export default function DashboardSidebar() {
     role === "admin"
       ? adminNavItems
       : role === "mentor"
-      ? mentorNavItems
-      : studentNavItems;
+        ? mentorNavItems
+        : studentNavItems;
 
   const roleBadgeText =
     role === "admin"
       ? "Platform Admin"
       : role === "mentor"
-      ? "Approved Mentor"
-      : "Student";
+        ? "Approved Mentor"
+        : "Student";
 
   const roleBadgeStyle =
     role === "admin"
       ? "bg-terracotta-light text-terracotta border-terracotta/30"
       : role === "mentor"
-      ? "bg-emerald-light text-emerald border-emerald/30"
-      : "bg-amber-light text-amber border-amber/30";
+        ? "bg-emerald-light text-emerald border-emerald/30"
+        : "bg-amber-light text-amber border-amber/30";
 
   return (
     <>
-      {/* Mobile Backdrop */}
       {isSidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
@@ -98,14 +95,11 @@ export default function DashboardSidebar() {
         />
       )}
 
-      {/* Sidebar Shell */}
       <aside
-        className={`fixed left-0 top-0 h-full w-72 bg-surface border-r border-border z-50 flex flex-col justify-between shadow-xs transition-transform duration-200 ease-in-out ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
+        className={`fixed left-0 top-0 h-full w-72 bg-surface border-r border-border z-50 flex flex-col justify-between shadow-xs transition-transform duration-200 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }`}
       >
         <div className="flex flex-col flex-1 min-h-0">
-          {/* Logo Header */}
           <div className="h-20 px-6 flex items-center justify-between border-b border-border/40">
             <Link href="/" className="flex items-center gap-2 group">
               <span className="font-serif text-2xl text-text-primary tracking-tight font-bold group-hover:text-amber transition-colors">
@@ -113,7 +107,6 @@ export default function DashboardSidebar() {
               </span>
             </Link>
 
-            {/* Mobile Close Button */}
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}
@@ -124,7 +117,6 @@ export default function DashboardSidebar() {
             </button>
           </div>
 
-          {/* Navigation Links */}
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -142,16 +134,14 @@ export default function DashboardSidebar() {
                   onClick={() => {
                     if (window.innerWidth < 1024) setSidebarOpen(false);
                   }}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition-all ${
-                    isActive
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition-all ${isActive
                       ? "bg-amber-light text-amber-hover font-semibold border-l-4 border-amber shadow-xs"
                       : "text-text-muted hover:bg-surface-raised hover:text-text-primary font-medium"
-                  }`}
+                    }`}
                 >
                   <Icon
-                    className={`size-4.5 ${
-                      isActive ? "text-amber" : "text-text-muted"
-                    }`}
+                    className={`size-4.5 ${isActive ? "text-amber" : "text-text-muted"
+                      }`}
                   />
                   <span>{item.label}</span>
                 </Link>
@@ -160,7 +150,6 @@ export default function DashboardSidebar() {
           </nav>
         </div>
 
-        {/* Footer User Widget */}
         <div className="p-4 border-t border-border/60 bg-surface-raised/40">
           <div className="flex items-center justify-between p-2 rounded-xl bg-surface border border-border shadow-xs">
             <div className="flex items-center gap-3 min-w-0">

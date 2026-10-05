@@ -1,2 +1,117 @@
-// Base fetch wrapper with auth header injection and standardized error handling
-export const apiClient = {};
+import { authClient } from "./auth-client";
+import type { ApiResponse, ApiErrorResponse } from "@/types/api.types";
+
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const BASE_URL = RAW_API_URL.endsWith("/api/v1")
+  ? RAW_API_URL
+  : `${RAW_API_URL.replace(/\/+$/, "")}/api/v1`;
+
+export class ApiError extends Error {
+  statusCode: number;
+  errors?: ApiErrorResponse["errors"];
+
+  constructor(
+    message: string,
+    statusCode: number,
+    errors?: ApiErrorResponse["errors"]
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.statusCode = statusCode;
+    this.errors = errors;
+  }
+}
+
+export interface RequestOptions extends RequestInit {
+  params?: Record<string, string | number | boolean | undefined | null>;
+}
+
+async function request<T>(
+  endpoint: string,
+  options: RequestOptions = {}
+): Promise<T> {
+  const { params, headers, ...restOptions } = options;
+
+  let url = `${BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  if (params) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        searchParams.append(key, String(value));
+      }
+    });
+    const queryString = searchParams.toString();
+    if (queryString) {
+      url += (url.includes("?") ? "&" : "?") + queryString;
+    }
+  }
+
+  let token: string | undefined;
+  try {
+    const sessionResult = await authClient.getSession();
+    token = sessionResult?.data?.session?.token;
+  } catch {
+
+  }
+
+  const reqHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(headers as Record<string, string>),
+  };
+
+  const response = await fetch(url, {
+    ...restOptions,
+    headers: reqHeaders,
+  });
+
+  let responseData: ApiResponse<T> | ApiErrorResponse;
+  try {
+    responseData = await response.json();
+  } catch {
+    throw new ApiError(
+      response.statusText || "Failed to parse JSON response from server",
+      response.status
+    );
+  }
+
+  if (!response.ok || !responseData.success) {
+    const errorData = responseData as ApiErrorResponse;
+    throw new ApiError(
+      errorData.message || "An unexpected error occurred",
+      response.status,
+      errorData.errors
+    );
+  }
+
+  return (responseData as ApiResponse<T>).data;
+}
+
+export const apiClient = {
+  get: <T>(endpoint: string, options?: RequestOptions) =>
+    request<T>(endpoint, { method: "GET", ...options }),
+
+  post: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
+    request<T>(endpoint, {
+      method: "POST",
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      ...options,
+    }),
+
+  patch: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
+    request<T>(endpoint, {
+      method: "PATCH",
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      ...options,
+    }),
+
+  put: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
+    request<T>(endpoint, {
+      method: "PUT",
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      ...options,
+    }),
+
+  delete: <T>(endpoint: string, options?: RequestOptions) =>
+    request<T>(endpoint, { method: "DELETE", ...options }),
+};

@@ -1,6 +1,21 @@
-// Generic backend ApiResponse<T> wrapper TypeScript interface
-export interface ApiResponse<T> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
-  message?: string;
+  message: string;
   data: T;
+  meta?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+    totalPages?: number;
+  };
+}
+
+export interface ApiErrorResponse {
+  success: false;
+  message: string;
+  errors?: Array<{
+    field?: string;
+    message: string;
+    code?: string;
+  }>;
 }

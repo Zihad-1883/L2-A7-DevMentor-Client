@@ -1,26 +1,28 @@
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
+import { Literata, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/components/providers/QueryProvider";
 import AuthProvider from "@/components/providers/AuthProvider";
 import ToastProvider from "@/components/providers/ToastProvider";
 
-const inter = Inter({
-  variable: "--font-inter",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-body",
   subsets: ["latin"],
   display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
-const outfit = Outfit({
-  variable: "--font-outfit",
+const literata = Literata({
+  variable: "--font-serif",
   subsets: ["latin"],
   display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: "DevMentor — Credit-Based Mentorship & Code Review Marketplace",
   description:
-    "Accelerate your developer career with 1-on-1 sprint mentorship, expert-led cohorts, and SLA-guaranteed code reviews.",
+    "DevMentor is a credit-based coding mentorship platform. Submit sprint requests, join cohort programs, or get async code reviews from experienced engineers.",
 };
 
 export default function RootLayout({
@@ -31,9 +33,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${outfit.variable} h-full antialiased`}
+      className={`${plusJakartaSans.variable} ${literata.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-text-primary">
+      <body className="min-h-full flex flex-col bg-background text-text-primary font-sans">
         <QueryProvider>
           <AuthProvider>
             <ToastProvider>{children}</ToastProvider>

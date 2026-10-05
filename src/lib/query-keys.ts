@@ -1,4 +1,3 @@
-// Centralized TanStack Query key factory to eliminate string typos and manage cache invalidation
 export const queryKeys = {
   auth: {
     session: ["auth", "session"] as const,

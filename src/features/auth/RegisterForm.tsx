@@ -11,12 +11,30 @@ import {
   type RegisterInput,
 } from "@/lib/validations/auth.schema";
 import { Button } from "@/components/ui/button";
+import { useAuthContext } from "@/components/providers/AuthProvider";
 import { toast } from "sonner";
 import { User, Mail, Lock, Loader2, ArrowRight } from "lucide-react";
 
 export default function RegisterForm() {
   const router = useRouter();
+  const { isAuthenticated, isPending, role } = useAuthContext();
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // If already authenticated, inform the user and redirect to their role dashboard
+  React.useEffect(() => {
+    if (!isPending && isAuthenticated) {
+      toast.info("You are already logged in!", {
+        description: "Redirecting you to your dashboard...",
+      });
+      const target =
+        role === "mentor"
+          ? "/mentor"
+          : role === "admin"
+            ? "/admin"
+            : "/dashboard";
+      router.replace(target);
+    }
+  }, [isPending, isAuthenticated, role, router]);
 
   const {
     register,

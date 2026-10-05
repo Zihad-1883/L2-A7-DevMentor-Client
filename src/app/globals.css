@@ -7,29 +7,27 @@
   --surface-raised: #f5f4ef;
   --border: #e8e4df;
   --border-strong: #d5cfc7;
-  
+
   --text-primary: #1a1714;
   --text-secondary: #4a443e;
   --text-muted: #6b6560;
-  
-  /* Primary & Accent Palettes (Rich Rust / Burnt Amber-Red from HTML mockup #b45309, #903f00) */
+
   --amber: #b45309;
   --amber-hover: #903f00;
   --amber-light: #ffdbca;
   --amber-50: #fff1eb;
-  
+
   --emerald: #006c4a;
   --emerald-hover: #005137;
   --emerald-light: #d1fae5;
-  
+
   --terracotta: #c2410c;
   --terracotta-hover: #9a3412;
   --terracotta-light: #ffedd5;
-  
+
   --orange: #c2410c;
   --orange-light: #ffedd5;
-  
-  /* Foreground default matching text-primary */
+
   --foreground: var(--text-primary);
 }
 
@@ -39,28 +37,28 @@
   --color-surface-raised: var(--surface-raised);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
-  
+
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
   --color-foreground: var(--foreground);
-  
+
   --color-amber: var(--amber);
   --color-amber-hover: var(--amber-hover);
   --color-amber-light: var(--amber-light);
   --color-amber-50: var(--amber-50);
-  
+
   --color-emerald: var(--emerald);
   --color-emerald-hover: var(--emerald-hover);
   --color-emerald-light: var(--emerald-light);
-  
+
   --color-terracotta: var(--terracotta);
   --color-terracotta-hover: var(--terracotta-hover);
   --color-terracotta-light: var(--terracotta-light);
-  
+
   --color-orange: var(--orange);
   --color-orange-light: var(--orange-light);
-  
+
   --font-sans: var(--font-body);
   --font-serif: var(--font-serif);
   --font-display: var(--font-serif);

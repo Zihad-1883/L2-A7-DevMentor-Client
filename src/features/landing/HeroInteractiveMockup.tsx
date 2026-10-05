@@ -339,7 +339,7 @@ export default function HeroInteractiveMockup({
             <span className="font-semibold text-text-primary">Allow</span>() bool &#123;
           </div>
           <div className="text-terracotta pl-4 opacity-95">
-            // Race condition under concurrent requests
+            {"// Race condition under concurrent requests"}
           </div>
           <div className="pl-4">
             <span className="text-amber font-semibold">return</span> atomic.AddInt64(&amp;rl.tokens, -1) &gt;= 0

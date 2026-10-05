@@ -12,6 +12,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import SmartEnrollButton from "@/features/cohort/SmartEnrollButton";
 import type { CohortItem } from "@/services/cohort.service";
 
 async function getCohortDetails(id: string): Promise<CohortItem | null> {
@@ -186,14 +187,7 @@ export default async function CohortDetailPage({
 
               {/* Action Buttons */}
               <div className="space-y-3">
-                <Link href="/register" className="w-full block">
-                  <Button
-                    size="lg"
-                    className="w-full bg-amber text-white hover:bg-amber-hover font-semibold shadow-md py-6 text-sm cursor-pointer"
-                  >
-                    Enroll Now · {cohort.totalCost} Credits
-                  </Button>
-                </Link>
+                <SmartEnrollButton cohortId={cohort.id} totalCost={cohort.totalCost} />
               </div>
 
               <div className="mt-5 flex items-center justify-center gap-2 text-center text-xs text-text-muted">

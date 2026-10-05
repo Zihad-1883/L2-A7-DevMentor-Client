@@ -528,20 +528,20 @@ export default async function HomePage() {
                     1-on-1 Sprint Session
                   </span>
                   <div className="mt-4 flex items-baseline gap-2">
-                    <span className="font-serif text-4xl font-bold text-text-primary">25</span>
-                    <span className="text-sm font-semibold text-amber">Credits</span>
+                    <span className="font-serif text-4xl font-bold text-text-primary">50</span>
+                    <span className="text-sm font-semibold text-amber">Credits / session</span>
                   </div>
                   <div className="text-xs text-text-muted mt-1 font-medium">
-                    = 100 BDT equivalent
+                    = 200 BDT equivalent (~400 CR for 8 sessions)
                   </div>
                   <ul className="mt-6 space-y-2.5 text-xs text-text-secondary">
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="size-3.5 text-emerald shrink-0" />
-                      <span>45-minute live screen share</span>
+                      <span>Dedicated 1-on-1 live screen share &amp; code review</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="size-3.5 text-emerald shrink-0" />
-                      <span>Interactive pair debugging</span>
+                      <span>Interactive pair debugging &amp; architecture guidance</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="size-3.5 text-emerald shrink-0" />

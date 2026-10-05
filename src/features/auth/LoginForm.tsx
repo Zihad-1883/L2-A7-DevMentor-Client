@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "@/lib/auth-client";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth.schema";
 import { Button } from "@/components/ui/button";
+import { useAuthContext } from "@/components/providers/AuthProvider";
 import DemoLoginButtons from "./DemoLoginButtons";
 import { toast } from "sonner";
 import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
@@ -16,8 +17,27 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo");
+  const { user, isAuthenticated, isPending, role } = useAuthContext();
 
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // If already authenticated, inform the user and redirect to their role dashboard
+  React.useEffect(() => {
+    if (!isPending && isAuthenticated) {
+      toast.info("You are already logged in!", {
+        description: "Redirecting you to your dashboard...",
+      });
+      const target =
+        redirectTo && redirectTo.startsWith(`/${role === "student" ? "dashboard" : role}`)
+          ? redirectTo
+          : role === "mentor"
+          ? "/mentor"
+          : role === "admin"
+          ? "/admin"
+          : "/dashboard";
+      router.replace(target);
+    }
+  }, [isPending, isAuthenticated, role, redirectTo, router]);
 
   const {
     register,

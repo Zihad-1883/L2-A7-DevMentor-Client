@@ -12,21 +12,21 @@
   --text-secondary: #4a443e;
   --text-muted: #6b6560;
   
-  /* Primary & Accent Palettes */
-  --amber: #d97706;
-  --amber-hover: #b45309;
-  --amber-light: #fef3c7;
-  --amber-50: #fffbeb;
+  /* Primary & Accent Palettes (Rich Rust / Burnt Amber-Red from HTML mockup #b45309, #903f00) */
+  --amber: #b45309;
+  --amber-hover: #903f00;
+  --amber-light: #ffdbca;
+  --amber-50: #fff1eb;
   
-  --emerald: #059669;
-  --emerald-hover: #047857;
+  --emerald: #006c4a;
+  --emerald-hover: #005137;
   --emerald-light: #d1fae5;
   
-  --terracotta: #dc6b4a;
-  --terracotta-hover: #b85032;
-  --terracotta-light: #fdeee9;
+  --terracotta: #c2410c;
+  --terracotta-hover: #9a3412;
+  --terracotta-light: #ffedd5;
   
-  --orange: #ea580c;
+  --orange: #c2410c;
   --orange-light: #ffedd5;
   
   /* Foreground default matching text-primary */

@@ -45,11 +45,8 @@ export default function LoginForm() {
       }
 
       toast.success("Welcome back to DevMentor!");
-      if (redirectTo) {
-        router.push(redirectTo);
-      } else {
-        router.push("/dashboard");
-      }
+      const targetUrl = redirectTo || "/dashboard";
+      window.location.assign(targetUrl);
     } catch {
       toast.error("Failed to sign in. Please verify your connection.");
     } finally {

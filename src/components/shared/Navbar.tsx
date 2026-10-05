@@ -4,8 +4,9 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Coins, User as UserIcon } from "lucide-react";
+import { Menu, X, Coins, User as UserIcon, LogOut } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -44,8 +45,8 @@ export default function Navbar() {
                   key={link.href}
                   href={link.href}
                   className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${isActive
-                      ? "text-text-primary bg-surface-raised font-semibold"
-                      : "text-text-muted hover:text-text-primary hover:bg-surface-raised/60"
+                    ? "text-text-primary bg-surface-raised font-semibold"
+                    : "text-text-muted hover:text-text-primary hover:bg-surface-raised/60"
                     }`}
                 >
                   {link.label}
@@ -55,23 +56,53 @@ export default function Navbar() {
           </nav>
         </div>
 
-        <div className="hidden sm:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-3">
           {isAuthenticated ? (
             <>
-              <Link
-                href="/dashboard/wallet"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-raised text-amber text-xs font-medium border border-border/50 hover:border-amber/40 transition-colors"
-              >
-                <Coins className="size-3.5 text-amber" />
-                <span className="font-semibold text-text-primary">Credits</span>
-              </Link>
+              {/* User Avatar + Profile / Logout */}
+              <div className="flex items-center gap-2 pl-2 border-l border-border/80">
+                <Link
+                  href={getDashboardHref()}
+                  className="flex items-center gap-2 group hover:opacity-90 transition-opacity"
+                  title={user?.name || "User Profile"}
+                >
+                  {user?.image ? (
+                    <img
+                      src={user.image}
+                      alt={user.name || "User"}
+                      className="size-9 rounded-full object-cover border border-border shadow-xs"
+                    />
+                  ) : (
+                    <div className="size-9 rounded-full bg-amber-light text-amber font-serif font-bold text-xs flex items-center justify-center border border-amber/30 shadow-xs group-hover:scale-105 transition-transform">
+                      {user?.name
+                        ? user.name
+                          .split(" ")
+                          .map((p) => p[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()
+                        : "DM"}
+                    </div>
+                  )}
+                </Link>
 
-              <Link href={getDashboardHref()}>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <UserIcon className="size-4 text-amber" />
-                  <span>Dashboard</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      localStorage.removeItem("devmentor_cached_role");
+                    } catch {}
+                    await signOut();
+                    window.location.assign("/login");
+                  }}
+                  className="h-8 px-2.5 text-xs text-text-muted hover:text-orange hover:bg-surface-raised gap-1.5 cursor-pointer"
+                  title="Sign Out"
+                >
+                  <LogOut className="size-3.5" />
+                  <span className="hidden md:inline">Logout</span>
                 </Button>
-              </Link>
+              </div>
             </>
           ) : (
             <>
@@ -114,11 +145,53 @@ export default function Navbar() {
           ))}
           <div className="pt-3 border-t border-border flex flex-col gap-2">
             {isAuthenticated ? (
-              <Link href={getDashboardHref()} onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="default" className="w-full">
-                  Go to Dashboard
+              <>
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-surface-raised mb-2">
+                  {user?.image ? (
+                    <img
+                      src={user.image}
+                      alt={user.name || "User"}
+                      className="size-10 rounded-full object-cover border border-border"
+                    />
+                  ) : (
+                    <div className="size-10 rounded-full bg-amber-light text-amber font-serif font-bold text-sm flex items-center justify-center border border-amber/30">
+                      {user?.name
+                        ? user.name
+                          .split(" ")
+                          .map((p) => p[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()
+                        : "DM"}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-text-primary truncate">{user?.name || "DevMentor Member"}</p>
+                    <p className="text-xs text-text-muted truncate capitalize">{role || "Member"}</p>
+                  </div>
+                </div>
+
+                <Link href={getDashboardHref()} onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="default" className="w-full">
+                    Go to Dashboard
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      localStorage.removeItem("devmentor_cached_role");
+                    } catch {}
+                    setMobileMenuOpen(false);
+                    await signOut();
+                    window.location.assign("/login");
+                  }}
+                  className="w-full border-border text-orange hover:bg-surface-raised gap-2"
+                >
+                  <LogOut className="size-4" />
+                  <span>Logout</span>
                 </Button>
-              </Link>
+              </>
             ) : (
               <>
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}>

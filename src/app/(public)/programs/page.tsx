@@ -1,4 +1,6 @@
-// Public programs directory page (Server Component)
+// Redirect /programs to /cohorts or export ProgramsPage
+import { redirect } from "next/navigation";
+
 export default function ProgramsPage() {
-  return null;
+  redirect("/cohorts");
 }

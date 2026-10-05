@@ -33,7 +33,7 @@ export default function AuthProvider({
       isPending,
       error: error ? new Error(error.message || "Authentication error") : null,
       isAuthenticated: Boolean(user),
-      role: user?.role || null,
+      role: (user?.role ? String(user.role).toLowerCase() : null) as AuthUser["role"] | null,
       refetch: async () => {
         await refetch();
       },

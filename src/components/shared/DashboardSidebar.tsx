@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { signOut } from "@/lib/auth-client";
 import { useUiStore } from "@/store/ui.store";
 import {
   LayoutDashboard,
@@ -135,8 +136,8 @@ export default function DashboardSidebar() {
                     if (window.innerWidth < 1024) setSidebarOpen(false);
                   }}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition-all ${isActive
-                      ? "bg-amber-light text-amber-hover font-semibold border-l-4 border-amber shadow-xs"
-                      : "text-text-muted hover:bg-surface-raised hover:text-text-primary font-medium"
+                    ? "bg-amber-light text-amber-hover font-semibold border-l-4 border-amber shadow-xs"
+                    : "text-text-muted hover:bg-surface-raised hover:text-text-primary font-medium"
                     }`}
                 >
                   <Icon
@@ -168,13 +169,21 @@ export default function DashboardSidebar() {
               </div>
             </div>
 
-            <Link
-              href={role === "admin" ? "/admin/settings" : role === "mentor" ? "/mentor/profile" : "/dashboard/profile"}
-              className="p-1.5 text-text-muted hover:text-text-primary rounded-lg hover:bg-surface-raised transition-colors shrink-0"
-              aria-label="Settings"
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  localStorage.removeItem("devmentor_cached_role");
+                } catch {}
+                await signOut();
+                window.location.assign("/login");
+              }}
+              className="p-2 text-text-muted hover:text-orange rounded-lg hover:bg-surface-raised transition-colors shrink-0 cursor-pointer"
+              title="Sign Out"
+              aria-label="Sign Out"
             >
-              <Settings className="size-4" />
-            </Link>
+              <LogOut className="size-4" />
+            </button>
           </div>
         </div>
       </aside>

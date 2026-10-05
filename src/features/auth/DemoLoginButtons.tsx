@@ -61,18 +61,24 @@ export default function DemoLoginButtons({ onSuccess }: DemoLoginButtonsProps) {
         return;
       }
 
+      try {
+        localStorage.setItem("devmentor_cached_role", acc.role);
+      } catch {}
+
       toast.success(`Welcome back! Signed in as ${acc.label}`);
       if (onSuccess) onSuccess();
 
       const searchParams = new URLSearchParams(window.location.search);
       const redirectTo = searchParams.get("redirectTo");
-      if (redirectTo && redirectTo.startsWith(`/${acc.role === "student" ? "dashboard" : acc.role}`)) {
-        router.push(redirectTo);
-      } else {
-        router.push(acc.redirect);
-      }
-    } catch {
-      toast.error("Network error during demo login. Please check server.");
+      const targetUrl =
+        redirectTo && redirectTo.startsWith(`/${acc.role === "student" ? "dashboard" : acc.role}`)
+          ? redirectTo
+          : acc.redirect;
+
+      window.location.assign(targetUrl);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : null;
+      toast.error(msg || "Network error during demo login. Please check server.");
     } finally {
       setLoadingRole(null);
     }

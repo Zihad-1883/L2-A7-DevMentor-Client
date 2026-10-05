@@ -1,4 +1,10 @@
-// Public program detail page (Server Component)
-export default function ProgramDetailPage() {
-  return null;
+import { redirect } from "next/navigation";
+
+export default async function ProgramDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  redirect(`/cohorts/${id}`);
 }

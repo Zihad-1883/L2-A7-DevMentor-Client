@@ -140,10 +140,10 @@ export default async function CohortsPage() {
                         <span className="font-serif text-lg font-bold text-text-primary">
                           {cohort.totalCost}
                         </span>
-                        <span className="text-xs font-semibold text-amber">Credits</span>
+                        <span className="text-xs font-semibold text-amber">Credits Est.</span>
                       </div>
                       <p className="text-[11px] text-text-muted">
-                        {cohort.durationWeeks} Weeks Intensive · Mentor-Led
+                        Free Enrollment · ~{Math.round(cohort.totalCost / (cohort.durationWeeks * 2 || 12))} CR/session
                       </p>
                     </div>
 

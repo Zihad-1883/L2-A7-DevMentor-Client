@@ -30,30 +30,31 @@ export default function HeroInteractiveMockup({
   initialSprint,
 }: HeroInteractiveMockupProps) {
   const { role, isAuthenticated, isPending } = useAuthContext();
-
-  // Read cached role synchronously from localStorage if available to avoid flash on refresh
-  const [cachedRole, setCachedRole] = React.useState<string | null>(() => {
-    if (typeof window !== "undefined") {
+  // Subscribe to localStorage cleanly with useSyncExternalStore without cascading renders or useEffect setState
+  const cachedRole = React.useSyncExternalStore(
+    (onStoreChange) => {
+      window.addEventListener("storage", onStoreChange);
+      return () => window.removeEventListener("storage", onStoreChange);
+    },
+    () => {
       try {
         return localStorage.getItem("devmentor_cached_role");
       } catch {
         return null;
       }
-    }
-    return null;
-  });
+    },
+    () => null // Server snapshot
+  );
 
   React.useEffect(() => {
     if (!isPending) {
       if (isAuthenticated && role) {
         try {
           localStorage.setItem("devmentor_cached_role", role);
-          setCachedRole(role);
         } catch { }
       } else if (!isAuthenticated) {
         try {
           localStorage.removeItem("devmentor_cached_role");
-          setCachedRole(null);
         } catch { }
       }
     }
@@ -360,7 +361,9 @@ export default function HeroInteractiveMockup({
               </span>
             </div>
             <p className="text-xs text-text-secondary leading-snug">
-              &quot;Use atomic operations here to avoid mutex lock overhead on hot request paths. Benchmarks show a <strong className="text-amber">4.2x throughput increase</strong>! Let&apos;s review this in our call.&quot;
+              {'"Use atomic operations here to avoid mutex lock overhead on hot request paths. Benchmarks show a '}
+              <strong className="text-amber">4.2x throughput increase</strong>
+              {'! Let\'s review this in our call."'}
             </p>
           </div>
         </div>

@@ -2,9 +2,17 @@ import { authClient } from "./auth-client";
 import type { ApiResponse, ApiErrorResponse } from "@/types/api.types";
 
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const BASE_URL = RAW_API_URL.endsWith("/api/v1")
+const BACKEND_BASE_URL = RAW_API_URL.endsWith("/api/v1")
   ? RAW_API_URL
   : `${RAW_API_URL.replace(/\/+$/, "")}/api/v1`;
+
+// When running in the browser, route through the local Next.js proxy (/api/proxy)
+// so that HTTP cookies (better-auth session tokens) are automatically attached by the browser.
+// On the server side (SSR / Server Components), call the backend directly.
+const BASE_URL =
+  typeof window !== "undefined"
+    ? "/api/proxy"
+    : BACKEND_BASE_URL;
 
 export class ApiError extends Error {
   statusCode: number;
@@ -51,7 +59,7 @@ async function request<T>(
     const sessionResult = await authClient.getSession();
     token = sessionResult?.data?.session?.token;
   } catch {
-
+    // ignore
   }
 
   const reqHeaders: Record<string, string> = {
@@ -61,6 +69,7 @@ async function request<T>(
   };
 
   const response = await fetch(url, {
+    credentials: "include",
     ...restOptions,
     headers: reqHeaders,
   });

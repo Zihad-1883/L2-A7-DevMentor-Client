@@ -525,6 +525,15 @@ export default function HowItWorksPage() {
                   Find a Mentor
                 </Button>
               </Link>
+              <Link href="/apply-mentor">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="bg-white/10 text-white hover:bg-white/20 border-white/30 font-bold rounded-full px-8 shadow-md cursor-pointer"
+                >
+                  Apply as a Mentor
+                </Button>
+              </Link>
               <SmartAuthButton
                 size="lg"
                 className="bg-text-primary text-white hover:bg-black font-bold rounded-full px-8 border border-white/20 shadow-md cursor-pointer"

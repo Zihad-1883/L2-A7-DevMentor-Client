@@ -50,5 +50,5 @@ export const cohortService = {
     apiClient.get<CohortItem>(`/cohorts/${id}`),
 
   enrollInCohort: (id: string) =>
-    apiClient.post(`/cohorts/${id}/enroll`),
+    apiClient.post(`/cohorts/${id}/register`),
 };

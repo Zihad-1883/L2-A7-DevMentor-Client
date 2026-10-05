@@ -103,13 +103,29 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL(target, req.url));
   }
 
-  // 4. Guard /mentor/* (Requires mentor)
+  // 4. Guard /apply-mentor (Student-only page: requires auth + student role)
+  if (pathname === "/apply-mentor" || pathname.startsWith("/apply-mentor/")) {
+    if (!user) {
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("redirectTo", "/apply-mentor");
+      return NextResponse.redirect(loginUrl);
+    }
+    if (role === "mentor") {
+      return NextResponse.redirect(new URL("/mentor", req.url));
+    }
+    if (role === "admin") {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 5. Guard /mentor/* (Requires mentor)
   if (isMentorRoute && role !== "mentor") {
     const target = ROLE_DEFAULT_ROUTES[role] || "/";
     return NextResponse.redirect(new URL(target, req.url));
   }
 
-  // 5. Guard /admin/* (Requires admin)
+  // 6. Guard /admin/* (Requires admin)
   if (isAdminRoute && role !== "admin") {
     const target = ROLE_DEFAULT_ROUTES[role] || "/";
     return NextResponse.redirect(new URL(target, req.url));
@@ -120,6 +136,7 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
+    "/apply-mentor",
     "/dashboard/:path*",
     "/mentor/:path*",
     "/admin/:path*",

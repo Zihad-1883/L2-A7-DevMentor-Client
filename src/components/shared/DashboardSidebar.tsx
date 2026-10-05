@@ -23,6 +23,7 @@ import {
   X,
   LogOut,
   FolderGit2,
+  Sparkles,
 } from "lucide-react";
 
 interface NavItem {
@@ -149,6 +150,24 @@ export default function DashboardSidebar() {
               );
             })}
           </nav>
+
+          {/* Become a Mentor Prompt for Students */}
+          {role === "student" && (
+            <div className="p-4 mx-3 mb-2 rounded-2xl bg-amber-light/40 border border-amber/20 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber">
+                <Sparkles className="size-3.5" />
+                <span>Want to Mentor?</span>
+              </div>
+              <p className="text-[11px] text-text-secondary leading-relaxed">
+                Senior engineers can host cohorts, review PRs, and earn cash-out credits.
+              </p>
+              <Link href="/apply-mentor" className="block pt-1">
+                <span className="text-xs font-bold text-amber hover:underline inline-flex items-center gap-1">
+                  Apply as Mentor →
+                </span>
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="p-4 border-t border-border/60 bg-surface-raised/40">

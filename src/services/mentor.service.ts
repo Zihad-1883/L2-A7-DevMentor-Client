@@ -38,6 +38,14 @@ export interface MentorQueryFilters {
   search?: string;
 }
 
+export interface MentorApplicationInput {
+  bio: string;
+  techStackTags: string[];
+  experienceLevel: "JUNIOR" | "MID" | "SENIOR";
+  githubUrl?: string | null;
+  resumeUrl: string;
+}
+
 export const mentorService = {
   getApprovedMentors: (filters: MentorQueryFilters = {}) =>
     apiClient.get<MentorsResponseData>("/mentors", {
@@ -46,4 +54,7 @@ export const mentorService = {
 
   getMentorById: (id: string) =>
     apiClient.get<MentorProfileItem>(`/mentors/${id}`),
+
+  applyForMentor: (payload: MentorApplicationInput) =>
+    apiClient.post<MentorProfileItem>("/mentors/apply", payload),
 };

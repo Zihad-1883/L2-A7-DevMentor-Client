@@ -33,9 +33,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${plusJakartaSans.variable} ${literata.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-text-primary font-sans">
+      <body
+        suppressHydrationWarning
+        className="min-h-full flex flex-col bg-background text-text-primary font-sans"
+      >
         <QueryProvider>
           <AuthProvider>
             <ToastProvider>{children}</ToastProvider>

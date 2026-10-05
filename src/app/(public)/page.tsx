@@ -185,11 +185,11 @@ export default async function HomePage() {
                     <ArrowRight className="size-4" />
                   </Button>
                 </Link>
-                <Link href="/mentor/apply" className="w-full sm:w-auto">
+                <Link href="/apply-mentor" className="w-full sm:w-auto">
                   <Button
                     variant="outline"
                     size="lg"
-                    className="w-full sm:w-auto px-7 py-3.5 rounded-full font-semibold border-border bg-surface hover:bg-surface-raised"
+                    className="w-full sm:w-auto px-7 py-3.5 rounded-full font-semibold border-border bg-surface hover:bg-surface-raised cursor-pointer"
                   >
                     <span>Become a Mentor</span>
                   </Button>
@@ -628,11 +628,11 @@ export default async function HomePage() {
                     <ArrowRight className="size-4" />
                   </Button>
                 </Link>
-                <Link href="/mentor/apply">
+                <Link href="/apply-mentor">
                   <Button
                     size="lg"
                     variant="outline"
-                    className="h-12 px-8 rounded-full border-white/30 text-white bg-white/10 hover:bg-white/20 font-semibold"
+                    className="h-12 px-8 rounded-full border-white/30 text-white bg-white/10 hover:bg-white/20 font-semibold cursor-pointer"
                   >
                     <span>Apply as a Mentor</span>
                   </Button>

@@ -36,10 +36,10 @@ export default function MentorExamCalloutButton({
     // 3. If user is a student, show helpful toast message advising them only mentors can create exams
     toast.error("Only verified mentors can create and publish exams.", {
       description:
-        "Want to become a DevMentor instructor? Submit an application or explore mentorship opportunities.",
+        "Want to become a DevMentor instructor? Submit an application to get approved.",
       action: {
-        label: "Become a Mentor",
-        onClick: () => router.push("/mentors"),
+        label: "Apply as Mentor",
+        onClick: () => router.push("/apply-mentor"),
       },
       duration: 6000,
     });

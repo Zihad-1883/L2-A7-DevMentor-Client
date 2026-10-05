@@ -187,12 +187,25 @@ export default async function MentorsPage({
                 Verified Engineering Mentors
               </span>
             </div>
-            <h1 className="font-serif text-3xl sm:text-5xl font-bold text-text-primary tracking-tight mb-4">
-              Find Your Engineering Mentor
-            </h1>
-            <p className="text-base sm:text-lg text-text-secondary leading-relaxed">
-              Connect with senior engineers from top companies for intensive 1-on-1 sprint coaching, async code reviews, and architectural deep dives.
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+              <div>
+                <h1 className="font-serif text-3xl sm:text-5xl font-bold text-text-primary tracking-tight mb-3">
+                  Find Your Engineering Mentor
+                </h1>
+                <p className="text-base sm:text-lg text-text-secondary leading-relaxed">
+                  Connect with senior engineers from top companies for intensive 1-on-1 sprint coaching, async code reviews, and architectural deep dives.
+                </p>
+              </div>
+              <Link href="/apply-mentor" className="shrink-0">
+                <Button
+                  variant="outline"
+                  className="border-amber/40 text-amber hover:bg-amber-light font-semibold text-xs rounded-xl h-11 px-5 shadow-xs cursor-pointer gap-2"
+                >
+                  <Sparkles className="size-3.5" />
+                  <span>Apply as Mentor</span>
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>

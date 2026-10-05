@@ -60,7 +60,7 @@ export default function Footer() {
             <h3 className="text-xs font-bold uppercase tracking-wider text-text-primary">Mentors</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/mentor/apply" className="text-text-muted hover:text-text-primary transition-colors">
+                <Link href="/apply-mentor" className="text-text-muted hover:text-text-primary transition-colors">
                   Become a Mentor
                 </Link>
               </li>

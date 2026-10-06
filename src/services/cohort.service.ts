@@ -36,4 +36,25 @@ export const cohortService = {
       { params }
     );
   },
+
+  // Student / Member: Get sessions for a cohort
+  getCohortSessions: async (
+    cohortId: string
+  ): Promise<import("@/types/cohort.types").CohortSessionItem[]> => {
+    return await apiClient.get<import("@/types/cohort.types").CohortSessionItem[]>(
+      `/cohort-sessions/cohort/${cohortId}`
+    );
+  },
+
+  // Student: Join session with credits (unlock joinLink & resources)
+  joinCohortSession: async (
+    sessionId: string
+  ): Promise<{
+    message: string;
+    participant: unknown;
+    remainingBalance?: number;
+    session: import("@/types/cohort.types").CohortSessionItem;
+  }> => {
+    return await apiClient.post(`/cohort-sessions/${sessionId}/join`);
+  },
 };

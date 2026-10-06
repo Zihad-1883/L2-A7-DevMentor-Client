@@ -3,17 +3,36 @@
 export type CohortStatus = "DRAFT" | "PUBLISHED" | "COMPLETED" | "CANCELLED";
 export type CohortApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 
+export interface ICohortResourceItem {
+  id: string;
+  title: string;
+  type?: "FILE" | "LINK" | "NOTE" | "CODE_SNIPPET" | string;
+  url?: string | null;
+  publicId?: string | null;
+  fileSize?: number | null;
+  fileType?: string | null;
+  content?: string | null;
+  createdAt?: string;
+}
+
 export interface CohortSessionItem {
   id: string;
   cohortId?: string;
+  sessionNumber?: number;
+  dayNumber?: number;
   title: string;
   description?: string | null;
   scheduledAt: string;
   durationMinutes?: number;
+  creditCost?: number;
   meetingLink?: string | null;
   joinLink?: string | null;
   status: "PENDING" | "SCHEDULED" | "COMPLETED" | "CANCELLED";
   recordingUrl?: string | null;
+  hasAccess?: boolean;
+  resources?: ICohortResourceItem[] | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CohortItem {

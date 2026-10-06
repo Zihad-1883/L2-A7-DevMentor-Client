@@ -525,14 +525,14 @@ export default async function HomePage() {
                 </div>
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-amber">
-                    1-on-1 Sprint Session
+                    Foundation Sprint Pack (3 Sessions)
                   </span>
                   <div className="mt-4 flex items-baseline gap-2">
-                    <span className="font-serif text-4xl font-bold text-text-primary">50</span>
-                    <span className="text-sm font-semibold text-amber">Credits / session</span>
+                    <span className="font-serif text-4xl font-bold text-text-primary">150</span>
+                    <span className="text-sm font-semibold text-amber">Credits</span>
                   </div>
                   <div className="text-xs text-text-muted mt-1 font-medium">
-                    = 200 BDT equivalent (~400 CR for 8 sessions)
+                    = 600 BDT equivalent (50 CR / live session)
                   </div>
                   <ul className="mt-6 space-y-2.5 text-xs text-text-secondary">
                     <li className="flex items-center gap-2">
@@ -545,7 +545,7 @@ export default async function HomePage() {
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="size-3.5 text-emerald shrink-0" />
-                      <span>Escrow held until session complete</span>
+                      <span>Escrow held until each session completes</span>
                     </li>
                   </ul>
                 </div>

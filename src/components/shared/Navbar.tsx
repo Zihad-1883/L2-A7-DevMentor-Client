@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Coins, User as UserIcon, LogOut } from "lucide-react";
+import { Menu, X, Coins, User as UserIcon, LogOut, Sparkles } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -57,6 +57,16 @@ export default function Navbar() {
         </div>
 
         <div className="hidden lg:flex items-center gap-3">
+          {(!isAuthenticated || role === "student") && (
+            <Link
+              href="/apply-mentor"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary hover:text-amber hover:bg-surface-raised transition-colors flex items-center gap-1.5"
+            >
+              <Sparkles className="size-3 text-amber" />
+              Apply as Mentor
+            </Link>
+          )}
+
           {isAuthenticated ? (
             <>
               {/* User Avatar + Profile / Logout */}
@@ -176,6 +186,14 @@ export default function Navbar() {
                     Go to Dashboard
                   </Button>
                 </Link>
+                {role === "student" && (
+                  <Link href="/apply-mentor" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full border-amber/30 text-amber hover:bg-amber-light gap-1.5">
+                      <Sparkles className="size-3.5" />
+                      Apply as Mentor
+                    </Button>
+                  </Link>
+                )}
                 <Button
                   variant="outline"
                   onClick={async () => {

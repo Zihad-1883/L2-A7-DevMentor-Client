@@ -45,6 +45,7 @@ export default function DashboardSidebar() {
     { label: "Exams", href: "/dashboard/exams", icon: GraduationCap },
     { label: "Wallet", href: "/dashboard/wallet", icon: Wallet },
     { label: "Profile", href: "/dashboard/profile", icon: User },
+    { label: "Become Mentor", href: "/apply-mentor", icon: Sparkles },
   ];
 
   const mentorNavItems: NavItem[] = [

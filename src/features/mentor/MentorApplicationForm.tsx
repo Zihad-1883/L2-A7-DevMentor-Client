@@ -133,10 +133,11 @@ export default function MentorApplicationForm() {
         resumeUrl: resumeUrl.trim(),
       });
 
-      setSubmittedSuccess(true);
       toast.success("Application submitted successfully!", {
-        description: "An administrator will review your profile and verify your engineering experience.",
+        description: "Redirecting to your pending verification tracker...",
       });
+
+      router.push("/mentor/pending");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : null;
       toast.error(msg || "Failed to submit application. Please try again.");
@@ -160,12 +161,19 @@ export default function MentorApplicationForm() {
         <p className="text-sm text-text-secondary leading-relaxed">
           We have received your mentorship application. Our engineering team conducts review audits within 24-48 hours. Once approved, you will unlock full mentor access.
         </p>
-        <div className="pt-4 flex items-center justify-center gap-3">
+        <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
           <Button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/mentor/pending")}
             className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs"
           >
-            Return to Dashboard <ArrowRight className="size-3.5 ml-1.5" />
+            Track Status on /mentor/pending <ArrowRight className="size-3.5 ml-1.5" />
+          </Button>
+          <Button
+            onClick={() => router.push("/dashboard")}
+            variant="outline"
+            className="text-xs"
+          >
+            Return to Dashboard
           </Button>
         </div>
       </div>

@@ -119,10 +119,16 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 5. Guard /mentor/* (Requires mentor)
-  if (isMentorRoute && role !== "mentor") {
-    const target = ROLE_DEFAULT_ROUTES[role] || "/";
-    return NextResponse.redirect(new URL(target, req.url));
+  // 5. Guard /mentor/* (Requires mentor role, EXCEPT /mentor/pending which is for applicants awaiting approval)
+  if (isMentorRoute) {
+    if (pathname === "/mentor/pending") {
+      // Allow authenticated students or mentors to view pending status
+      return NextResponse.next();
+    }
+    if (role !== "mentor") {
+      const target = ROLE_DEFAULT_ROUTES[role] || "/";
+      return NextResponse.redirect(new URL(target, req.url));
+    }
   }
 
   // 6. Guard /admin/* (Requires admin)

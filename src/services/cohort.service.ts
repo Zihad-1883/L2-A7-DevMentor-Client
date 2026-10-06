@@ -1,66 +1,39 @@
 import { apiClient } from "@/lib/api-client";
+import type {
+  CohortItem,
+  CohortsResponseData,
+  GetEnrolledCohortsResponse,
+} from "@/types/cohort.types";
 
-export interface CohortItem {
-  id: string;
-  mentorId: string;
-  title: string;
-  description: string;
-  durationWeeks: number;
-  capacity: number;
-  totalCost: number;
-  techStackTags: string[];
-  approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
-  status: "DRAFT" | "PUBLISHED" | "COMPLETED" | "CANCELLED";
-  createdAt: string;
-  mentor: {
-    id: string;
-    name: string;
-    email: string;
-    image?: string | null;
-    mentorProfile?: {
-      id: string;
-      bio: string;
-      techStackTags: string[] | string;
-      experienceLevel: string;
-      githubUrl?: string | null;
-      resumeUrl?: string | null;
-    };
-  };
-  _count?: {
-    enrollments: number;
-    sessions: number;
-  };
-}
-
-export interface CohortsResponseData {
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  cohorts: CohortItem[];
-}
+export type { CohortItem, CohortsResponseData, GetEnrolledCohortsResponse };
 
 export const cohortService = {
-  getAllPublishedCohorts: (params?: Record<string, string | number | boolean | null | undefined>) =>
-    apiClient.get<CohortsResponseData>("/cohorts", { params }),
+  // Public: Get all published approved cohorts
+  getAllPublishedCohorts: async (
+    params?: Record<string, string | number | boolean | null | undefined>
+  ): Promise<CohortsResponseData> => {
+    return await apiClient.get<CohortsResponseData>("/cohorts", { params });
+  },
 
-  getCohortById: (id: string) =>
-    apiClient.get<CohortItem>(`/cohorts/${id}`),
+  // Public / Student / Mentor: Get single cohort by ID
+  getCohortById: async (id: string): Promise<CohortItem> => {
+    return await apiClient.get<CohortItem>(`/cohorts/${id}`);
+  },
 
-  enrollInCohort: (id: string) =>
-    apiClient.post(`/cohorts/${id}/register`),
+  // Student: Register / enroll in cohort
+  enrollInCohort: async (
+    id: string
+  ): Promise<{ message: string; enrollment: unknown }> => {
+    return await apiClient.post(`/cohorts/${id}/register`);
+  },
 
-  getMyEnrolledCohorts: (params?: Record<string, string | number | boolean | null | undefined>) =>
-    apiClient.get<{
-      enrollments: Array<{
-        id: string;
-        cohortId: string;
-        enrolledAt: string;
-        cohort: CohortItem;
-      }>;
-      meta: { total: number };
-    }>("/enrollments/my-cohorts", { params }),
+  // Student: Get my enrolled cohorts
+  getMyEnrolledCohorts: async (
+    params?: Record<string, string | number | boolean | null | undefined>
+  ): Promise<GetEnrolledCohortsResponse> => {
+    return await apiClient.get<GetEnrolledCohortsResponse>(
+      "/enrollments/my-cohorts",
+      { params }
+    );
+  },
 };
-

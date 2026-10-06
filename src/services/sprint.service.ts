@@ -1,32 +1,17 @@
 import { apiClient } from "@/lib/api-client";
+import type {
+  SprintRequestItem,
+  SprintSessionItem,
+  CreateSprintInput,
+  UpdateSprintInput,
+} from "@/types/sprint.types";
 
-export interface SprintSessionItem {
-  id: string;
-  dayNumber: number;
-  scheduledAt: string;
-  status: "PENDING" | "COMPLETED" | "CANCELLED";
-}
-
-export interface SprintRequestItem {
-  id: string;
-  studentId: string;
-  mentorId?: string | null;
-  title: string;
-  description: string;
-  techStackTags: string[];
-  startDate: string;
-  durationDays: number;
-  selectedDays: number[];
-  status: "PENDING_CLAIM" | "ACTIVE" | "COMPLETED" | "CANCELLED";
-  createdAt: string;
-  student: {
-    id: string;
-    name: string;
-    email: string;
-    image?: string | null;
-  };
-  sessions?: SprintSessionItem[];
-}
+export type {
+  SprintRequestItem,
+  SprintSessionItem,
+  CreateSprintInput,
+  UpdateSprintInput,
+};
 
 export interface SprintPoolResponseData {
   meta: {
@@ -39,19 +24,57 @@ export interface SprintPoolResponseData {
 }
 
 export const sprintService = {
-  getOpenSprintPool: (params?: Record<string, string | number | boolean | null | undefined>) =>
-    apiClient.get<SprintPoolResponseData>("/sprints/open-pool", { params }),
+  // Student: Create a new 1-on-1 sprint request
+  createSprintRequest: async (payload: CreateSprintInput): Promise<SprintRequestItem> => {
+    return await apiClient.post<SprintRequestItem>("/sprints", payload);
+  },
 
-  getUserSprints: () =>
-    apiClient.get<SprintRequestItem[]>("/sprints/my-sprints"),
+  // Student / Mentor: Get student's or mentor's sprints
+  getUserSprints: async (): Promise<SprintRequestItem[]> => {
+    return await apiClient.get<SprintRequestItem[]>("/sprints/my-sprints");
+  },
 
-  getMyEnrolledSprints: (params?: Record<string, string | number | boolean | null | undefined>) =>
-    apiClient.get<{ sprints: SprintRequestItem[]; meta: { total: number } }>("/enrollments/my-sprints", { params }),
+  // Student: Get enrolled sprints
+  getMyEnrolledSprints: async (
+    params?: Record<string, string | number | boolean | null | undefined>
+  ): Promise<{ sprints: SprintRequestItem[]; meta: { total: number } }> => {
+    return await apiClient.get<{ sprints: SprintRequestItem[]; meta: { total: number } }>(
+      "/enrollments/my-sprints",
+      { params }
+    );
+  },
 
-  getSprintById: (sprintId: string) =>
-    apiClient.get<SprintRequestItem>(`/sprints/${sprintId}`),
+  // Student / Mentor: Get single sprint by ID
+  getSprintById: async (sprintId: string): Promise<SprintRequestItem> => {
+    return await apiClient.get<SprintRequestItem>(`/sprints/${sprintId}`);
+  },
 
-  claimSprint: (sprintId: string) =>
-    apiClient.post<{ sprint: SprintRequestItem; message: string }>(`/sprints/${sprintId}/claim`),
+  // Student: Update sprint details before it gets claimed
+  updateSprint: async (
+    sprintId: string,
+    payload: UpdateSprintInput
+  ): Promise<SprintRequestItem> => {
+    return await apiClient.patch<SprintRequestItem>(`/sprints/${sprintId}`, payload);
+  },
+
+  // Student: Delete / cancel sprint before it gets claimed
+  deleteSprint: async (sprintId: string): Promise<{ message: string }> => {
+    return await apiClient.delete<{ message: string }>(`/sprints/${sprintId}`);
+  },
+
+  // Mentor: Get open sprint pool to claim
+  getOpenSprintPool: async (
+    params?: Record<string, string | number | boolean | null | undefined>
+  ): Promise<SprintPoolResponseData> => {
+    return await apiClient.get<SprintPoolResponseData>("/sprints/open-pool", { params });
+  },
+
+  // Mentor: Claim an open sprint request
+  claimSprint: async (
+    sprintId: string
+  ): Promise<{ sprint: SprintRequestItem; message: string }> => {
+    return await apiClient.post<{ sprint: SprintRequestItem; message: string }>(
+      `/sprints/${sprintId}/claim`
+    );
+  },
 };
-

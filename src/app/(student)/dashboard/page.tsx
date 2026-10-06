@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { useWallet } from "@/hooks/useWallet";
 import { useQuery } from "@tanstack/react-query";
-import { sprintService, type SprintRequestItem } from "@/services/sprint.service";
+import { sprintService, type SprintRequestItem, type SprintSessionItem } from "@/services/sprint.service";
 import { cohortService, type CohortItem } from "@/services/cohort.service";
 import { codeReviewService } from "@/services/code-review.service";
 import { examService } from "@/services/exam.service";
@@ -86,7 +86,7 @@ export default function StudentDashboardPage() {
   // Collect scheduled upcoming sprint sessions
   const upcomingSprintSessions = sprints
     .flatMap((s: SprintRequestItem) =>
-      (s.sessions || []).map((sess) => ({
+      (s.sessions || []).map((sess: SprintSessionItem) => ({
         ...sess,
         sprintTitle: s.title,
         sprintId: s.id,

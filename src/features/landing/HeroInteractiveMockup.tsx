@@ -138,7 +138,7 @@ export default function HeroInteractiveMockup({
               {(initialSprint?.techStackTags && initialSprint.techStackTags.length > 0
                 ? initialSprint.techStackTags
                 : ["Node.js", "TypeScript", "PostgreSQL", "System Design"]
-              ).map((tag) => (
+              ).map((tag: string) => (
                 <span
                   key={tag}
                   className="px-2.5 py-1 rounded-md bg-surface-raised text-text-secondary text-xs font-medium border border-border/80 group-hover:border-amber/30 transition-colors"

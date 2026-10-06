@@ -89,7 +89,7 @@ export default function SmartEnrollButton({
           <span>Processing Enrollment...</span>
         </>
       ) : (
-        <span>Enroll Now · {totalCost} Credits</span>
+        <span>Enroll Now ·  Nees {totalCost} Credits</span>
       )}
     </Button>
   );

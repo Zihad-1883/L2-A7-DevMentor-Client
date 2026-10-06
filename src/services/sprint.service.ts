@@ -45,9 +45,13 @@ export const sprintService = {
   getUserSprints: () =>
     apiClient.get<SprintRequestItem[]>("/sprints/my-sprints"),
 
+  getMyEnrolledSprints: (params?: Record<string, string | number | boolean | null | undefined>) =>
+    apiClient.get<{ sprints: SprintRequestItem[]; meta: { total: number } }>("/enrollments/my-sprints", { params }),
+
   getSprintById: (sprintId: string) =>
     apiClient.get<SprintRequestItem>(`/sprints/${sprintId}`),
 
   claimSprint: (sprintId: string) =>
     apiClient.post<{ sprint: SprintRequestItem; message: string }>(`/sprints/${sprintId}/claim`),
 };
+

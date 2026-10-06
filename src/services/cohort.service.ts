@@ -51,4 +51,16 @@ export const cohortService = {
 
   enrollInCohort: (id: string) =>
     apiClient.post(`/cohorts/${id}/register`),
+
+  getMyEnrolledCohorts: (params?: Record<string, string | number | boolean | null | undefined>) =>
+    apiClient.get<{
+      enrollments: Array<{
+        id: string;
+        cohortId: string;
+        enrolledAt: string;
+        cohort: CohortItem;
+      }>;
+      meta: { total: number };
+    }>("/enrollments/my-cohorts", { params }),
 };
+

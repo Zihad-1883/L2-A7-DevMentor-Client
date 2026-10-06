@@ -1,5 +1,3 @@
-// 1-on-1 sprint request & session TypeScript interfaces
-
 export type SprintStatus = "PENDING_CLAIM" | "ACTIVE" | "COMPLETED" | "CANCELLED";
 export type SprintSessionStatus = "PENDING" | "COMPLETED" | "CANCELLED";
 
@@ -17,6 +15,7 @@ export interface SprintRequestItem {
     id: string;
     studentId: string;
     mentorId?: string | null;
+    claimedByMentorId?: string | null;
     title: string;
     description: string;
     techStackTags: string[];
@@ -37,6 +36,16 @@ export interface SprintRequestItem {
         name: string;
         email?: string;
         image?: string | null;
+    } | null;
+    claimedByMentor?: {
+        id: string;
+        name: string;
+        email?: string;
+        image?: string | null;
+        mentorProfile?: {
+            title?: string | null;
+            hourlyRate?: number | null;
+        } | null;
     } | null;
     sessions?: SprintSessionItem[];
 }

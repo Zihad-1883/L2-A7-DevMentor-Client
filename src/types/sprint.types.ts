@@ -1,4 +1,4 @@
-export type SprintStatus = "PENDING_CLAIM" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+export type SprintStatus = "PENDING_CLAIM" | "CLAIMED" | "IN_PROGRESS" | "ACTIVE" | "COMPLETED" | "CANCELLED";
 export type SprintSessionStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
 
 export interface SprintSessionItem {

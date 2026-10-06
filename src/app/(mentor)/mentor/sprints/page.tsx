@@ -41,42 +41,43 @@ const TECH_STACK_FILTERS = [
 ];
 
 export default function MentorSprintPoolPage() {
-  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = React.useState<"claimed" | "pool">("claimed");
   const [selectedTag, setSelectedTag] = React.useState<string>("All");
   const [searchQuery, setSearchQuery] = React.useState<string>("");
-  const [claimingSprintId, setClaimingSprintId] = React.useState<string | null>(null);
 
-  // 1. Fetch Open Sprint Pool
-  const { data, isLoading, error, refetch } = useQuery({
+  // 1. Fetch Open Sprint Pool (Unclaimed requests)
+  const {
+    data: poolData,
+    isLoading: isPoolLoading,
+    error: poolError,
+    refetch: refetchPool,
+  } = useQuery({
     queryKey: ["mentor", "open-sprint-pool"],
     queryFn: () => sprintService.getOpenSprintPool({ limit: 50 }),
     staleTime: 1000 * 30,
   });
 
-  // 2. Claim Sprint Mutation
-  const claimMutation = useMutation({
-    mutationFn: (sprintId: string) => sprintService.claimSprint(sprintId),
-    onSuccess: (_, sprintId) => {
-      toast.success("Sprint claimed successfully! You can now conduct the sprint sessions.");
-      queryClient.invalidateQueries({ queryKey: ["mentor", "open-sprint-pool"] });
-      queryClient.invalidateQueries({ queryKey: ["mentor", "sprints"] });
-      queryClient.invalidateQueries({ queryKey: ["mentor", "dashboard-summary"] });
-      setClaimingSprintId(null);
-    },
-    onError: (err: Error) => {
-      toast.error(err.message || "Failed to claim sprint. It may have already been claimed.");
-      setClaimingSprintId(null);
-    },
+  // 2. Fetch Mentor's Claimed Sprints
+  const {
+    data: mySprintsData,
+    isLoading: isMySprintsLoading,
+    error: mySprintsError,
+    refetch: refetchMySprints,
+  } = useQuery({
+    queryKey: ["mentor", "my-sprints"],
+    queryFn: () => sprintService.getUserSprints(),
+    staleTime: 1000 * 30,
   });
 
-  const handleClaimSprint = (sprintId: string, sprintTitle: string) => {
-    if (confirm(`Are you sure you want to claim and lead "${sprintTitle}"?`)) {
-      setClaimingSprintId(sprintId);
-      claimMutation.mutate(sprintId);
-    }
-  };
+  const openPoolSprints: SprintRequestItem[] = poolData?.sprints || [];
+  const myClaimedSprints: SprintRequestItem[] = mySprintsData || [];
 
-  const rawSprints: SprintRequestItem[] = data?.sprints || [];
+  const rawSprints: SprintRequestItem[] =
+    activeTab === "claimed" ? myClaimedSprints : openPoolSprints;
+
+  const isLoading = activeTab === "claimed" ? isMySprintsLoading : isPoolLoading;
+  const error = activeTab === "claimed" ? mySprintsError : poolError;
+  const refetch = activeTab === "claimed" ? refetchMySprints : refetchPool;
 
   // Filter sprints by selected tag and search query
   const filteredSprints = React.useMemo(() => {
@@ -131,7 +132,32 @@ export default function MentorSprintPoolPage() {
         <div className="absolute -right-10 -bottom-10 size-40 bg-amber/10 rounded-full blur-2xl pointer-events-none" />
       </div>
 
-      {/* 2. Search & Tag Filter Bar */}
+      {/* 2. Primary Tab Switcher */}
+      <div className="flex border-b border-border/80 gap-6">
+        <button
+          type="button"
+          onClick={() => setActiveTab("claimed")}
+          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer ${activeTab === "claimed"
+            ? "text-amber border-b-2 border-amber"
+            : "text-text-muted hover:text-text-primary"
+            }`}
+        >
+          My Claimed Sprints ({myClaimedSprints.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("pool")}
+          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer ${activeTab === "pool"
+            ? "text-amber border-b-2 border-amber"
+            : "text-text-muted hover:text-text-primary"
+            }`}
+        >
+          Open Sprint Pool ({openPoolSprints.length})
+        </button>
+      </div>
+
+      {/* 3. Search & Tag Filter Bar */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           {/* Search Input */}
@@ -139,7 +165,11 @@ export default function MentorSprintPoolPage() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-text-muted" />
             <Input
               type="text"
-              placeholder="Search sprint requests by topic or student name..."
+              placeholder={
+                activeTab === "claimed"
+                  ? "Search your claimed sprints..."
+                  : "Search open sprint requests in pool..."
+              }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-10 text-sm bg-surface border-border rounded-xl"
@@ -147,7 +177,8 @@ export default function MentorSprintPoolPage() {
           </div>
 
           <div className="text-xs text-text-muted font-medium">
-            Showing <span className="font-bold text-text-primary">{filteredSprints.length}</span> open {filteredSprints.length === 1 ? "request" : "requests"}
+            Showing <span className="font-bold text-text-primary">{filteredSprints.length}</span>{" "}
+            {activeTab === "claimed" ? "claimed" : "open"} {filteredSprints.length === 1 ? "sprint" : "sprints"}
           </div>
         </div>
 
@@ -164,8 +195,8 @@ export default function MentorSprintPoolPage() {
                 type="button"
                 onClick={() => setSelectedTag(tag)}
                 className={`px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer ${isSelected
-                    ? "bg-amber text-white shadow-2xs"
-                    : "bg-surface-raised border border-border text-text-secondary hover:text-text-primary hover:border-border-strong"
+                  ? "bg-amber text-white shadow-2xs"
+                  : "bg-surface-raised border border-border text-text-secondary hover:text-text-primary hover:border-border-strong"
                   }`}
               >
                 {tag}
@@ -216,19 +247,18 @@ export default function MentorSprintPoolPage() {
           action={
             searchQuery || selectedTag !== "All"
               ? {
-                  label: "Reset Filters",
-                  onClick: () => {
-                    setSelectedTag("All");
-                    setSearchQuery("");
-                  },
-                }
+                label: "Reset Filters",
+                onClick: () => {
+                  setSelectedTag("All");
+                  setSearchQuery("");
+                },
+              }
               : undefined
           }
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {filteredSprints.map((sprint) => {
-            const isClaimingThis = claimingSprintId === sprint.id;
             const sessionsCount = sprint.sessions?.length || sprint.durationDays || 5;
 
             return (
@@ -291,27 +321,21 @@ export default function MentorSprintPoolPage() {
 
                 {/* Bottom Action Footer */}
                 <div className="pt-5 mt-5 border-t border-border/80 flex items-center justify-between gap-3">
-                  <Link
-                    href={`/mentor/sprints/${sprint.id}`}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text-primary transition-colors"
-                  >
-                    View Details <ChevronRight className="size-3.5" />
-                  </Link>
+                  <span className="text-xs text-text-muted">
+                    {activeTab === "claimed"
+                      ? "Claimed Mentorship Sprint"
+                      : "Unclaimed Student Request"}
+                  </span>
 
-                  <Button
-                    size="sm"
-                    disabled={isClaimingThis || claimMutation.isPending}
-                    onClick={() => handleClaimSprint(sprint.id, sprint.title)}
-                    className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-9 px-4 shadow-2xs gap-1.5 cursor-pointer"
-                  >
-                    {isClaimingThis ? (
-                      "Claiming..."
-                    ) : (
-                      <>
-                        <CheckCircle2 className="size-3.5" /> Claim Sprint
-                      </>
-                    )}
-                  </Button>
+                  <Link href={`/mentor/sprints/${sprint.id}`}>
+                    <Button
+                      size="sm"
+                      className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-9 px-4 shadow-2xs gap-1.5 cursor-pointer"
+                    >
+                      {activeTab === "claimed" ? "Manage Sprint" : "View Details & Claim"}{" "}
+                      <ArrowRight className="size-3.5" />
+                    </Button>
+                  </Link>
                 </div>
               </div>
             );

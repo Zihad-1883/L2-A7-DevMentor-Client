@@ -74,7 +74,9 @@ export default function MentorDashboardPage() {
   const openReviews = codeReviewsData?.requests || [];
   const openPoolSprints = openSprintsPoolData?.sprints || [];
 
-  const activeSprints = mySprints.filter((s) => s.status === "ACTIVE");
+  const activeSprints = mySprints.filter(
+    (s) => s.status === "CLAIMED" || s.status === "IN_PROGRESS" || s.status === "ACTIVE"
+  );
   const completedSprints = mySprints.filter((s) => s.status === "COMPLETED");
 
   const totalEarnedCredits = wallet?.totalEarned ?? 0;
@@ -166,13 +168,6 @@ export default function MentorDashboardPage() {
                 1-on-1 sprint coaching requests currently under your guidance.
               </p>
             </div>
-
-            <Link
-              href="/mentor/sprints"
-              className="text-xs font-semibold text-amber hover:underline flex items-center gap-1"
-            >
-              Browse All ({mySprints.length}) <ChevronRight className="size-3" />
-            </Link>
           </div>
 
           {isSprintsLoading ? (

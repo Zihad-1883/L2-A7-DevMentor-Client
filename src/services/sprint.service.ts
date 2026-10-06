@@ -77,7 +77,20 @@ export const sprintService = {
       `/sprints/${sprintId}/claim`
     );
   },
-
+  // Mentor: Propose time slot & meeting link for a sprint session
+  proposeSessionSlot: async (
+    sessionId: string,
+    payload: {
+      scheduledAt: string;
+      joinLink?: string;
+      durationMinutes?: number;
+    }
+  ): Promise<{ message: string; session: SprintSessionItem }> => {
+    return await apiClient.patch<{ message: string; session: SprintSessionItem }>(
+      `/sprint-sessions/${sessionId}/propose`,
+      payload
+    );
+  },
   // Student: Confirm proposed sprint session slot
   confirmSession: async (
     sessionId: string

@@ -1,42 +1,89 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ArrowLeft, Sparkles, ShieldCheck } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, ShieldCheck, Loader2, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import ExamAttemptEngine from "@/features/exam/ExamAttemptEngine";
 import { SEED_EXAMS } from "@/features/exam/seedExams";
+import { examService } from "@/services/exam.service";
 import type { Exam } from "@/types/exam.types";
 
-async function getExamForAttempt(id: string): Promise<Exam | null> {
-  const backendUrl =
-    process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "https://dev-mentor-server.vercel.app";
+export default function ExamAttemptPage() {
+  const params = useParams();
+  const examId = typeof params?.id === "string" ? params.id : "";
 
-  try {
-    const res = await fetch(`${backendUrl}/api/v1/exams/${id}`, {
-      next: { revalidate: 0 },
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json?.data) return json.data;
+  // 1. Check local seed exams
+  const localSeedExam = React.useMemo(() => {
+    return SEED_EXAMS.find((e) => e.id === examId) || null;
+  }, [examId]);
+
+  // 2. Query server for live DB exams via authenticated endpoint
+  const {
+    data: startAttemptData,
+    isLoading: isStartingAttempt,
+    error: startError,
+  } = useQuery({
+    queryKey: ["public", "start-exam", examId],
+    queryFn: async () => {
+      return await examService.startExamAttempt(examId);
+    },
+    enabled: Boolean(examId) && !localSeedExam,
+    retry: 1,
+    staleTime: 0,
+  });
+
+  const exam: Exam | null = React.useMemo(() => {
+    if (localSeedExam) return localSeedExam;
+    if (startAttemptData?.exam) {
+      return startAttemptData.exam;
     }
-  } catch {
-    // fallback
+    return null;
+  }, [localSeedExam, startAttemptData]);
+
+  if (!localSeedExam && isStartingAttempt) {
+    return (
+      <div className="w-full min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="size-8 text-amber animate-spin" />
+        <p className="text-sm font-semibold text-text-secondary">
+          Initializing assessment engine...
+        </p>
+      </div>
+    );
   }
 
-  const seed = SEED_EXAMS.find((e) => e.id === id);
-  return seed || null;
-}
-
-export default async function ExamAttemptPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const exam = await getExamForAttempt(id);
-
   if (!exam) {
-    notFound();
+    const errorMessage =
+      (startError as Error & { response?: { data?: { message?: string } } })
+        ?.response?.data?.message ||
+      (startError as Error)?.message ||
+      "This exam could not be loaded or requires student authentication.";
+
+    return (
+      <div className="w-full min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-surface border border-border shadow-xs text-center space-y-4">
+          <div className="size-14 rounded-2xl mx-auto flex items-center justify-center bg-orange-light text-orange">
+            <AlertTriangle className="size-7" />
+          </div>
+          <h2 className="font-serif text-2xl font-bold text-text-primary">
+            Unable to Start Exam
+          </h2>
+          <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
+            {errorMessage}
+          </p>
+
+          <div className="pt-4 flex items-center justify-center gap-3">
+            <Link href="/exams">
+              <Button variant="outline" className="text-xs border-border gap-1.5 cursor-pointer">
+                <ArrowLeft className="size-3.5" /> Back to Practice Catalog
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -58,7 +105,7 @@ export default async function ExamAttemptPage({
       </div>
 
       <div className="max-w-4xl mx-auto px-6 py-8 sm:py-12">
-        <ExamAttemptEngine exam={exam} />
+        <ExamAttemptEngine exam={exam} backHref={`/exams/${exam.id}`} />
       </div>
     </div>
   );

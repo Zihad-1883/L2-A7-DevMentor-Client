@@ -42,10 +42,25 @@ async function getExamDetails(id: string): Promise<Exam | null> {
     });
     if (res.ok) {
       const json = await res.json();
-      return json?.data || null;
+      if (json?.data) return json.data;
     }
   } catch {
-    // fallback to seed
+    // fallback
+  }
+
+  // Also try searching in general exams catalog
+  try {
+    const listRes = await fetch(`${backendUrl}/api/v1/exams?limit=50`, {
+      next: { revalidate: 60 },
+    });
+    if (listRes.ok) {
+      const listJson = await listRes.json();
+      const items: Exam[] = listJson?.data?.data || listJson?.data || [];
+      const matched = items.find((e) => e.id === id);
+      if (matched) return matched;
+    }
+  } catch {
+    // fallback
   }
 
   const seed = SEED_EXAMS.find((e) => e.id === id);

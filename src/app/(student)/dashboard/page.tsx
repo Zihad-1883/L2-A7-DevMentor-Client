@@ -33,11 +33,13 @@ import StatCard from "@/components/shared/StatCard";
 import StatusBadge from "@/components/shared/StatusBadge";
 import CreditDisplay from "@/components/shared/CreditDisplay";
 import EmptyState from "@/components/shared/EmptyState";
+import ExamAttemptDetailModal from "@/features/exam/ExamAttemptDetailModal";
 import { formatDate } from "@/lib/utils";
 
 export default function StudentDashboardPage() {
   const { user } = useAuthContext();
   const { balance, isLoading: isWalletLoading } = useWallet();
+  const [selectedAttempt, setSelectedAttempt] = React.useState<ExamAttempt | null>(null);
 
   // 1. Fetch Student Sprints
   const { data: sprintsData, isLoading: isSprintsLoading } = useQuery({
@@ -363,10 +365,11 @@ export default function StudentDashboardPage() {
                 {examAttempts.map((attempt: ExamAttempt) => (
                   <div
                     key={attempt.id}
-                    className="p-3.5 rounded-xl bg-surface-raised/70 border border-border/80 flex items-center justify-between gap-3"
+                    onClick={() => setSelectedAttempt(attempt)}
+                    className="p-3.5 rounded-xl bg-surface-raised/70 border border-border/80 flex items-center justify-between gap-3 hover:border-amber/40 hover:bg-surface-raised cursor-pointer transition-all group"
                   >
                     <div className="space-y-0.5">
-                      <span className="text-xs font-bold text-text-primary truncate block max-w-[170px]">
+                      <span className="text-xs font-bold text-text-primary group-hover:text-amber transition-colors truncate block max-w-[170px]">
                         {attempt.exam?.title || "MCQ Assessment"}
                       </span>
                       <span className="text-[11px] text-text-muted">
@@ -383,11 +386,14 @@ export default function StudentDashboardPage() {
                       >
                         {attempt.isPassed ? "PASSED" : "FAILED"}
                       </span>
-                      <Link href={`/exams/${attempt.examId}`}>
-                        <Button size="sm" variant="ghost" className="size-7 p-0 text-text-muted hover:text-text-primary">
-                          <ExternalLink className="size-3" />
-                        </Button>
-                      </Link>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="size-7 p-0 text-text-muted group-hover:text-amber"
+                        aria-label="View score report"
+                      >
+                        <ExternalLink className="size-3" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -409,6 +415,14 @@ export default function StudentDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Selected Exam Attempt Score Breakdown Modal */}
+      <ExamAttemptDetailModal
+        isOpen={Boolean(selectedAttempt)}
+        onClose={() => setSelectedAttempt(null)}
+        attempt={selectedAttempt}
+        allAttempts={examAttempts}
+      />
     </div>
   );
 }

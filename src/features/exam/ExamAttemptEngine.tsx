@@ -22,9 +22,11 @@ import type { Exam, Question } from "@/types/exam.types";
 
 interface ExamAttemptEngineProps {
   exam: Exam;
+  backHref?: string;
 }
 
-export default function ExamAttemptEngine({ exam }: ExamAttemptEngineProps) {
+export default function ExamAttemptEngine({ exam, backHref }: ExamAttemptEngineProps) {
+  const exitUrl = backHref || `/exams/${exam.id}`;
   const questions: Question[] = exam.questions || [];
   const [currentIdx, setCurrentIdx] = React.useState(0);
   const [selectedAnswers, setSelectedAnswers] = React.useState<
@@ -143,9 +145,9 @@ export default function ExamAttemptEngine({ exam }: ExamAttemptEngineProps) {
         <p className="text-sm text-text-secondary max-w-md mx-auto mb-6">
           The instructor has not added questions to this test track yet. Please check back shortly.
         </p>
-        <Link href={`/exams/${exam.id}`}>
+        <Link href={exitUrl}>
           <Button variant="outline" className="border-border">
-            <ArrowLeft className="size-4 mr-2" /> Back to Exam Overview
+            <ArrowLeft className="size-4 mr-2" /> Back
           </Button>
         </Link>
       </div>
@@ -161,7 +163,7 @@ export default function ExamAttemptEngine({ exam }: ExamAttemptEngineProps) {
       <div className="sticky top-24 z-20 bg-surface/95 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-border shadow-xs flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <Link
-            href={`/exams/${exam.id}`}
+            href={exitUrl}
             className="text-xs font-semibold text-text-muted hover:text-amber hidden sm:flex items-center gap-1"
           >
             <ArrowLeft className="size-3.5" /> Exit

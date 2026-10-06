@@ -77,4 +77,31 @@ export const sprintService = {
       `/sprints/${sprintId}/claim`
     );
   },
+
+  // Student: Confirm proposed sprint session slot
+  confirmSession: async (
+    sessionId: string
+  ): Promise<{ message: string; session: SprintSessionItem }> => {
+    return await apiClient.post<{ message: string; session: SprintSessionItem }>(
+      `/sprint-sessions/${sessionId}/confirm`
+    );
+  },
+
+  // Student / Mentor: Complete sprint session
+  completeSession: async (
+    sessionId: string
+  ): Promise<{ message: string; session: SprintSessionItem }> => {
+    return await apiClient.post<{ message: string; session: SprintSessionItem }>(
+      `/sprint-sessions/${sessionId}/complete`
+    );
+  },
+
+  // Student / Mentor: Cancel session
+  cancelSession: async (
+    sessionId: string
+  ): Promise<{ message: string; refundIssued: boolean; session: SprintSessionItem }> => {
+    return await apiClient.post<{ message: string; refundIssued: boolean; session: SprintSessionItem }>(
+      `/sprint-sessions/${sessionId}/cancel`
+    );
+  },
 };

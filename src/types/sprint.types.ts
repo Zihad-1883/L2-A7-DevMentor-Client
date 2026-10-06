@@ -1,12 +1,15 @@
 export type SprintStatus = "PENDING_CLAIM" | "ACTIVE" | "COMPLETED" | "CANCELLED";
-export type SprintSessionStatus = "PENDING" | "COMPLETED" | "CANCELLED";
+export type SprintSessionStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
 
 export interface SprintSessionItem {
     id: string;
     sprintId?: string;
     dayNumber: number;
     scheduledAt: string;
+    durationMinutes?: number;
+    joinLink?: string | null;
     meetingLink?: string | null;
+    creditCost?: number;
     status: SprintSessionStatus;
     notes?: string | null;
 }
@@ -36,6 +39,10 @@ export interface SprintRequestItem {
         name: string;
         email?: string;
         image?: string | null;
+        mentorProfile?: {
+            title?: string | null;
+            hourlyRate?: number | null;
+        } | null;
     } | null;
     claimedByMentor?: {
         id: string;

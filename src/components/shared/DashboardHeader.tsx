@@ -34,13 +34,13 @@ export default function DashboardHeader() {
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Credit Balance Widget (Students only) */}
-        {role === "student" && (
+        {/* Credit Balance Widget (Students & Mentors) */}
+        {(role === "student" || role === "mentor") && (
           <div className="flex items-center gap-2">
             <Link
-              href="/dashboard/wallet"
+              href={role === "mentor" ? "/mentor/earnings" : "/dashboard/wallet"}
               className="group flex items-center gap-2 hover:opacity-95 transition-opacity"
-              title="DevWallet Balance"
+              title={role === "mentor" ? "Mentor Earnings & Balance" : "DevWallet Balance"}
             >
               <CreditDisplay
                 credits={isWalletLoading ? 0 : balance}
@@ -50,9 +50,9 @@ export default function DashboardHeader() {
             </Link>
 
             <Link
-              href="/dashboard/wallet"
+              href={role === "mentor" ? "/mentor/earnings" : "/dashboard/wallet"}
               className="hidden sm:inline-flex items-center justify-center size-7 rounded-full bg-amber text-white hover:bg-amber-hover transition-colors shadow-2xs"
-              title="Top-up Credits"
+              title={role === "mentor" ? "Withdraw / Earnings" : "Top-up Credits"}
             >
               <Plus className="size-3.5" />
             </Link>

@@ -24,7 +24,7 @@ export interface UpdateUserProfilePayload {
   bio?: string;
 }
 
-export interface UserDashboardSummary {
+export interface StudentDashboardSummary {
   user: {
     id: string;
     name: string;
@@ -41,11 +41,32 @@ export interface UserDashboardSummary {
   };
 }
 
+export interface MentorDashboardSummary {
+  user: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  wallet: {
+    balance: number;
+    totalEarned: number;
+    totalWithdrawn: number;
+  };
+  summary: {
+    totalCohortsCreated: number;
+    totalSprintsClaimed: number;
+    createdCohorts: unknown[];
+    claimedSprints: unknown[];
+  };
+}
+
+export type UserDashboardSummary = StudentDashboardSummary | MentorDashboardSummary;
+
 export const userService = {
   getMyProfile: () => apiClient.get<UserProfileResponse>("/users/me"),
 
   updateMyProfile: (data: UpdateUserProfilePayload) =>
     apiClient.patch<UserProfileResponse>("/users/me", data),
 
-  getMyDashboard: () => apiClient.get<UserDashboardSummary>("/users/me/dashboard"),
+  getMyDashboard: <T = UserDashboardSummary>() => apiClient.get<T>("/users/me/dashboard"),
 };

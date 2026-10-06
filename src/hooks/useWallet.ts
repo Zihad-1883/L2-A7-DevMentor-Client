@@ -11,7 +11,7 @@ export function useWallet() {
   const query = useQuery({
     queryKey: queryKeys.wallet.me,
     queryFn: () => walletService.getMyWallet(),
-    enabled: isAuthenticated && role === "student",
+    enabled: isAuthenticated && (role === "student" || role === "mentor"),
     staleTime: 1000 * 30, // 30 seconds
     retry: 1,
   });

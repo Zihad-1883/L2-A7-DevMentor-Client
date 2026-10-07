@@ -27,6 +27,7 @@ import {
   Share2,
   ShieldCheck,
   Eye,
+  EyeOff,
   Layers,
   GraduationCap,
   Info,
@@ -35,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import StatusBadge from "@/components/shared/StatusBadge";
 import EmptyState from "@/components/shared/EmptyState";
+import ConfirmModal, { ConfirmVariant } from "@/components/shared/ConfirmModal";
 import CohortSessionCard from "@/features/cohort/CohortSessionCard";
 import { cohortService } from "@/services/cohort.service";
 import type {
@@ -68,6 +70,21 @@ export default function MentorCohortDetailPage() {
   const [sessionDuration, setSessionDuration] = React.useState<number>(60);
   const [sessionCreditCost, setSessionCreditCost] = React.useState<number>(0);
   const [sessionJoinLink, setSessionJoinLink] = React.useState("");
+
+  // Confirmation Modal State
+  const [confirmDialog, setConfirmDialog] = React.useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmLabel?: string;
+    variant?: ConfirmVariant;
+    onConfirm: () => void | Promise<void>;
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+    onConfirm: () => {},
+  });
 
   // Form states for Add Resource
   const [resTitle, setResTitle] = React.useState("");
@@ -111,6 +128,24 @@ export default function MentorCohortDetailPage() {
   const enrollmentsCount = cohort?._count?.enrollments ?? 0;
   const capacity = cohort?.capacity || 20;
 
+  // Credit Budget & Economics Calculations
+  const totalCohortBudget = cohort?.totalCost ?? 0;
+  const isFreeCohort = totalCohortBudget === 0;
+  const allocatedCredits = sessions.reduce((acc, s) => acc + (s.creditCost || 0), 0);
+  const remainingCredits = Math.max(0, totalCohortBudget - allocatedCredits);
+
+  // Maximum allowed credits for the active session (accounting for editing session's existing cost)
+  const maxAllowedForSession = isFreeCohort
+    ? 0
+    : editingSession
+    ? remainingCredits + (editingSession.creditCost || 0)
+    : remainingCredits;
+
+  const isSessionCostExceedingBudget =
+    !isFreeCohort && sessionCreditCost > maxAllowedForSession;
+
+  const isEditTotalCostBelowAllocated = editTotalCost < allocatedCredits;
+
   const openEditCohortModal = () => {
     if (cohort) {
       setEditTitle(cohort.title || "");
@@ -125,11 +160,17 @@ export default function MentorCohortDetailPage() {
   // Mutation: Add Session
   const addSessionMutation = useMutation({
     mutationFn: async () => {
+      const parsedCost = isFreeCohort ? 0 : Number(sessionCreditCost);
+      if (!isFreeCohort && parsedCost > maxAllowedForSession) {
+        throw new Error(
+          `Session credit cost cannot exceed the remaining budget of ${maxAllowedForSession} credits.`
+        );
+      }
       const payload: CreateCohortSessionInput = {
         title: sessionTitle.trim(),
         scheduledAt: new Date(sessionDateTime).toISOString(),
         durationMinutes: Number(sessionDuration),
-        creditCost: Number(sessionCreditCost),
+        creditCost: parsedCost,
         joinLink: sessionJoinLink.trim() || null,
         sessionNumber: sessions.length + 1,
       };
@@ -151,11 +192,17 @@ export default function MentorCohortDetailPage() {
   const updateSessionMutation = useMutation({
     mutationFn: async () => {
       if (!editingSession) return;
+      const parsedCost = isFreeCohort ? 0 : Number(sessionCreditCost);
+      if (!isFreeCohort && parsedCost > maxAllowedForSession) {
+        throw new Error(
+          `Session credit cost cannot exceed the remaining budget of ${maxAllowedForSession} credits.`
+        );
+      }
       const payload: UpdateCohortSessionInput = {
         title: sessionTitle.trim(),
         scheduledAt: new Date(sessionDateTime).toISOString(),
         durationMinutes: Number(sessionDuration),
-        creditCost: Number(sessionCreditCost),
+        creditCost: parsedCost,
         joinLink: sessionJoinLink.trim() || null,
       };
       return await cohortService.updateCohortSession(editingSession.id, payload);
@@ -255,7 +302,7 @@ export default function MentorCohortDetailPage() {
     setSessionTitle("");
     setSessionDateTime("");
     setSessionDuration(60);
-    setSessionCreditCost(0);
+    setSessionCreditCost(isFreeCohort ? 0 : Math.min(remainingCredits, 10));
     setSessionJoinLink("");
   };
 
@@ -331,11 +378,49 @@ export default function MentorCohortDetailPage() {
           {canPublish && (
             <Button
               size="sm"
-              onClick={() => updateCohortMutation.mutate({ status: "PUBLISHED" })}
+              onClick={() => {
+                setConfirmDialog({
+                  isOpen: true,
+                  title: "Publish Cohort Live?",
+                  description:
+                    "This will make your cohort program visible in the public catalog for student enrollment. Note: mentors can host a maximum of 1 active published cohort at a time.",
+                  confirmLabel: "Publish Live to Directory",
+                  variant: "success",
+                  onConfirm: () => {
+                    updateCohortMutation.mutate({ status: "PUBLISHED" });
+                    setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+                  },
+                });
+              }}
               disabled={updateCohortMutation.isPending}
               className="bg-emerald text-white hover:bg-emerald-hover text-xs h-8 px-3 shadow-2xs gap-1.5 font-semibold cursor-pointer"
             >
               <CheckCircle2 className="size-3.5" /> Publish Live to Directory
+            </Button>
+          )}
+
+          {isPublished && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setConfirmDialog({
+                  isOpen: true,
+                  title: "Unpublish Cohort to Draft?",
+                  description:
+                    "This will temporarily hide your cohort program from the public discovery directory. Existing enrolled students will still retain access to scheduled sessions.",
+                  confirmLabel: "Unpublish to Draft",
+                  variant: "warning",
+                  onConfirm: () => {
+                    updateCohortMutation.mutate({ status: "DRAFT" });
+                    setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+                  },
+                });
+              }}
+              disabled={updateCohortMutation.isPending}
+              className="border-amber/40 text-amber hover:bg-amber-light text-xs h-8 px-3 gap-1.5 font-semibold cursor-pointer"
+            >
+              <EyeOff className="size-3.5" /> Unpublish to Draft
             </Button>
           )}
 
@@ -358,13 +443,12 @@ export default function MentorCohortDetailPage() {
               <StatusBadge status={cohort.status} />
 
               <span
-                className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                  cohort.approvalStatus === "APPROVED"
+                className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${cohort.approvalStatus === "APPROVED"
                     ? "bg-emerald-light text-emerald border-emerald/20"
                     : cohort.approvalStatus === "REJECTED"
-                    ? "bg-rose-50 text-rose border-rose/20"
-                    : "bg-amber-light text-amber border-amber/20"
-                }`}
+                      ? "bg-rose-50 text-rose border-rose/20"
+                      : "bg-amber-light text-amber border-amber/20"
+                  }`}
               >
                 Approval: {cohort.approvalStatus}
               </span>
@@ -452,11 +536,10 @@ export default function MentorCohortDetailPage() {
         <button
           type="button"
           onClick={() => setActiveTab("sessions")}
-          className={`pb-3 text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeTab === "sessions"
+          className={`pb-3 text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${activeTab === "sessions"
               ? "text-amber border-b-2 border-amber"
               : "text-text-muted hover:text-text-primary"
-          }`}
+            }`}
         >
           <Calendar className="size-4" />
           Sessions Schedule ({sessions.length})
@@ -465,11 +548,10 @@ export default function MentorCohortDetailPage() {
         <button
           type="button"
           onClick={() => setActiveTab("students")}
-          className={`pb-3 text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeTab === "students"
+          className={`pb-3 text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${activeTab === "students"
               ? "text-amber border-b-2 border-amber"
               : "text-text-muted hover:text-text-primary"
-          }`}
+            }`}
         >
           <Users className="size-4" />
           Enrolled Students ({enrollmentsCount})
@@ -478,11 +560,10 @@ export default function MentorCohortDetailPage() {
         <button
           type="button"
           onClick={() => setActiveTab("settings")}
-          className={`pb-3 text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeTab === "settings"
+          className={`pb-3 text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${activeTab === "settings"
               ? "text-amber border-b-2 border-amber"
               : "text-text-muted hover:text-text-primary"
-          }`}
+            }`}
         >
           <Info className="size-4" />
           Overview &amp; Guidelines
@@ -514,6 +595,69 @@ export default function MentorCohortDetailPage() {
             </Button>
           </div>
 
+          {/* Credit Distribution & Budget Tracker */}
+          <div className="p-5 rounded-2xl bg-surface border border-border shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="size-9 rounded-xl bg-amber-light text-amber border border-amber/20 flex items-center justify-center shrink-0">
+                  <Coins className="size-4" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-sm font-bold text-text-primary">
+                    Credit Budget Distribution
+                  </h3>
+                  <p className="text-[11px] text-text-muted">
+                    Total budget set: <strong>{totalCohortBudget} Credits</strong> (৳{totalCohortBudget * 4} BDT) • Distribute among scheduled sessions
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {isFreeCohort ? (
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-200">
+                    Free Community Cohort
+                  </span>
+                ) : remainingCredits === 0 ? (
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald border border-emerald/20 flex items-center gap-1">
+                    <CheckCircle2 className="size-3.5" /> 100% Fully Distributed
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-light text-amber border border-amber/20">
+                    {remainingCredits} Credits Remaining to Allocate
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Budget Progress Meter */}
+            {!isFreeCohort && (
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-text-muted">
+                    Allocated: <strong className="text-text-primary">{allocatedCredits} / {totalCohortBudget} Credits</strong> ({sessions.length} sessions)
+                  </span>
+                  <span className="font-bold text-text-primary">
+                    {Math.round((allocatedCredits / (totalCohortBudget || 1)) * 100)}%
+                  </span>
+                </div>
+                <div className="h-2 w-full bg-surface-raised rounded-full overflow-hidden border border-border/80">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      allocatedCredits > totalCohortBudget
+                        ? "bg-rose"
+                        : allocatedCredits === totalCohortBudget
+                        ? "bg-emerald"
+                        : "bg-amber"
+                    }`}
+                    style={{
+                      width: `${Math.min(100, (allocatedCredits / (totalCohortBudget || 1)) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           {isSessionsLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
@@ -542,15 +686,49 @@ export default function MentorCohortDetailPage() {
                   sessionIndex={idx}
                   isMentorView={true}
                   onEdit={(s) => openEditSessionModal(s)}
-                  onDelete={(id) => deleteSessionMutation.mutate(id)}
-                  onComplete={(id) => completeSessionMutation.mutate(id)}
+                  onDelete={(id) => {
+                    setConfirmDialog({
+                      isOpen: true,
+                      title: "Delete Scheduled Session?",
+                      description: `Are you sure you want to delete session #${sess.sessionNumber || idx + 1}: "${sess.title}"? This cannot be undone.`,
+                      confirmLabel: "Delete Session",
+                      variant: "danger",
+                      onConfirm: () => {
+                        deleteSessionMutation.mutate(id);
+                        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+                      },
+                    });
+                  }}
+                  onComplete={(id) => {
+                    setConfirmDialog({
+                      isOpen: true,
+                      title: "Complete Session & Release Credits?",
+                      description: `Mark session #${sess.sessionNumber || idx + 1} as completed? This will finalize the workshop and release student escrow credits to your mentor wallet.`,
+                      confirmLabel: "Complete Session",
+                      variant: "success",
+                      onConfirm: () => {
+                        completeSessionMutation.mutate(id);
+                        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+                      },
+                    });
+                  }}
                   onAddResource={(id) => {
                     resetResourceForm();
                     setActiveResourceSessionId(id);
                   }}
-                  onRemoveResource={(sessId, resId) =>
-                    removeResourceMutation.mutate({ sessionId: sessId, resourceId: resId })
-                  }
+                  onRemoveResource={(sessId, resId) => {
+                    setConfirmDialog({
+                      isOpen: true,
+                      title: "Remove Learning Resource?",
+                      description: "Are you sure you want to remove this learning resource from the session?",
+                      confirmLabel: "Remove Resource",
+                      variant: "danger",
+                      onConfirm: () => {
+                        removeResourceMutation.mutate({ sessionId: sessId, resourceId: resId });
+                        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+                      },
+                    });
+                  }}
                 />
               ))}
             </div>
@@ -664,14 +842,27 @@ export default function MentorCohortDetailPage() {
                 size="sm"
                 variant="outline"
                 onClick={() => {
-                  if (confirm("Are you sure you want to archive this cohort program?")) {
-                    cohortService.deleteCohort(cohortId).then(() => {
-                      toast.success("Cohort archived successfully.");
-                      router.push("/mentor/cohorts");
-                    });
-                  }
+                  setConfirmDialog({
+                    isOpen: true,
+                    title: "Archive Cohort Program?",
+                    description:
+                      "Are you sure you want to archive this cohort program? It will be soft-deleted and removed from your active workspace and public directories.",
+                    confirmLabel: "Yes, Archive Program",
+                    variant: "danger",
+                    onConfirm: async () => {
+                      try {
+                        await cohortService.deleteCohort(cohortId);
+                        toast.success("Cohort archived successfully.");
+                        router.push("/mentor/cohorts");
+                      } catch (err: unknown) {
+                        toast.error((err as Error)?.message || "Failed to archive cohort.");
+                      } finally {
+                        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+                      }
+                    },
+                  });
                 }}
-                className="text-xs text-rose border-rose/30 hover:bg-rose-50"
+                className="text-xs text-rose border-rose/30 hover:bg-rose-50 cursor-pointer"
               >
                 Archive Program
               </Button>
@@ -757,16 +948,44 @@ export default function MentorCohortDetailPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-text-primary">
-                    Per-Session Credits
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold uppercase tracking-wider text-text-primary">
+                      Per-Session Credits
+                    </label>
+                    {!isFreeCohort && maxAllowedForSession > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSessionCreditCost(maxAllowedForSession)}
+                        className="text-[11px] font-semibold text-amber hover:underline cursor-pointer"
+                      >
+                        Use max ({maxAllowedForSession} Cr)
+                      </button>
+                    )}
+                  </div>
                   <Input
                     type="number"
                     min={0}
-                    value={sessionCreditCost}
-                    onChange={(e) => setSessionCreditCost(Number(e.target.value))}
-                    className="h-10 text-sm bg-surface rounded-xl"
+                    max={maxAllowedForSession}
+                    disabled={isFreeCohort}
+                    value={isFreeCohort ? 0 : sessionCreditCost}
+                    onChange={(e) => setSessionCreditCost(Math.max(0, Number(e.target.value)))}
+                    className={`h-10 text-sm bg-surface rounded-xl ${
+                      isSessionCostExceedingBudget ? "border-rose focus-visible:ring-rose" : ""
+                    }`}
                   />
+                  {isFreeCohort ? (
+                    <span className="text-[11px] text-text-muted block">
+                      Free Community Cohort (Budget: 0 Credits)
+                    </span>
+                  ) : isSessionCostExceedingBudget ? (
+                    <span className="text-[11px] font-medium text-rose block">
+                      Exceeds budget! Max allowed: {maxAllowedForSession} Credits (Cohort total: {totalCohortBudget} Cr).
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-text-muted block">
+                      Max available: <strong>{maxAllowedForSession} Credits</strong> (Total budget: {totalCohortBudget} Cr).
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -808,6 +1027,8 @@ export default function MentorCohortDetailPage() {
                 disabled={
                   !sessionTitle.trim() ||
                   !sessionDateTime ||
+                  isSessionCostExceedingBudget ||
+                  sessionCreditCost < 0 ||
                   addSessionMutation.isPending ||
                   updateSessionMutation.isPending
                 }
@@ -818,7 +1039,7 @@ export default function MentorCohortDetailPage() {
                     addSessionMutation.mutate();
                   }
                 }}
-                className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-9 px-4 shadow-2xs gap-1.5 cursor-pointer"
+                className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-9 px-4 shadow-2xs gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {addSessionMutation.isPending || updateSessionMutation.isPending ? (
                   <>
@@ -1053,11 +1274,22 @@ export default function MentorCohortDetailPage() {
                 </label>
                 <Input
                   type="number"
-                  min={0}
+                  min={allocatedCredits}
                   value={editTotalCost}
                   onChange={(e) => setEditTotalCost(Number(e.target.value))}
-                  className="h-10 text-sm bg-surface rounded-xl"
+                  className={`h-10 text-sm bg-surface rounded-xl ${
+                    isEditTotalCostBelowAllocated ? "border-rose focus-visible:ring-rose" : ""
+                  }`}
                 />
+                {isEditTotalCostBelowAllocated ? (
+                  <span className="text-[11px] font-medium text-rose block">
+                    Cannot be less than already allocated session credits ({allocatedCredits} Credits).
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-text-muted block">
+                    Already distributed across sessions: <strong>{allocatedCredits} Credits</strong>.
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1075,7 +1307,11 @@ export default function MentorCohortDetailPage() {
               <Button
                 type="button"
                 size="sm"
-                disabled={!editTitle.trim() || updateCohortMutation.isPending}
+                disabled={
+                  !editTitle.trim() ||
+                  isEditTotalCostBelowAllocated ||
+                  updateCohortMutation.isPending
+                }
                 onClick={() =>
                   updateCohortMutation.mutate({
                     title: editTitle.trim(),
@@ -1085,7 +1321,7 @@ export default function MentorCohortDetailPage() {
                     totalCost: editTotalCost,
                   })
                 }
-                className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-9 px-4 shadow-2xs gap-1.5 cursor-pointer"
+                className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-9 px-4 shadow-2xs gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {updateCohortMutation.isPending ? (
                   <>
@@ -1101,6 +1337,23 @@ export default function MentorCohortDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog Modal */}
+      <ConfirmModal
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmLabel={confirmDialog.confirmLabel}
+        variant={confirmDialog.variant}
+        isLoading={
+          updateCohortMutation.isPending ||
+          deleteSessionMutation.isPending ||
+          completeSessionMutation.isPending ||
+          removeResourceMutation.isPending
+        }
+        onConfirm={confirmDialog.onConfirm}
+        onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

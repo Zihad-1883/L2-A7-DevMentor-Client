@@ -28,6 +28,7 @@ import { useAuthContext } from "@/components/providers/AuthProvider";
 import SprintSessionList from "@/features/sprint/SprintSessionList";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import ConfirmModal from "@/components/shared/ConfirmModal";
 
 export default function SprintDetailPage() {
   const params = useParams();
@@ -36,6 +37,7 @@ export default function SprintDetailPage() {
 
   const { user } = useAuthContext();
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = React.useState(false);
 
   // Fetch Sprint Details
   const {
@@ -59,9 +61,6 @@ export default function SprintDetailPage() {
 
   // Handle student sprint cancellation before claimed
   const handleDeleteSprint = async () => {
-    if (!confirm("Are you sure you want to cancel and delete this sprint request?")) {
-      return;
-    }
     setIsDeleting(true);
     try {
       await sprintService.deleteSprint(sprintId);
@@ -75,6 +74,7 @@ export default function SprintDetailPage() {
       toast.error(errMsg);
     } finally {
       setIsDeleting(false);
+      setIsCancelModalOpen(false);
     }
   };
 
@@ -142,7 +142,7 @@ export default function SprintDetailPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleDeleteSprint}
+            onClick={() => setIsCancelModalOpen(true)}
             disabled={isDeleting}
             className="text-xs border-orange/40 text-orange hover:bg-orange/5 cursor-pointer self-start sm:self-auto gap-1.5"
           >
@@ -285,6 +285,17 @@ export default function SprintDetailPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={isCancelModalOpen}
+        title="Cancel Sprint Request?"
+        description="Are you sure you want to cancel and delete this sprint request? Your escrow credits will be returned to your wallet balance."
+        confirmLabel="Yes, Cancel Sprint"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleDeleteSprint}
+        onClose={() => setIsCancelModalOpen(false)}
+      />
     </div>
   );
 }

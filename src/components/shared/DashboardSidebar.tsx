@@ -36,6 +36,16 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
+const MENTOR_STATUS_CACHE_KEY = "devmentor_mentor_status";
+const noopSubscribe = () => () => { };
+const readCachedStatus = (): string | null => {
+  try {
+    return localStorage.getItem(MENTOR_STATUS_CACHE_KEY);
+  } catch {
+    return null;
+  }
+};
+
 export default function DashboardSidebar() {
   const pathname = usePathname();
   const { user, role } = useAuthContext();
@@ -43,14 +53,31 @@ export default function DashboardSidebar() {
   const [isSignOutModalOpen, setIsSignOutModalOpen] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
 
-  const { data: userProfile } = useQuery({
+  const { data: userProfile, isFetched } = useQuery({
     queryKey: queryKeys.users.me,
     queryFn: () => userService.getMyProfile(),
     enabled: role === "student",
     staleTime: 1000 * 60,
   });
 
-  const mentorStatus = userProfile?.mentorProfile?.approvalStatus;
+  const cachedStatus = React.useSyncExternalStore(
+    noopSubscribe,
+    readCachedStatus,
+    () => null,
+  );
+
+  const liveStatus = userProfile?.mentorProfile?.approvalStatus ?? "NONE";
+
+  React.useEffect(() => {
+    if (!isFetched || role !== "student") return;
+    try {
+      localStorage.setItem(MENTOR_STATUS_CACHE_KEY, liveStatus);
+    } catch { }
+  }, [isFetched, liveStatus, role]);
+
+  const resolvedStatus = isFetched ? liveStatus : cachedStatus;
+  const isStatusResolved = resolvedStatus !== null;
+  const mentorStatus = resolvedStatus === "NONE" ? undefined : resolvedStatus;
 
   const studentNavItems: NavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -60,16 +87,18 @@ export default function DashboardSidebar() {
     { label: "Exams", href: "/dashboard/exams", icon: GraduationCap },
     { label: "Wallet", href: "/dashboard/wallet", icon: Wallet },
     { label: "Profile", href: "/dashboard/profile", icon: User },
-    ...(mentorStatus === "PENDING"
-      ? [{ label: "Application Status", href: "/mentor/pending", icon: Clock }]
-      : mentorStatus === "REJECTED"
-        ? [
-          { label: "Application Status", href: "/mentor/pending", icon: AlertCircle },
-          { label: "Become Mentor", href: "/apply-mentor", icon: Sparkles },
-        ]
-        : mentorStatus === "APPROVED" || role === "mentor"
-          ? [{ label: "Mentor Hub", href: "/mentor", icon: ShieldCheck }]
-          : [{ label: "Become Mentor", href: "/apply-mentor", icon: Sparkles }]),
+    ...(!isStatusResolved
+      ? []
+      : mentorStatus === "PENDING"
+        ? [{ label: "Application Status", href: "/mentor/pending", icon: Clock }]
+        : mentorStatus === "REJECTED"
+          ? [
+            { label: "Application Status", href: "/mentor/pending", icon: AlertCircle },
+            { label: "Become Mentor", href: "/apply-mentor", icon: Sparkles },
+          ]
+          : mentorStatus === "APPROVED" || role === "mentor"
+            ? [{ label: "Mentor Hub", href: "/mentor", icon: ShieldCheck }]
+            : [{ label: "Become Mentor", href: "/apply-mentor", icon: Sparkles }]),
   ];
 
   const mentorNavItems: NavItem[] = [
@@ -179,7 +208,13 @@ export default function DashboardSidebar() {
           {/* Become a Mentor Prompt for Students */}
           {role === "student" && (
             <div className="p-4 mx-3 mb-2 rounded-2xl bg-amber-light/40 border border-amber/20 space-y-2">
-              {mentorStatus === "PENDING" ? (
+              {!isStatusResolved ? (
+                <div className="space-y-2 animate-pulse">
+                  <div className="h-3 w-2/3 rounded bg-amber/20" />
+                  <div className="h-2.5 w-full rounded bg-amber/10" />
+                  <div className="h-2.5 w-1/2 rounded bg-amber/10" />
+                </div>
+              ) : mentorStatus === "PENDING" ? (
                 <>
                   <div className="flex items-center gap-1.5 text-xs font-bold text-amber">
                     <Clock className="size-3.5 animate-pulse" />

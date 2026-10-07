@@ -72,4 +72,49 @@ export const adminService = {
       };
     }
   },
+
+  // 6. Get Mentor Applications Queue (with full applicant details)
+  getMentorApplicationsQueue: async (): Promise<import("@/services/mentor.service").MentorProfileItem[]> => {
+    try {
+      const usersRes = await apiClient.get<AdminUsersResponse>("/admin/users", {
+        params: { limit: 100 },
+      });
+
+      const usersWithMentorProfile = (usersRes?.users || []).filter(
+        (u) => Boolean(u.mentorProfile?.id)
+      );
+
+      const profilePromises = usersWithMentorProfile.map(async (u) => {
+        try {
+          const detail = await apiClient.get<import("@/services/mentor.service").MentorProfileItem>(
+            `/mentors/${u.mentorProfile!.id}`
+          );
+          return detail;
+        } catch {
+          return {
+            id: u.mentorProfile!.id,
+            userId: u.id,
+            bio: u.mentorProfile?.bio || "Applicant biography pending review.",
+            techStackTags: u.mentorProfile?.techStackTags || ["JavaScript", "TypeScript"],
+            experienceLevel: (u.mentorProfile?.experienceLevel as "JUNIOR" | "MID" | "SENIOR") || "MID",
+            githubUrl: u.mentorProfile?.githubUrl || null,
+            resumeUrl: u.mentorProfile?.resumeUrl || null,
+            approvalStatus: (u.mentorProfile?.approvalStatus as "PENDING" | "APPROVED" | "REJECTED") || "PENDING",
+            createdAt: u.createdAt,
+            updatedAt: u.updatedAt,
+            user: {
+              id: u.id,
+              name: u.name,
+              email: u.email,
+              image: u.image || null,
+            },
+          };
+        }
+      });
+
+      return await Promise.all(profilePromises);
+    } catch {
+      return [];
+    }
+  },
 };

@@ -27,3 +27,29 @@ export interface CreditWalletData {
   transactions: WalletTransaction[];
 }
 
+export interface WithdrawalRequestInput {
+  amount: number; // in BDT
+  bkashNumber: string;
+}
+
+export interface WithdrawalPaymentRecord {
+  id: string;
+  userId: string;
+  amount: number;
+  merchantInvoiceNumber: string;
+  status: string;
+  createdAt: string;
+  gatewayResponse?: {
+    type?: string;
+    bkashNumber?: string;
+    processedAt?: string;
+  } | null;
+}
+
+export interface WithdrawalResponse {
+  success: boolean;
+  message: string;
+  wallet: CreditWalletData;
+  payment: WithdrawalPaymentRecord;
+}
+

@@ -1,5 +1,9 @@
 import { apiClient } from "@/lib/api-client";
-import type { CreditWalletData } from "@/types/wallet.types";
+import type {
+  CreditWalletData,
+  WithdrawalRequestInput,
+  WithdrawalResponse,
+} from "@/types/wallet.types";
 
 export interface InitiateTopUpResponse {
   paymentID: string;
@@ -12,5 +16,8 @@ export const walletService = {
 
   initiateTopUp: (amount: number) =>
     apiClient.post<InitiateTopUpResponse>("/payments/top-up", { amount }),
+
+  requestWithdrawal: (payload: WithdrawalRequestInput) =>
+    apiClient.post<WithdrawalResponse>("/payments/withdraw", payload),
 };
 

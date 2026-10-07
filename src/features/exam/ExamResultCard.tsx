@@ -1,12 +1,9 @@
 import Link from "next/link";
 import {
-  Award,
   CheckCircle2,
   XCircle,
   RotateCcw,
   ArrowRight,
-  Sparkles,
-  BarChart3,
   BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,11 +26,10 @@ export default function ExamResultCard({
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Top Score Banner */}
       <div
-        className={`p-8 rounded-3xl border text-center relative overflow-hidden shadow-md ${
-          isPassed
+        className={`p-8 rounded-3xl border text-center relative overflow-hidden shadow-md ${isPassed
             ? "bg-emerald-light/40 border-emerald/30 text-emerald"
             : "bg-orange/5 border-orange/20 text-orange"
-        }`}
+          }`}
       >
         <div className="size-16 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-surface shadow-xs">
           {isPassed ? (
@@ -67,9 +63,8 @@ export default function ExamResultCard({
           <div className="border-x border-border/80 px-4">
             <p className="text-xs text-text-muted">Accuracy</p>
             <p
-              className={`font-serif text-2xl font-bold ${
-                isPassed ? "text-emerald" : "text-orange"
-              }`}
+              className={`font-serif text-2xl font-bold ${isPassed ? "text-emerald" : "text-orange"
+                }`}
             >
               {result.percentage}%
             </p>
@@ -118,22 +113,20 @@ export default function ExamResultCard({
             return (
               <div
                 key={item.questionId || idx}
-                className={`p-6 rounded-2xl border bg-surface transition-all ${
-                  item.isCorrect
+                className={`p-6 rounded-2xl border bg-surface transition-all ${item.isCorrect
                     ? "border-emerald/30 shadow-2xs"
                     : "border-orange/30 shadow-2xs"
-                }`}
+                  }`}
               >
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <span className="font-mono text-xs font-bold text-text-muted px-2 py-0.5 rounded bg-surface-raised">
                     Q{idx + 1}
                   </span>
                   <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                      item.isCorrect
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${item.isCorrect
                         ? "bg-emerald-light text-emerald border-emerald/20"
                         : "bg-orange/10 text-orange border-orange/20"
-                    }`}
+                      }`}
                   >
                     {item.isCorrect ? "Correct (+1)" : "Incorrect (0)"}
                   </span>

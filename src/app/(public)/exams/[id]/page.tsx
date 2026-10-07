@@ -1,5 +1,9 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Clock,
@@ -7,79 +11,151 @@ import {
   Award,
   CheckCircle2,
   ShieldCheck,
-  AlertCircle,
+  ShieldAlert,
   FileCheck2,
   ArrowRight,
-  BookOpen,
+  AlertCircle,
+  Loader2,
+  Sparkles,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import SmartAuthButton from "@/components/shared/SmartAuthButton";
+import { useAuthContext } from "@/components/providers/AuthProvider";
 import { SEED_EXAMS } from "@/features/exam/seedExams";
+import { examService } from "@/services/exam.service";
 import type { Exam } from "@/types/exam.types";
+import { toast } from "sonner";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const exam = SEED_EXAMS.find((e) => e.id === id);
-  return {
-    title: exam ? `${exam.title} | DevMentor Exams` : "Exam Details | DevMentor",
-    description: exam?.description || "Online engineering multiple-choice exam.",
-  };
-}
+export default function ExamDetailPage() {
+  const params = useParams();
+  const examId = typeof params?.id === "string" ? params.id : "";
+  const queryClient = useQueryClient();
+  const { user } = useAuthContext();
+  const isMentor = user?.role === "mentor";
 
-async function getExamDetails(id: string): Promise<Exam | null> {
-  const backendUrl =
-    process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "https://dev-mentor-server.vercel.app";
+  // 1. Check local seed exams
+  const localSeedExam = React.useMemo(() => {
+    return SEED_EXAMS.find((e) => e.id === examId) || null;
+  }, [examId]);
 
-  try {
-    const res = await fetch(`${backendUrl}/api/v1/exams/${id}`, {
-      next: { revalidate: 60 },
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json?.data) return json.data;
+  // 2. Query mentor's created exams (if logged in as mentor)
+  const {
+    data: mentorExamsData,
+    isLoading: isLoadingMentorExams,
+  } = useQuery({
+    queryKey: ["mentor", "exams", "detail-lookup"],
+    queryFn: async () => {
+      try {
+        return await examService.getMentorExams(1, 100);
+      } catch {
+        return null;
+      }
+    },
+    enabled: Boolean(examId) && !localSeedExam,
+    staleTime: 30000,
+  });
+
+  // 3. Query student's available exams
+  const {
+    data: availableExamsData,
+    isLoading: isLoadingAvailableExams,
+  } = useQuery({
+    queryKey: ["public", "available-exams", "detail-lookup"],
+    queryFn: async () => {
+      try {
+        return await examService.getAvailableExams(1, 100);
+      } catch {
+        return null;
+      }
+    },
+    enabled: Boolean(examId) && !localSeedExam,
+    staleTime: 30000,
+  });
+
+  // Resolve exam from seeds, mentor exams, or public/student exams
+  const exam: Exam | null = React.useMemo(() => {
+    if (localSeedExam) return localSeedExam;
+
+    // Check mentor's exams
+    if (mentorExamsData?.data) {
+      const foundInMentor = mentorExamsData.data.find((e) => e.id === examId);
+      if (foundInMentor) return foundInMentor;
     }
-  } catch {
-    // fallback
+
+    // Check available student exams
+    if (availableExamsData?.data) {
+      const foundInAvailable = availableExamsData.data.find((e) => e.id === examId);
+      if (foundInAvailable) return foundInAvailable;
+    }
+
+    return null;
+  }, [localSeedExam, mentorExamsData, availableExamsData, examId]);
+
+  const isLoading =
+    !localSeedExam && (isLoadingMentorExams || isLoadingAvailableExams);
+
+  // Mentor publish mutation
+  const publishMutation = useMutation({
+    mutationFn: async () => {
+      if (!exam?.id) return;
+      return await examService.publishExam(exam.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mentor", "exams"] });
+      queryClient.invalidateQueries({ queryKey: ["public", "available-exams"] });
+      toast.success("Assessment published successfully! Students can now take this exam.");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to publish assessment.");
+    },
+  });
+
+  // Loading Skeleton
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="size-8 text-amber animate-spin" />
+        <p className="text-sm font-semibold text-text-secondary">
+          Loading assessment specifications...
+        </p>
+      </div>
+    );
   }
 
-  // Also try searching in general exams catalog
-  try {
-    const listRes = await fetch(`${backendUrl}/api/v1/exams?limit=50`, {
-      next: { revalidate: 60 },
-    });
-    if (listRes.ok) {
-      const listJson = await listRes.json();
-      const items: Exam[] = listJson?.data?.data || listJson?.data || [];
-      const matched = items.find((e) => e.id === id);
-      if (matched) return matched;
-    }
-  } catch {
-    // fallback
-  }
-
-  const seed = SEED_EXAMS.find((e) => e.id === id);
-  return seed || null;
-}
-
-export default async function ExamDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const exam = await getExamDetails(id);
-
+  // Not Found State
   if (!exam) {
-    notFound();
+    return (
+      <div className="w-full min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-surface border border-border shadow-md text-center space-y-6">
+          <div className="size-16 rounded-2xl bg-amber-light text-amber mx-auto flex items-center justify-center">
+            <AlertCircle className="size-8" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="font-serif text-2xl font-bold text-text-primary">
+              Assessment Not Found
+            </h1>
+            <p className="text-sm text-text-secondary leading-relaxed">
+              We couldn&apos;t find an active exam with ID <code className="font-mono text-xs text-amber px-1 py-0.5 rounded bg-surface-raised">{examId}</code>. It may have been archived or is restricted to a cohort.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <Link href="/exams" className="flex-1">
+              <Button variant="outline" className="w-full cursor-pointer">
+                Browse Exams
+              </Button>
+            </Link>
+            <Link href="/mentor/exams" className="flex-1">
+              <Button className="w-full bg-amber text-white hover:bg-amber-hover cursor-pointer">
+                Mentor Studio
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  const mentorName = exam.mentor?.name || "DevMentor Engineering Faculty";
+  const mentorName = exam.mentor?.name || "DevMentor Faculty";
   const mentorInitials = mentorName
     .split(" ")
     .map((n) => n[0])
@@ -88,22 +164,68 @@ export default async function ExamDetailPage({
     .toUpperCase();
 
   const duration = exam.durationMinutes || 25;
-  const totalQuestions = exam.totalQuestions || 15;
+  const totalQuestions = exam.totalQuestions || exam.questions?.length || 15;
   const passMark = exam.passMark ?? 65;
+  const isDraft = exam.status === "DRAFT";
 
   return (
     <div className="w-full min-h-screen bg-background">
       {/* Top Breadcrumb Header */}
       <div className="w-full border-b border-border/80 bg-surface">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-4">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-4 flex items-center justify-between">
           <Link
-            href="/exams"
+            href={isMentor ? "/mentor/exams" : "/exams"}
             className="inline-flex items-center gap-2 text-xs font-semibold text-text-muted hover:text-amber transition-colors"
           >
-            <ArrowLeft className="size-3.5" /> Back to Practice Exams Catalog
+            <ArrowLeft className="size-3.5" />
+            {isMentor ? "Back to Mentor Studio" : "Back to Practice Exams Catalog"}
           </Link>
+          {isDraft && (
+            <Link
+              href="/mentor/exams"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber hover:underline"
+            >
+              Mentor Studio <ArrowRight className="size-3" />
+            </Link>
+          )}
         </div>
       </div>
+
+      {/* Draft Mode Notification Banner for Mentor */}
+      {isDraft && (
+        <div className="bg-amber-light border-b border-amber/30 px-6 py-3.5">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-amber">
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              <Sparkles className="size-4 shrink-0" />
+              <span>
+                <strong>Mentor Preview (Draft Mode):</strong> This assessment is currently in draft. Only you can view this page until published.
+              </span>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (totalQuestions === 0) {
+                  toast.error(
+                    "Cannot publish an assessment with 0 questions. Please add questions first."
+                  );
+                  return;
+                }
+                publishMutation.mutate();
+              }}
+              disabled={publishMutation.isPending || totalQuestions === 0}
+              title={
+                totalQuestions === 0
+                  ? "Cannot publish an assessment with 0 questions"
+                  : "Publish assessment"
+              }
+              className="bg-amber text-white hover:bg-amber-hover text-xs font-semibold h-8 gap-1.5 shrink-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Send className="size-3.5" />
+              {publishMutation.isPending ? "Publishing..." : "Publish Assessment Now"}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-6 lg:px-12 py-10 lg:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
@@ -113,16 +235,22 @@ export default async function ExamDetailPage({
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase border ${exam.isFree
-                    ? "bg-emerald-light text-emerald border-emerald/20"
-                    : "bg-amber-light text-amber border-amber/20"
-                    }`}
+                  className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase border ${
+                    exam.isFree
+                      ? "bg-emerald-light text-emerald border-emerald/20"
+                      : "bg-amber-light text-amber border-amber/20"
+                  }`}
                 >
                   {exam.isFree ? "Free Practice Exam" : "Enrolled Cohort Exam"}
                 </span>
                 <span className="px-3 py-1 rounded-full bg-surface-raised text-text-muted text-xs font-semibold uppercase tracking-wider border border-border">
                   Auto-Graded
                 </span>
+                {isDraft && (
+                  <span className="px-3 py-1 rounded-full bg-amber-light text-amber text-xs font-bold uppercase tracking-wider border border-amber/20">
+                    Draft
+                  </span>
+                )}
               </div>
 
               <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-text-primary tracking-tight leading-tight mb-4">
@@ -189,7 +317,7 @@ export default async function ExamDetailPage({
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="size-4 text-emerald mt-0.5 shrink-0" />
                   <span>
-                    <strong>One Answer per Question:</strong> Each multiple-choice question presents 2-4 curated choices with exactly 1 correct answer.
+                    <strong>One Answer per Question:</strong> Each multiple-choice question presents 2-6 curated choices with exactly 1 correct answer.
                   </span>
                 </div>
                 <div className="flex items-start gap-3">
@@ -201,7 +329,7 @@ export default async function ExamDetailPage({
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="size-4 text-emerald mt-0.5 shrink-0" />
                   <span>
-                    <strong>Retake Policy:</strong> You may retake public practice assessments to benchmark your knowledge retention and progression over time.
+                    <strong>Retake Policy:</strong> You may retake practice assessments to benchmark your knowledge retention and progression over time.
                   </span>
                 </div>
               </div>
@@ -255,7 +383,9 @@ export default async function ExamDetailPage({
               <div className="space-y-3 pb-6 mb-6 border-b border-border/80 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-text-muted">Total Marks</span>
-                  <span className="font-bold text-text-primary">{exam.totalMarks} Pts</span>
+                  <span className="font-bold text-text-primary">
+                    {exam.totalMarks ?? totalQuestions} Pts
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-text-muted">Required to Pass</span>
@@ -269,16 +399,63 @@ export default async function ExamDetailPage({
 
               {/* Start Exam CTA */}
               <div className="space-y-3">
-                <Link href={`/exams/${exam.id}/attempt`}>
-                  <Button className="w-full bg-amber text-white hover:bg-amber-hover font-semibold h-11 text-sm shadow-sm cursor-pointer">
-                    Start Timed Exam <ArrowRight className="size-4 ml-1.5" />
-                  </Button>
-                </Link>
+                {isMentor ? (
+                  isDraft ? (
+                    <Button
+                      onClick={() => {
+                        if (totalQuestions === 0) {
+                          toast.error(
+                            "Cannot publish an assessment with 0 questions. Please add questions first."
+                          );
+                          return;
+                        }
+                        publishMutation.mutate();
+                      }}
+                      disabled={publishMutation.isPending || totalQuestions === 0}
+                      className="w-full bg-amber text-white hover:bg-amber-hover font-semibold h-11 text-sm shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {publishMutation.isPending ? "Publishing..." : "Publish Assessment"}
+                    </Button>
+                  ) : (
+                    <div className="p-4 rounded-xl bg-surface-raised border border-border text-center space-y-2">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-light text-amber border border-amber/20">
+                        <ShieldAlert className="size-3.5" /> Mentor Preview Mode
+                      </div>
+                      <p className="text-xs text-text-muted leading-relaxed">
+                        You are previewing this assessment. Exam attempts are restricted to student accounts.
+                      </p>
+                      <Link href="/mentor/exams" className="block pt-1">
+                        <Button variant="outline" size="sm" className="w-full text-xs font-semibold cursor-pointer">
+                          Back to Mentor Studio
+                        </Button>
+                      </Link>
+                    </div>
+                  )
+                ) : isDraft ? (
+                  <div className="p-4 rounded-xl bg-surface-raised border border-border text-center space-y-1">
+                    <p className="text-xs font-semibold text-text-primary">Under Preparation</p>
+                    <p className="text-xs text-text-muted">
+                      This assessment is currently in draft mode and cannot be attempted yet.
+                    </p>
+                  </div>
+                ) : (
+                  <Link href={`/exams/${exam.id}/attempt`}>
+                    <Button className="w-full bg-amber text-white hover:bg-amber-hover font-semibold h-11 text-sm shadow-sm cursor-pointer">
+                      Start Timed Exam <ArrowRight className="size-4 ml-1.5" />
+                    </Button>
+                  </Link>
+                )}
               </div>
 
               <div className="mt-5 flex items-center justify-center gap-2 text-center text-xs text-text-muted">
                 <ShieldCheck className="size-4 text-emerald" />
-                <span>Timer begins immediately on start</span>
+                <span>
+                  {isMentor
+                    ? "Mentor View: Assessment specifications active"
+                    : isDraft
+                    ? "Draft mode: Questions can be previewed"
+                    : "Timer begins immediately on start"}
+                </span>
               </div>
             </div>
 

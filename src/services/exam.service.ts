@@ -93,4 +93,35 @@ export const examService = {
       `/exams/mentor/my-exams?page=${page}&limit=${limit}`
     );
   },
+
+  // Create a new exam in DRAFT status (mentor only)
+  createExam: async (
+    payload: import("@/types/exam.types").CreateExamInput
+  ): Promise<Exam> => {
+    return await apiClient.post<Exam>("/exams", payload);
+  },
+
+  // Add questions to an existing exam (mentor only)
+  // Sends questions sequentially in single-item batches to prevent Prisma interactive transaction
+  // timeout (5000ms limit on serverless environments)
+  addQuestionsToExam: async (
+    examId: string,
+    questions: import("@/types/exam.types").CreateQuestionInput[]
+  ): Promise<Exam> => {
+    if (!questions || questions.length === 0) {
+      return (await apiClient.get<Exam>(`/exams/${examId}`)) as Exam;
+    }
+    let lastResult: Exam | null = null;
+    for (const q of questions) {
+      lastResult = await apiClient.post<Exam>(`/exams/${examId}/questions`, {
+        questions: [q],
+      });
+    }
+    return lastResult!;
+  },
+
+  // Publish exam to activate it for students (mentor only)
+  publishExam: async (examId: string): Promise<Exam> => {
+    return await apiClient.patch<Exam>(`/exams/${examId}/publish`);
+  },
 };

@@ -2,6 +2,25 @@
 
 export type ExamStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 
+export interface CreateQuestionInput {
+  questionText: string;
+  options: string[];
+  correctOptionIndex: number;
+  explanation?: string;
+  marks?: number;
+}
+
+export interface CreateExamInput {
+  title: string;
+  description?: string;
+  durationMinutes?: number;
+  totalMarks?: number;
+  passMark?: number;
+  isFree?: boolean;
+  cohortId?: string;
+  sprintId?: string;
+}
+
 export interface Question {
   id: string;
   examId: string;

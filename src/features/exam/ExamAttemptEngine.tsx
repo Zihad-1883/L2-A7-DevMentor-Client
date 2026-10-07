@@ -4,21 +4,18 @@ import * as React from "react";
 import Link from "next/link";
 import {
   Clock,
-  HelpCircle,
-  Award,
   AlertTriangle,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Send,
   ArrowLeft,
-  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useExamTimer } from "@/hooks/useExamTimer";
 import ExamResultCard from "@/features/exam/ExamResultCard";
 import { examService, type ExamSubmitResult } from "@/services/exam.service";
-import type { Exam, Question } from "@/types/exam.types";
+import type { Exam } from "@/types/exam.types";
 
 interface ExamAttemptEngineProps {
   exam: Exam;
@@ -27,7 +24,7 @@ interface ExamAttemptEngineProps {
 
 export default function ExamAttemptEngine({ exam, backHref }: ExamAttemptEngineProps) {
   const exitUrl = backHref || `/exams/${exam.id}`;
-  const questions: Question[] = exam.questions || [];
+  const questions = React.useMemo(() => exam.questions || [], [exam.questions]);
   const [currentIdx, setCurrentIdx] = React.useState(0);
   const [selectedAnswers, setSelectedAnswers] = React.useState<
     Record<string, number>
@@ -114,7 +111,7 @@ export default function ExamAttemptEngine({ exam, backHref }: ExamAttemptEngineP
   }, [exam.id, exam.passMark, isSubmitting, questions, result, selectedAnswers]);
 
   // Timer countdown
-  const { formattedTime, isLowTime, stop } = useExamTimer({
+  const { formattedTime, isLowTime } = useExamTimer({
     durationMinutes: exam.durationMinutes || 20,
     onTimeUp: () => {
       handleSubmit();
@@ -180,11 +177,10 @@ export default function ExamAttemptEngine({ exam, backHref }: ExamAttemptEngineP
 
         {/* Timer pill */}
         <div
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider border shadow-2xs ${
-            isLowTime
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider border shadow-2xs ${isLowTime
               ? "bg-orange/10 text-orange border-orange/30 animate-pulse"
               : "bg-surface-raised text-text-primary border-border"
-          }`}
+            }`}
         >
           <Clock className="size-3.5" />
           <span>{formattedTime}</span>
@@ -224,19 +220,17 @@ export default function ExamAttemptEngine({ exam, backHref }: ExamAttemptEngineP
                 key={optIdx}
                 type="button"
                 onClick={() => handleSelectOption(optIdx)}
-                className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 cursor-pointer ${
-                  isSelected
+                className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 cursor-pointer ${isSelected
                     ? "border-amber bg-amber/5 text-text-primary shadow-xs"
                     : "border-border hover:border-text-muted/60 bg-surface text-text-secondary hover:text-text-primary"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className={`size-7 rounded-full flex items-center justify-center text-xs font-mono font-bold border transition-colors shrink-0 ${
-                      isSelected
+                    className={`size-7 rounded-full flex items-center justify-center text-xs font-mono font-bold border transition-colors shrink-0 ${isSelected
                         ? "bg-amber text-white border-amber"
                         : "bg-surface-raised border-border text-text-muted"
-                    }`}
+                      }`}
                   >
                     {String.fromCharCode(65 + optIdx)}
                   </div>
@@ -274,13 +268,12 @@ export default function ExamAttemptEngine({ exam, backHref }: ExamAttemptEngineP
                 key={q.id}
                 type="button"
                 onClick={() => setCurrentIdx(idx)}
-                className={`size-8 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
-                  isCurrent
+                className={`size-8 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${isCurrent
                     ? "bg-text-primary text-surface shadow-xs"
                     : isAnswered
-                    ? "bg-amber-light text-amber border border-amber/30"
-                    : "bg-surface-raised text-text-muted hover:text-text-primary border border-border"
-                }`}
+                      ? "bg-amber-light text-amber border border-amber/30"
+                      : "bg-surface-raised text-text-muted hover:text-text-primary border border-border"
+                  }`}
               >
                 {idx + 1}
               </button>

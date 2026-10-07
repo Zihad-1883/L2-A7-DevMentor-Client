@@ -3,11 +3,8 @@ import {
   Clock,
   HelpCircle,
   Award,
-  CheckCircle2,
   ArrowRight,
   ShieldCheck,
-  User,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Exam } from "@/types/exam.types";

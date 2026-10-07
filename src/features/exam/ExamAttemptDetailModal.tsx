@@ -4,15 +4,11 @@ import * as React from "react";
 import Link from "next/link";
 import {
   X,
-  Award,
   CheckCircle2,
   XCircle,
   Calendar,
-  Clock,
   RotateCcw,
   GraduationCap,
-  Sparkles,
-  ArrowRight,
   TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";

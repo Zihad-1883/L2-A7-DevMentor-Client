@@ -4,8 +4,9 @@ import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ShieldCheck, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Loader2, AlertTriangle, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuthContext } from "@/components/providers/AuthProvider";
 import ExamAttemptEngine from "@/features/exam/ExamAttemptEngine";
 import { SEED_EXAMS } from "@/features/exam/seedExams";
 import { examService } from "@/services/exam.service";
@@ -42,6 +43,34 @@ export default function ExamAttemptPage() {
     }
     return null;
   }, [localSeedExam, startAttemptData]);
+
+  const { user } = useAuthContext();
+  const isMentor = user?.role === "mentor";
+
+  if (isMentor) {
+    return (
+      <div className="w-full min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-surface border border-border shadow-xs text-center space-y-4">
+          <div className="size-14 rounded-2xl mx-auto flex items-center justify-center bg-amber-light text-amber">
+            <ShieldAlert className="size-7" />
+          </div>
+          <h2 className="font-serif text-2xl font-bold text-text-primary">
+            Mentor Access Notice
+          </h2>
+          <p className="text-sm text-text-secondary leading-relaxed">
+            Exam attempts are strictly reserved for students. Mentors can preview assessment structures and curricula from the Mentor Studio.
+          </p>
+          <div className="pt-2">
+            <Link href="/mentor/exams">
+              <Button className="w-full bg-amber text-white hover:bg-amber-hover font-semibold cursor-pointer">
+                Return to Mentor Studio
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!localSeedExam && isStartingAttempt) {
     return (

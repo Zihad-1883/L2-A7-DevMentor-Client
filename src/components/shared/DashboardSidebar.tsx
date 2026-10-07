@@ -7,13 +7,15 @@ import { useAuthContext } from "@/components/providers/AuthProvider";
 import { signOut } from "@/lib/auth-client";
 import { useUiStore } from "@/store/ui.store";
 import ConfirmModal from "@/components/shared/ConfirmModal";
+import { useQuery } from "@tanstack/react-query";
+import { userService } from "@/services/user.service";
+import { queryKeys } from "@/lib/query-keys";
 import {
   LayoutDashboard,
   Timer,
   Users,
   Code2,
   GraduationCap,
-  FileText,
   Wallet,
   User,
   ShieldCheck,
@@ -23,8 +25,9 @@ import {
   History,
   X,
   LogOut,
-  FolderGit2,
   Sparkles,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
 
 interface NavItem {
@@ -40,6 +43,15 @@ export default function DashboardSidebar() {
   const [isSignOutModalOpen, setIsSignOutModalOpen] = React.useState(false);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
 
+  const { data: userProfile } = useQuery({
+    queryKey: queryKeys.users.me,
+    queryFn: () => userService.getMyProfile(),
+    enabled: role === "student",
+    staleTime: 1000 * 60,
+  });
+
+  const mentorStatus = userProfile?.mentorProfile?.approvalStatus;
+
   const studentNavItems: NavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "My Sprints", href: "/dashboard/sprints", icon: Timer },
@@ -48,7 +60,16 @@ export default function DashboardSidebar() {
     { label: "Exams", href: "/dashboard/exams", icon: GraduationCap },
     { label: "Wallet", href: "/dashboard/wallet", icon: Wallet },
     { label: "Profile", href: "/dashboard/profile", icon: User },
-    { label: "Become Mentor", href: "/apply-mentor", icon: Sparkles },
+    ...(mentorStatus === "PENDING"
+      ? [{ label: "Application Status", href: "/mentor/pending", icon: Clock }]
+      : mentorStatus === "REJECTED"
+        ? [
+          { label: "Application Status", href: "/mentor/pending", icon: AlertCircle },
+          { label: "Become Mentor", href: "/apply-mentor", icon: Sparkles },
+        ]
+        : mentorStatus === "APPROVED" || role === "mentor"
+          ? [{ label: "Mentor Hub", href: "/mentor", icon: ShieldCheck }]
+          : [{ label: "Become Mentor", href: "/apply-mentor", icon: Sparkles }]),
   ];
 
   const mentorNavItems: NavItem[] = [
@@ -158,18 +179,67 @@ export default function DashboardSidebar() {
           {/* Become a Mentor Prompt for Students */}
           {role === "student" && (
             <div className="p-4 mx-3 mb-2 rounded-2xl bg-amber-light/40 border border-amber/20 space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-amber">
-                <Sparkles className="size-3.5" />
-                <span>Want to Mentor?</span>
-              </div>
-              <p className="text-[11px] text-text-secondary leading-relaxed">
-                Senior engineers can host cohorts, review PRs, and earn cash-out credits.
-              </p>
-              <Link href="/apply-mentor" className="block pt-1">
-                <span className="text-xs font-bold text-amber hover:underline inline-flex items-center gap-1">
-                  Apply as Mentor →
-                </span>
-              </Link>
+              {mentorStatus === "PENDING" ? (
+                <>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber">
+                    <Clock className="size-3.5 animate-pulse" />
+                    <span>Application Under Review</span>
+                  </div>
+                  <p className="text-[11px] text-text-secondary leading-relaxed">
+                    Our team is auditing your portfolio. Check back for verification updates.
+                  </p>
+                  <Link href="/mentor/pending" className="block pt-1">
+                    <span className="text-xs font-bold text-amber hover:underline inline-flex items-center gap-1">
+                      Check Status →
+                    </span>
+                  </Link>
+                </>
+              ) : mentorStatus === "REJECTED" ? (
+                <>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-orange">
+                    <AlertCircle className="size-3.5" />
+                    <span>Application Notice</span>
+                  </div>
+                  <p className="text-[11px] text-text-secondary leading-relaxed">
+                    Application was not approved. You can submit a refreshed portfolio.
+                  </p>
+                  <Link href="/apply-mentor" className="block pt-1">
+                    <span className="text-xs font-bold text-orange hover:underline inline-flex items-center gap-1">
+                      Re-apply Now →
+                    </span>
+                  </Link>
+                </>
+              ) : mentorStatus === "APPROVED" ? (
+                <>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald">
+                    <ShieldCheck className="size-3.5" />
+                    <span>Approved Mentor!</span>
+                  </div>
+                  <p className="text-[11px] text-text-secondary leading-relaxed">
+                    You have mentor privileges. Switch to the Mentor Workspace.
+                  </p>
+                  <Link href="/mentor" className="block pt-1">
+                    <span className="text-xs font-bold text-emerald hover:underline inline-flex items-center gap-1">
+                      Enter Workspace →
+                    </span>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber">
+                    <Sparkles className="size-3.5" />
+                    <span>Want to Mentor?</span>
+                  </div>
+                  <p className="text-[11px] text-text-secondary leading-relaxed">
+                    Senior engineers can host cohorts, review PRs, and earn cash-out credits.
+                  </p>
+                  <Link href="/apply-mentor" className="block pt-1">
+                    <span className="text-xs font-bold text-amber hover:underline inline-flex items-center gap-1">
+                      Apply as Mentor →
+                    </span>
+                  </Link>
+                </>
+              )}
             </div>
           )}
         </div>

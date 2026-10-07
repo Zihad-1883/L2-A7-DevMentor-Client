@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Lock, Loader2, Check } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { codeReviewService } from "@/services/code-review.service";
 import type { CodeReviewRequestItem } from "@/types/code-review.types";

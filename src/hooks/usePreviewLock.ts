@@ -17,42 +17,53 @@ export interface UsePreviewLockReturn {
   isActive: boolean;
 }
 
+function computeSecondsRemaining(expiresAt?: string | null): number {
+  if (!expiresAt) return 0;
+  const expiryTime = new Date(expiresAt).getTime();
+  if (isNaN(expiryTime)) return 0;
+  return Math.max(0, Math.floor((expiryTime - Date.now()) / 1000));
+}
+
 export function usePreviewLock({
   expiresAt,
   totalDurationSeconds = 600,
   onExpire,
 }: UsePreviewLockOptions = {}): UsePreviewLockReturn {
-  const calculateRemaining = React.useCallback((): number => {
-    if (!expiresAt) return 0;
-    const expiryTime = new Date(expiresAt).getTime();
-    if (isNaN(expiryTime)) return 0;
-    const now = Date.now();
-    return Math.max(0, Math.floor((expiryTime - now) / 1000));
-  }, [expiresAt]);
+  const [secondsLeft, setSecondsLeft] = React.useState<number>(() =>
+    computeSecondsRemaining(expiresAt)
+  );
+  const [prevExpiresAt, setPrevExpiresAt] = React.useState<string | null | undefined>(
+    expiresAt
+  );
 
-  const [secondsLeft, setSecondsLeft] = React.useState<number>(calculateRemaining);
+  // Adjust state during rendering when expiresAt changes (avoids cascading render effects)
+  if (expiresAt !== prevExpiresAt) {
+    setPrevExpiresAt(expiresAt);
+    setSecondsLeft(computeSecondsRemaining(expiresAt));
+  }
 
-  // Sync state when expiresAt changes
-  React.useEffect(() => {
-    setSecondsLeft(calculateRemaining());
-  }, [calculateRemaining]);
-
-  // Tick every second
+  // Subscribe to external timer interval
   React.useEffect(() => {
     if (!expiresAt) return;
 
-    const interval = setInterval(() => {
-      const remaining = calculateRemaining();
-      setSecondsLeft(remaining);
+    const remaining = computeSecondsRemaining(expiresAt);
+    if (remaining <= 0) {
+      onExpire?.();
+      return;
+    }
 
-      if (remaining <= 0) {
+    const interval = setInterval(() => {
+      const nextRemaining = computeSecondsRemaining(expiresAt);
+      setSecondsLeft(nextRemaining);
+
+      if (nextRemaining <= 0) {
         clearInterval(interval);
         onExpire?.();
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [expiresAt, calculateRemaining, onExpire]);
+  }, [expiresAt, onExpire]);
 
   const isExpired = Boolean(expiresAt && secondsLeft <= 0);
   const isUrgent = Boolean(expiresAt && secondsLeft > 0 && secondsLeft <= 120);

@@ -9,13 +9,10 @@ import {
   Trash2,
   Video,
   GitPullRequest,
-  CheckCircle2,
   AlertCircle,
-  HelpCircle,
   Sparkles,
   Loader2,
   Copy,
-  ChevronDown,
   ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -195,7 +192,7 @@ export default function DeliverReviewForm({
                 <FileCode2 className="size-3.5 text-amber" /> Refactored Solution / Fixed Code
               </label>
               <p className="text-xs text-text-secondary">
-                Provide cleaner, refactored, or idiomatic code that fixes the student's issue.
+                Provide cleaner, refactored, or idiomatic code that fixes the student&apos;s issue.
               </p>
             </div>
 

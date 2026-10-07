@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Sparkles, Loader2, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ConfirmModal from "@/components/shared/ConfirmModal";
 import { codeReviewService } from "@/services/code-review.service";

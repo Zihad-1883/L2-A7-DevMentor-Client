@@ -57,4 +57,97 @@ export const cohortService = {
   }> => {
     return await apiClient.post(`/cohort-sessions/${sessionId}/join`);
   },
+
+  // Mentor: Create a new cohort program
+  createCohort: async (
+    data: import("@/types/cohort.types").CreateCohortInput
+  ): Promise<CohortItem> => {
+    return await apiClient.post<CohortItem>("/cohorts", data);
+  },
+
+  // Mentor: Get my created cohorts
+  getMyCreatedCohorts: async (): Promise<CohortItem[]> => {
+    return await apiClient.get<CohortItem[]>("/cohorts/my-created");
+  },
+
+  // Mentor: Update cohort program
+  updateCohort: async (
+    id: string,
+    data: import("@/types/cohort.types").UpdateCohortInput
+  ): Promise<CohortItem> => {
+    return await apiClient.patch<CohortItem>(`/cohorts/${id}`, data);
+  },
+
+  // Mentor: Delete cohort program (soft delete)
+  deleteCohort: async (id: string): Promise<{ message: string }> => {
+    return await apiClient.delete<{ message: string }>(`/cohorts/${id}`);
+  },
+
+  // Mentor: Add session to cohort
+  addCohortSession: async (
+    cohortId: string,
+    data: import("@/types/cohort.types").CreateCohortSessionInput
+  ): Promise<import("@/types/cohort.types").CohortSessionItem> => {
+    return await apiClient.post<import("@/types/cohort.types").CohortSessionItem>(
+      `/cohort-sessions/cohort/${cohortId}`,
+      data
+    );
+  },
+
+  // Mentor: Update session
+  updateCohortSession: async (
+    sessionId: string,
+    data: import("@/types/cohort.types").UpdateCohortSessionInput
+  ): Promise<import("@/types/cohort.types").CohortSessionItem> => {
+    return await apiClient.patch<import("@/types/cohort.types").CohortSessionItem>(
+      `/cohort-sessions/${sessionId}`,
+      data
+    );
+  },
+
+  // Mentor: Delete session
+  deleteCohortSession: async (sessionId: string): Promise<{ message: string }> => {
+    return await apiClient.delete<{ message: string }>(
+      `/cohort-sessions/${sessionId}`
+    );
+  },
+
+  // Mentor: Add resource to session
+  addSessionResource: async (
+    sessionId: string,
+    resource: import("@/types/cohort.types").ICohortResourceItem
+  ): Promise<import("@/types/cohort.types").CohortSessionItem> => {
+    return await apiClient.post<import("@/types/cohort.types").CohortSessionItem>(
+      `/cohort-sessions/${sessionId}/resources`,
+      resource
+    );
+  },
+
+  // Mentor: Remove resource from session
+  removeSessionResource: async (
+    sessionId: string,
+    resourceId: string
+  ): Promise<import("@/types/cohort.types").CohortSessionItem> => {
+    return await apiClient.delete<import("@/types/cohort.types").CohortSessionItem>(
+      `/cohort-sessions/${sessionId}/resources/${resourceId}`
+    );
+  },
+
+  // Mentor: Mark session completed
+  completeCohortSession: async (
+    sessionId: string
+  ): Promise<import("@/types/cohort.types").CohortSessionItem> => {
+    return await apiClient.patch<import("@/types/cohort.types").CohortSessionItem>(
+      `/cohort-sessions/${sessionId}/complete`
+    );
+  },
+
+  // Mentor: Cancel session
+  cancelCohortSession: async (
+    sessionId: string
+  ): Promise<import("@/types/cohort.types").CohortSessionItem> => {
+    return await apiClient.patch<import("@/types/cohort.types").CohortSessionItem>(
+      `/cohort-sessions/${sessionId}/cancel`
+    );
+  },
 };

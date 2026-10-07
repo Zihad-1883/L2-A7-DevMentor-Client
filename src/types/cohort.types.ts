@@ -1,7 +1,49 @@
 // Group cohort program TypeScript interfaces
 
-export type CohortStatus = "DRAFT" | "PUBLISHED" | "COMPLETED" | "CANCELLED";
-export type CohortApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type CohortStatus = "DRAFT" | "PUBLISHED" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
+export type CohortApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "PENDING_APPROVAL";
+
+export interface CreateCohortInput {
+  title: string;
+  description: string;
+  durationWeeks: number;
+  capacity: number;
+  totalCost: number;
+  techStackTags: string[];
+}
+
+export interface UpdateCohortInput {
+  title?: string;
+  description?: string;
+  durationWeeks?: number;
+  capacity?: number;
+  totalCost?: number;
+  techStackTags?: string[];
+  status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+}
+
+export interface CreateCohortSessionInput {
+  title: string;
+  scheduledAt: string;
+  durationMinutes?: number;
+  creditCost?: number;
+  joinLink?: string | null;
+  sessionNumber?: number;
+  dayNumber?: number;
+  resources?: ICohortResourceItem[];
+}
+
+export interface UpdateCohortSessionInput {
+  title?: string;
+  scheduledAt?: string;
+  durationMinutes?: number;
+  creditCost?: number;
+  joinLink?: string | null;
+  sessionNumber?: number;
+  dayNumber?: number;
+  status?: "PENDING" | "SCHEDULED" | "COMPLETED" | "CANCELLED";
+  resources?: ICohortResourceItem[];
+}
 
 export interface ICohortResourceItem {
   id: string;

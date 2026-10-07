@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { signOut } from "@/lib/auth-client";
 import { useUiStore } from "@/store/ui.store";
+import ConfirmModal from "@/components/shared/ConfirmModal";
 import {
   LayoutDashboard,
   Timer,
@@ -36,6 +37,8 @@ export default function DashboardSidebar() {
   const pathname = usePathname();
   const { user, role } = useAuthContext();
   const { isSidebarOpen, setSidebarOpen } = useUiStore();
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = React.useState(false);
+  const [isSigningOut, setIsSigningOut] = React.useState(false);
 
   const studentNavItems: NavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -191,13 +194,7 @@ export default function DashboardSidebar() {
 
             <button
               type="button"
-              onClick={async () => {
-                try {
-                  localStorage.removeItem("devmentor_cached_role");
-                } catch {}
-                await signOut();
-                window.location.assign("/login");
-              }}
+              onClick={() => setIsSignOutModalOpen(true)}
               className="p-2 text-text-muted hover:text-orange rounded-lg hover:bg-surface-raised transition-colors shrink-0 cursor-pointer"
               title="Sign Out"
               aria-label="Sign Out"
@@ -207,6 +204,24 @@ export default function DashboardSidebar() {
           </div>
         </div>
       </aside>
+
+      <ConfirmModal
+        isOpen={isSignOutModalOpen}
+        title="Sign Out of DevMentor?"
+        description="Are you sure you want to end your active session? You will be returned to the login screen."
+        confirmLabel="Yes, Sign Out"
+        variant="primary"
+        isLoading={isSigningOut}
+        onConfirm={async () => {
+          setIsSigningOut(true);
+          try {
+            localStorage.removeItem("devmentor_cached_role");
+          } catch { }
+          await signOut();
+          window.location.assign("/login");
+        }}
+        onClose={() => setIsSignOutModalOpen(false)}
+      />
     </>
   );
 }

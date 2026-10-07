@@ -19,6 +19,7 @@ import type { SprintSessionItem } from "@/types/sprint.types";
 import { formatDateTime, formatDate } from "@/lib/utils";
 import { sprintService } from "@/services/sprint.service";
 import { toast } from "sonner";
+import ConfirmModal from "@/components/shared/ConfirmModal";
 
 interface SprintSessionListProps {
   sessions: SprintSessionItem[];
@@ -36,6 +37,7 @@ export default function SprintSessionList({
   onSessionUpdated,
 }: SprintSessionListProps) {
   const [confirmingSessionId, setConfirmingSessionId] = React.useState<string | null>(null);
+  const [pendingConfirmSession, setPendingConfirmSession] = React.useState<SprintSessionItem | null>(null);
 
   const handleConfirmSession = async (sessionId: string) => {
     setConfirmingSessionId(sessionId);
@@ -147,7 +149,7 @@ export default function SprintSessionList({
                 {isClaimed && session.status === "PENDING" && isStudentOwner && hasScheduledTime && (
                   <Button
                     size="sm"
-                    onClick={() => handleConfirmSession(session.id)}
+                    onClick={() => setPendingConfirmSession(session)}
                     disabled={isConfirming}
                     className="bg-amber text-white hover:bg-amber-hover text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
                   >
@@ -195,6 +197,26 @@ export default function SprintSessionList({
           </div>
         );
       })}
+
+      <ConfirmModal
+        isOpen={Boolean(pendingConfirmSession)}
+        title="Confirm Session Time Slot?"
+        description={
+          pendingConfirmSession
+            ? `Accept proposed schedule for Session #${pendingConfirmSession.dayNumber} on ${formatDateTime(pendingConfirmSession.scheduledAt)}? This will confirm the session and lock escrow credits.`
+            : ""
+        }
+        confirmLabel="Confirm Slot"
+        variant="success"
+        isLoading={Boolean(confirmingSessionId)}
+        onConfirm={async () => {
+          if (pendingConfirmSession) {
+            await handleConfirmSession(pendingConfirmSession.id);
+            setPendingConfirmSession(null);
+          }
+        }}
+        onClose={() => setPendingConfirmSession(null)}
+      />
     </div>
   );
 }

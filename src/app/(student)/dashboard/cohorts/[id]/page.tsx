@@ -31,6 +31,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cohortService } from "@/services/cohort.service";
 import { queryKeys } from "@/lib/query-keys";
+import ConfirmModal from "@/components/shared/ConfirmModal";
 import type { CohortItem, CohortSessionItem, ICohortResourceItem } from "@/types/cohort.types";
 
 export default function StudentCohortDetailPage() {
@@ -42,6 +43,7 @@ export default function StudentCohortDetailPage() {
   const [activeTab, setActiveTab] = React.useState<"sessions" | "resources" | "overview">("sessions");
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = React.useState<string | null>(null);
+  const [sessionToUnlock, setSessionToUnlock] = React.useState<CohortSessionItem | null>(null);
 
   // 1. Fetch cohort details
   const {
@@ -459,7 +461,7 @@ export default function StudentCohortDetailPage() {
                       ) : !hasAccess && session.creditCost && session.creditCost > 0 ? (
                         <Button
                           size="sm"
-                          onClick={() => joinSessionMutation.mutate(session.id)}
+                          onClick={() => setSessionToUnlock(session)}
                           disabled={joinSessionMutation.isPending}
                           className="text-xs font-bold h-9 px-4 gap-1.5 bg-amber hover:bg-amber-hover text-surface-dark cursor-pointer shadow-xs"
                         >
@@ -652,6 +654,27 @@ export default function StudentCohortDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Unlock Session Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(sessionToUnlock)}
+        title="Unlock Workshop Session?"
+        description={
+          sessionToUnlock
+            ? `Unlocking "${sessionToUnlock.title}" will deduct ${sessionToUnlock.creditCost || 0} credits (৳${(sessionToUnlock.creditCost || 0) * 4} BDT) from your DevWallet to access the live workshop link and learning materials. Proceed?`
+            : ""
+        }
+        confirmLabel={`Unlock for ${sessionToUnlock?.creditCost || 0} Credits`}
+        variant="primary"
+        isLoading={joinSessionMutation.isPending}
+        onConfirm={async () => {
+          if (sessionToUnlock) {
+            await joinSessionMutation.mutateAsync(sessionToUnlock.id);
+            setSessionToUnlock(null);
+          }
+        }}
+        onClose={() => setSessionToUnlock(null)}
+      />
     </div>
   );
 }

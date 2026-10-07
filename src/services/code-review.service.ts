@@ -152,6 +152,14 @@ export const codeReviewService = {
     return data;
   },
 
+  getMyRequests: async (
+    params?: Record<string, string | number | boolean | null | undefined>
+  ): Promise<CodeReviewPoolResponse> => {
+    const data = await apiClient.get<CodeReviewPoolResponse>("/code-reviews/my-requests", { params });
+    data.requests?.forEach((r) => codeReviewCache.save(r));
+    return data;
+  },
+
   getById: async (id: string): Promise<CodeReviewRequestItem> => {
     // 1. Try local storage cache first
     const cached = codeReviewCache.get(id);

@@ -887,7 +887,11 @@ export default function MentorCohortDetailPage() {
                 </label>
                 <select
                   value={resType}
-                  onChange={(e) => setResType(e.target.value as any)}
+                  onChange={(e) =>
+                    setResType(
+                      e.target.value as "LINK" | "FILE" | "NOTE" | "CODE_SNIPPET"
+                    )
+                  }
                   className="w-full h-10 px-3 text-sm bg-surface border border-border rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber/50"
                 >
                   <option value="LINK">External Web Link / Slide Deck</option>

@@ -38,15 +38,16 @@ export default function ExamDetailPage() {
     return SEED_EXAMS.find((e) => e.id === examId) || null;
   }, [examId]);
 
-  // 2. Query mentor's created exams (if logged in as mentor)
+  // 2. Query mentor's created exams (shares queryKey ["mentor", "exams", "list"] from mentor hub)
   const {
     data: mentorExamsData,
-    isLoading: isLoadingMentorExams,
+    isPending: isPendingMentorExams,
+    isFetching: isFetchingMentorExams,
   } = useQuery({
-    queryKey: ["mentor", "exams", "detail-lookup"],
+    queryKey: ["mentor", "exams", "list"],
     queryFn: async () => {
       try {
-        return await examService.getMentorExams(1, 100);
+        return await examService.getMentorExams(1, 50);
       } catch {
         return null;
       }
@@ -55,44 +56,76 @@ export default function ExamDetailPage() {
     staleTime: 30000,
   });
 
-  // 3. Query student's available exams
+  // 3. Query student's available exams (disabled if user is mentor)
   const {
     data: availableExamsData,
-    isLoading: isLoadingAvailableExams,
+    isPending: isPendingAvailableExams,
+    isFetching: isFetchingAvailableExams,
   } = useQuery({
     queryKey: ["public", "available-exams", "detail-lookup"],
     queryFn: async () => {
       try {
-        return await examService.getAvailableExams(1, 100);
+        return await examService.getAvailableExams(1, 50);
       } catch {
         return null;
       }
     },
-    enabled: Boolean(examId) && !localSeedExam,
+    enabled: Boolean(examId) && !localSeedExam && !isMentor,
     staleTime: 30000,
   });
 
-  // Resolve exam from seeds, mentor exams, or public/student exams
-  const exam: Exam | null = React.useMemo(() => {
+  // Check if exam is already present synchronously in React Query cache
+  const cachedExam = React.useMemo(() => {
     if (localSeedExam) return localSeedExam;
 
-    // Check mentor's exams
+    // Check mentor exams cache
+    const mentorCache = queryClient.getQueryData<{ data?: Exam[] }>(["mentor", "exams", "list"]);
+    if (mentorCache?.data) {
+      const match = mentorCache.data.find((e) => e.id === examId);
+      if (match) return match;
+    }
+
+    // Check public exams cache
+    const availableCache = queryClient.getQueryData<{ data?: Exam[] }>([
+      "public",
+      "available-exams",
+      "detail-lookup",
+    ]);
+    if (availableCache?.data) {
+      const match = availableCache.data.find((e) => e.id === examId);
+      if (match) return match;
+    }
+
+    return null;
+  }, [localSeedExam, queryClient, examId]);
+
+  // Resolve exam from cache, seeds, mentor query, or public query
+  const exam: Exam | null = React.useMemo(() => {
+    if (cachedExam) return cachedExam;
+    if (localSeedExam) return localSeedExam;
+
+    // Check mentor's query data
     if (mentorExamsData?.data) {
       const foundInMentor = mentorExamsData.data.find((e) => e.id === examId);
       if (foundInMentor) return foundInMentor;
     }
 
-    // Check available student exams
+    // Check available student query data
     if (availableExamsData?.data) {
       const foundInAvailable = availableExamsData.data.find((e) => e.id === examId);
       if (foundInAvailable) return foundInAvailable;
     }
 
     return null;
-  }, [localSeedExam, mentorExamsData, availableExamsData, examId]);
+  }, [cachedExam, localSeedExam, mentorExamsData, availableExamsData, examId]);
 
-  const isLoading =
-    !localSeedExam && (isLoadingMentorExams || isLoadingAvailableExams);
+  // Active checking status
+  const isChecking =
+    !cachedExam &&
+    !localSeedExam &&
+    (isPendingMentorExams ||
+      isFetchingMentorExams ||
+      (!isMentor && (isPendingAvailableExams || isFetchingAvailableExams)));
 
   // Mentor publish mutation
   const publishMutation = useMutation({
@@ -111,7 +144,7 @@ export default function ExamDetailPage() {
   });
 
   // Loading Skeleton
-  if (isLoading) {
+  if (!exam && isChecking) {
     return (
       <div className="w-full min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
         <Loader2 className="size-8 text-amber animate-spin" />
@@ -122,7 +155,7 @@ export default function ExamDetailPage() {
     );
   }
 
-  // Not Found State
+  // Not Found State (only shown when not checking and still not found)
   if (!exam) {
     return (
       <div className="w-full min-h-screen bg-background flex items-center justify-center p-6">

@@ -193,8 +193,8 @@ export default function MentorExamsPage() {
             type="button"
             onClick={() => setStatusFilter("ALL")}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${statusFilter === "ALL"
-                ? "bg-amber text-white"
-                : "bg-surface-raised text-text-secondary hover:text-text-primary border border-border"
+              ? "bg-amber text-white"
+              : "bg-surface-raised text-text-secondary hover:text-text-primary border border-border"
               }`}
           >
             All ({totalExams})
@@ -203,8 +203,8 @@ export default function MentorExamsPage() {
             type="button"
             onClick={() => setStatusFilter("PUBLISHED")}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${statusFilter === "PUBLISHED"
-                ? "bg-amber text-white"
-                : "bg-surface-raised text-text-secondary hover:text-text-primary border border-border"
+              ? "bg-amber text-white"
+              : "bg-surface-raised text-text-secondary hover:text-text-primary border border-border"
               }`}
           >
             Published ({publishedCount})
@@ -213,8 +213,8 @@ export default function MentorExamsPage() {
             type="button"
             onClick={() => setStatusFilter("DRAFT")}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${statusFilter === "DRAFT"
-                ? "bg-amber text-white"
-                : "bg-surface-raised text-text-secondary hover:text-text-primary border border-border"
+              ? "bg-amber text-white"
+              : "bg-surface-raised text-text-secondary hover:text-text-primary border border-border"
               }`}
           >
             Drafts ({draftCount})
@@ -299,8 +299,8 @@ export default function MentorExamsPage() {
                     <div className="flex items-center gap-2">
                       <span
                         className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${isPublished
-                            ? "bg-emerald-light text-emerald border-emerald/20"
-                            : "bg-indigo-50 text-indigo-600 border-indigo-200"
+                          ? "bg-emerald-light text-emerald border-emerald/20"
+                          : "bg-indigo-50 text-indigo-600 border-indigo-200"
                           }`}
                       >
                         {isPublished ? (
@@ -405,8 +405,8 @@ export default function MentorExamsPage() {
                             : "Publish exam for students"
                         }
                         className={`font-semibold text-xs h-8 px-3 gap-1.5 shadow-2xs ${qCount === 0
-                            ? "bg-surface-raised text-text-muted border border-border cursor-not-allowed opacity-60"
-                            : "bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
+                          ? "bg-surface-raised text-text-muted border border-border cursor-not-allowed opacity-60"
+                          : "bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
                           }`}
                       >
                         {publishMutation.isPending ? (

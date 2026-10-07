@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ConfirmModal from "@/components/shared/ConfirmModal";
+import { useAuthContext } from "@/components/providers/AuthProvider";
 import { codeReviewService } from "@/services/code-review.service";
 import type { CodeReviewRequestItem } from "@/types/code-review.types";
 import { toast } from "sonner";
@@ -25,6 +26,7 @@ export default function ClaimReviewButton({
   disabled = false,
 }: ClaimReviewButtonProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuthContext();
   const [showConfirmModal, setShowConfirmModal] = React.useState(false);
 
   const isQuick = request.tier === "QUICK";
@@ -32,7 +34,7 @@ export default function ClaimReviewButton({
   const slaText = isQuick ? "2 Hours" : "24 Hours";
 
   const claimMutation = useMutation({
-    mutationFn: () => codeReviewService.claimRequest(request.id),
+    mutationFn: () => codeReviewService.claimRequest(request.id, user?.id),
     onSuccess: (data) => {
       toast.success(
         `Code review claimed! Your ${slaText} SLA delivery clock is now active.`

@@ -24,13 +24,11 @@ import {
   GitPullRequest,
   User,
   ShieldCheck,
-  AlertTriangle,
-  Send,
-  Loader2,
   Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { useCurrentTime } from "@/hooks/useCurrentTime";
 import { codeReviewService, codeReviewCache } from "@/services/code-review.service";
 import { usePreviewLock } from "@/hooks/usePreviewLock";
 import ClaimReviewButton from "@/features/code-review/ClaimReviewButton";
@@ -63,9 +61,13 @@ export default function MentorCodeReviewDetailPage() {
   const router = useRouter();
   const { user } = useAuthContext();
   const queryClient = useQueryClient();
+  const now = useCurrentTime();
 
   const [isCopiedOriginal, setIsCopiedOriginal] = React.useState(false);
   const [isCopiedRefactored, setIsCopiedRefactored] = React.useState(false);
+
+  // Read cached copy if present
+  const cachedReview = React.useMemo(() => (id ? codeReviewCache.get(id) : null), [id]);
 
   // 1. Fetch Code Review Request
   const {
@@ -159,9 +161,24 @@ export default function MentorCodeReviewDetailPage() {
   const bdtValue = rewardCredits * 4;
   const slaText = isQuick ? "2 Hours SLA" : "24 Hours SLA";
 
+  const isLockExpired = Boolean(
+    request.status === "PREVIEW_LOCKED" &&
+    (isPreviewExpired || (request.previewExpiresAt != null && new Date(request.previewExpiresAt).getTime() <= now))
+  );
+
   const isPreviewLocked =
-    request.status === "PREVIEW_LOCKED" && !isPreviewExpired && isPreviewActive;
-  const isLockedByMe = isPreviewLocked && request.previewMentorId === user?.id;
+    request.status === "PREVIEW_LOCKED" && !isLockExpired;
+
+  const resolvedPreviewMentorId = request.previewMentorId || cachedReview?.previewMentorId;
+  const resolvedAssignedMentorId = request.assignedMentorId || cachedReview?.assignedMentorId;
+
+  const isLockedByMe =
+    isPreviewLocked &&
+    (
+      (Boolean(resolvedPreviewMentorId) && resolvedPreviewMentorId === user?.id) ||
+      codeReviewCache.getMyInProgressReviews(user?.id).some((r) => r.id === id && r.status === "PREVIEW_LOCKED")
+    );
+
   const isLockedByOther = isPreviewLocked && !isLockedByMe;
 
   if (isLockedByOther) {
@@ -204,8 +221,59 @@ export default function MentorCodeReviewDetailPage() {
 
   const isClaimedByMe =
     request.status === "CLAIMED" &&
-    (request.assignedMentorId === user?.id ||
-      request.assignedMentor?.id === user?.id);
+    (
+      (Boolean(resolvedAssignedMentorId) && resolvedAssignedMentorId === user?.id) ||
+      request.assignedMentor?.id === user?.id ||
+      codeReviewCache.getMyInProgressReviews(user?.id).some((r) => r.id === id && r.status === "CLAIMED")
+    );
+
+  const isClaimedByOther =
+    request.status === "CLAIMED" &&
+    !isClaimedByMe;
+
+  // Calculate SLA countdown for claimed requests
+  const deliveryDeadlineMs = request.deliveryDeadline
+    ? new Date(request.deliveryDeadline).getTime()
+    : null;
+  const slaSecondsLeft = deliveryDeadlineMs
+    ? Math.max(0, Math.floor((deliveryDeadlineMs - now) / 1000))
+    : null;
+  const formatSlaRemaining = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m left`;
+    return `${mins}m ${secs}s left`;
+  };
+
+  if (isClaimedByOther) {
+    return (
+      <div className="max-w-xl mx-auto py-16 text-center space-y-5 animate-in fade-in duration-300">
+        <div className="size-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto border border-indigo-200 shadow-xs">
+          <Clock className="size-8 text-indigo-600" />
+        </div>
+        <div className="space-y-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-50 text-indigo-600 border border-indigo-200">
+            Claimed by Another Mentor
+          </span>
+          <h2 className="text-xl sm:text-2xl font-bold font-serif text-text-primary">
+            Workspace Assigned
+          </h2>
+          <p className="text-sm text-text-secondary max-w-md mx-auto leading-relaxed">
+            This code review request is currently being delivered by another mentor.
+          </p>
+        </div>
+        <div className="pt-3">
+          <Link href="/mentor/code-reviews">
+            <Button className="bg-amber text-white hover:bg-amber-hover gap-2 cursor-pointer shadow-xs font-semibold h-10 px-5">
+              <ArrowLeft className="size-4" /> Back to Code Review Pool
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const isDelivered = request.status === "DELIVERED";
   const isCompleted = request.status === "COMPLETED";
 
@@ -325,7 +393,31 @@ export default function MentorCodeReviewDetailPage() {
           </div>
         </div>
 
-        {/* 3. 10-Minute Preview Lock Countdown Banner (if currently preview locked) */}
+        {/* 3. Expired Preview Lock Alert Banner (if lock expired) */}
+        {isLockExpired && (
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber/30 text-amber-950 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-amber/20 text-amber flex items-center justify-center shrink-0">
+                <Sparkles className="size-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-amber">
+                  Preview Lock Expired — Open for Claim
+                </h4>
+                <p className="text-xs text-text-secondary pt-0.5">
+                  The previous 10-minute preview reservation has expired without being claimed. Any mentor can now claim this code review request.
+                </p>
+              </div>
+            </div>
+            <ClaimReviewButton
+              request={request}
+              onClaimSuccess={() => refetch()}
+              size="sm"
+            />
+          </div>
+        )}
+
+        {/* 4. 10-Minute Preview Lock Countdown Banner (if currently preview locked and not expired) */}
         {isPreviewLocked && (
           <div
             className={`p-4 rounded-2xl border transition-all ${isLockedByMe
@@ -392,7 +484,7 @@ export default function MentorCodeReviewDetailPage() {
           </div>
         )}
 
-        {/* 4. Active Delivery SLA Target Banner (if claimed) */}
+        {/* 5. Active Delivery SLA Target Banner (if claimed) */}
         {request.status === "CLAIMED" && (
           <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-indigo-950">
             <div className="flex items-center gap-3">
@@ -415,8 +507,8 @@ export default function MentorCodeReviewDetailPage() {
               </div>
             </div>
 
-            <div className="text-xs font-bold px-3 py-1.5 rounded-full bg-white border border-indigo-200 text-indigo-700 self-start sm:self-center">
-              Clock Running
+            <div className="text-xs font-bold px-3 py-1.5 rounded-full bg-white border border-indigo-200 text-indigo-700 self-start sm:self-center font-mono">
+              {slaSecondsLeft !== null ? formatSlaRemaining(slaSecondsLeft) : "Clock Running"}
             </div>
           </div>
         )}
@@ -537,18 +629,25 @@ export default function MentorCodeReviewDetailPage() {
 
         {/* Right Column: Claim Actions & Deliver Feedback Form (Cols 8-12) */}
         <div className="lg:col-span-5 space-y-6">
-          {/* STATE A: REQUEST IS OPEN */}
-          {request.status === "OPEN" && (
+          {/* STATE A: REQUEST IS OPEN OR PREVIEW LOCK EXPIRED */}
+          {(request.status === "OPEN" || isLockExpired) && (
             <div className="p-6 rounded-3xl bg-surface border border-border shadow-xs space-y-6">
               <div className="space-y-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-light text-amber text-xs font-bold uppercase tracking-wider">
-                  <Sparkles className="size-3.5" /> Claim Workspace
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                  isLockExpired
+                    ? "bg-emerald-50 text-emerald border border-emerald-200"
+                    : "bg-amber-light text-amber"
+                }`}>
+                  <Sparkles className="size-3.5" />
+                  {isLockExpired ? "Lock Expired — Open For Claim" : "Claim Workspace"}
                 </span>
                 <h3 className="text-lg font-bold font-serif text-text-primary">
-                  Review & Claim This Request
+                  {isLockExpired ? "Preview Lock Expired — Open to Claim" : "Review & Claim This Request"}
                 </h3>
                 <p className="text-xs text-text-secondary leading-relaxed">
-                  Before claiming, you can lock this request for 10 minutes to inspect the code without anyone else taking it. Once claimed, your {slaText} begins.
+                  {isLockExpired
+                    ? "The previous 10-minute preview lock expired without being claimed. You can claim this code review immediately to secure your bounty."
+                    : `Before claiming, you can lock this request for 10 minutes to inspect the code without anyone else taking it. Once claimed, your ${slaText} begins.`}
                 </p>
               </div>
 
@@ -583,32 +682,43 @@ export default function MentorCodeReviewDetailPage() {
             </div>
           )}
 
-          {/* STATE B: PREVIEW LOCKED (By me or other) */}
-          {request.status === "PREVIEW_LOCKED" && (
+          {/* STATE B: PREVIEW LOCKED AND ACTIVE (Held by current mentor) */}
+          {request.status === "PREVIEW_LOCKED" && !isLockExpired && isLockedByMe && (
             <div className="p-6 rounded-3xl bg-surface border border-border shadow-xs space-y-6">
               <div className="space-y-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber text-xs font-bold uppercase tracking-wider border border-amber/20">
                   <Lock className="size-3.5" /> Preview Lock Active
                 </span>
                 <h3 className="text-lg font-bold font-serif text-text-primary">
-                  {isLockedByMe ? "Your Exclusive Reservation" : "Currently Reserved"}
+                  Your Exclusive Reservation
                 </h3>
                 <p className="text-xs text-text-secondary leading-relaxed">
-                  {isLockedByMe
-                    ? `You currently hold the 10-minute preview lock (${previewTimeLeft} remaining). Claim now to officially start your delivery clock.`
-                    : "Another mentor holds the preview lock. If they don't claim it within the window, it will automatically open back up."}
+                  You currently hold the exclusive 10-minute preview lock ({previewTimeLeft} remaining). Claim now to officially start your {slaText} delivery clock.
                 </p>
               </div>
 
-              {isLockedByMe && (
-                <div className="pt-2">
-                  <ClaimReviewButton
-                    request={request}
-                    onClaimSuccess={() => refetch()}
-                    className="w-full h-11 text-sm font-bold"
-                  />
+              <div className="p-4 rounded-2xl bg-surface-raised border border-border space-y-2 text-xs text-text-secondary">
+                <div className="flex items-center justify-between">
+                  <span>Preview Time Remaining:</span>
+                  <strong className="text-amber font-mono font-bold text-sm">{previewTimeLeft}</strong>
                 </div>
-              )}
+                <div className="flex items-center justify-between">
+                  <span>Credit Bounty:</span>
+                  <strong className="text-amber font-bold text-sm">+{rewardCredits} Credits</strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Delivery SLA:</span>
+                  <strong className="text-text-primary font-semibold">{slaText}</strong>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <ClaimReviewButton
+                  request={request}
+                  onClaimSuccess={() => refetch()}
+                  className="w-full h-11 text-sm font-bold"
+                />
+              </div>
             </div>
           )}
 

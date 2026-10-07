@@ -4,6 +4,8 @@ import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuthContext } from "@/components/providers/AuthProvider";
+import { useCurrentTime } from "@/hooks/useCurrentTime";
 import { codeReviewService } from "@/services/code-review.service";
 import type { CodeReviewRequestItem } from "@/types/code-review.types";
 import { toast } from "sonner";
@@ -24,9 +26,11 @@ export default function PreviewLockButton({
   disabled = false,
 }: PreviewLockButtonProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuthContext();
+  const now = useCurrentTime();
 
   const lockMutation = useMutation({
-    mutationFn: () => codeReviewService.previewLock(request.id),
+    mutationFn: () => codeReviewService.previewLock(request.id, user?.id),
     onSuccess: (data) => {
       toast.success(
         "10-Minute Preview Lock acquired! You have exclusive reservation while reviewing this code."
@@ -48,8 +52,8 @@ export default function PreviewLockButton({
 
   const isAlreadyLocked =
     request.status === "PREVIEW_LOCKED" &&
-    request.previewExpiresAt &&
-    new Date(request.previewExpiresAt) > new Date();
+    request.previewExpiresAt != null &&
+    new Date(request.previewExpiresAt).getTime() > now;
 
   return (
     <Button

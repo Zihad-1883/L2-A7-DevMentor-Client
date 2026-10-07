@@ -36,31 +36,36 @@ export interface CodeReviewPoolResponse {
   };
 }
 
-const CACHE_PREFIX = "devmentor_cr_item_";
-const MY_LOCKS_KEY = "devmentor_my_locked_crs";
+const STORAGE_PREFIX = "devmentor_cr_item_";
+const IN_PROGRESS_KEY = "devmentor_mentor_in_progress_reviews";
 
 export const codeReviewCache = {
   save: (review: CodeReviewRequestItem, currentUserId?: string) => {
     if (typeof window === "undefined" || !review?.id) return;
     try {
-      sessionStorage.setItem(`${CACHE_PREFIX}${review.id}`, JSON.stringify(review));
+      const serialized = JSON.stringify(review);
+      sessionStorage.setItem(`${STORAGE_PREFIX}${review.id}`, serialized);
+      localStorage.setItem(`${STORAGE_PREFIX}${review.id}`, serialized);
 
-      const isLockActive =
+      const now = Date.now();
+      const isMyLock =
         review.status === "PREVIEW_LOCKED" &&
-        review.previewExpiresAt &&
-        new Date(review.previewExpiresAt).getTime() > Date.now();
+        review.previewExpiresAt != null &&
+        new Date(review.previewExpiresAt).getTime() > now &&
+        (!currentUserId || !review.previewMentorId || review.previewMentorId === currentUserId);
 
-      const belongsToMe =
-        !currentUserId || !review.previewMentorId || review.previewMentorId === currentUserId;
+      const isMyClaim =
+        (review.status === "CLAIMED" || review.status === "DELIVERED") &&
+        (!currentUserId || !review.assignedMentorId || review.assignedMentorId === currentUserId);
 
-      const raw = sessionStorage.getItem(MY_LOCKS_KEY);
+      const raw = localStorage.getItem(IN_PROGRESS_KEY);
       const list: CodeReviewRequestItem[] = raw ? JSON.parse(raw) : [];
       const filtered = list.filter((item) => item.id !== review.id);
 
-      if (isLockActive && belongsToMe) {
-        filtered.push(review);
+      if (isMyLock || isMyClaim) {
+        filtered.unshift(review);
       }
-      sessionStorage.setItem(MY_LOCKS_KEY, JSON.stringify(filtered));
+      localStorage.setItem(IN_PROGRESS_KEY, JSON.stringify(filtered));
     } catch {
       // quota or private browsing
     }
@@ -69,33 +74,71 @@ export const codeReviewCache = {
   get: (id: string): CodeReviewRequestItem | null => {
     if (typeof window === "undefined" || !id) return null;
     try {
-      const raw = sessionStorage.getItem(`${CACHE_PREFIX}${id}`);
-      return raw ? JSON.parse(raw) : null;
+      const local = localStorage.getItem(`${STORAGE_PREFIX}${id}`);
+      if (local) return JSON.parse(local);
+      const session = sessionStorage.getItem(`${STORAGE_PREFIX}${id}`);
+      if (session) return JSON.parse(session);
+      return null;
     } catch {
       return null;
     }
   },
 
-  getMyActiveLocks: (userId?: string): CodeReviewRequestItem[] => {
+  getMyInProgressReviews: (userId?: string): CodeReviewRequestItem[] => {
     if (typeof window === "undefined") return [];
     try {
-      const raw = sessionStorage.getItem(MY_LOCKS_KEY);
+      const raw = localStorage.getItem(IN_PROGRESS_KEY);
       if (!raw) return [];
       const list: CodeReviewRequestItem[] = JSON.parse(raw);
       const now = Date.now();
-      const valid = list.filter(
-        (item) =>
-          item.previewExpiresAt &&
-          new Date(item.previewExpiresAt).getTime() > now &&
-          item.status === "PREVIEW_LOCKED" &&
-          (!userId || !item.previewMentorId || item.previewMentorId === userId)
-      );
-      if (valid.length !== list.length) {
-        sessionStorage.setItem(MY_LOCKS_KEY, JSON.stringify(valid));
+
+      const active = list.filter((item) => {
+        if (item.status === "PREVIEW_LOCKED") {
+          const notExpired =
+            item.previewExpiresAt != null &&
+            new Date(item.previewExpiresAt).getTime() > now;
+          const belongsToMe =
+            !userId || !item.previewMentorId || item.previewMentorId === userId;
+          return notExpired && belongsToMe;
+        }
+
+        if (item.status === "CLAIMED" || item.status === "DELIVERED") {
+          const belongsToMe =
+            !userId || !item.assignedMentorId || item.assignedMentorId === userId;
+          return belongsToMe;
+        }
+
+        return false;
+      });
+
+      if (active.length !== list.length) {
+        localStorage.setItem(IN_PROGRESS_KEY, JSON.stringify(active));
       }
-      return valid;
+      return active;
     } catch {
       return [];
+    }
+  },
+
+  getMyActiveLocks: (userId?: string): CodeReviewRequestItem[] => {
+    return codeReviewCache
+      .getMyInProgressReviews(userId)
+      .filter((r) => r.status === "PREVIEW_LOCKED");
+  },
+
+  remove: (id: string) => {
+    if (typeof window === "undefined" || !id) return;
+    try {
+      sessionStorage.removeItem(`${STORAGE_PREFIX}${id}`);
+      localStorage.removeItem(`${STORAGE_PREFIX}${id}`);
+      const raw = localStorage.getItem(IN_PROGRESS_KEY);
+      if (raw) {
+        const list: CodeReviewRequestItem[] = JSON.parse(raw);
+        const filtered = list.filter((item) => item.id !== id);
+        localStorage.setItem(IN_PROGRESS_KEY, JSON.stringify(filtered));
+      }
+    } catch {
+      // ignore
     }
   },
 };
@@ -110,7 +153,11 @@ export const codeReviewService = {
   },
 
   getById: async (id: string): Promise<CodeReviewRequestItem> => {
-    // 1. Try remote API first
+    // 1. Try local storage cache first
+    const cached = codeReviewCache.get(id);
+    if (cached) return cached;
+
+    // 2. Try remote API
     try {
       const remote = await apiClient.get<CodeReviewRequestItem>(`/code-reviews/${id}`);
       if (remote) {
@@ -120,10 +167,6 @@ export const codeReviewService = {
     } catch {
       // Endpoint may not exist on backend
     }
-
-    // 2. Try local cache
-    const cached = codeReviewCache.get(id);
-    if (cached) return cached;
 
     // 3. Fallback: search open pool
     try {
@@ -145,38 +188,54 @@ export const codeReviewService = {
   createRequest: (payload: CreateCodeReviewInput) =>
     apiClient.post<{ request: CodeReviewRequestItem }>("/code-reviews", payload),
 
-  previewLock: async (id: string): Promise<CodeReviewRequestItem> => {
+  previewLock: async (id: string, mentorId?: string): Promise<CodeReviewRequestItem> => {
     const updated = await apiClient.post<CodeReviewRequestItem>(`/code-reviews/${id}/preview`);
     const current = codeReviewCache.get(id);
+    const resolvedMentorId = updated?.previewMentorId || mentorId || current?.previewMentorId;
     const enriched: CodeReviewRequestItem = {
       ...(current || {}),
       ...updated,
       status: "PREVIEW_LOCKED",
+      previewMentorId: resolvedMentorId,
       previewExpiresAt:
         updated?.previewExpiresAt ||
         new Date(Date.now() + 10 * 60 * 1000).toISOString(),
     } as CodeReviewRequestItem;
-    codeReviewCache.save(enriched);
+    codeReviewCache.save(enriched, resolvedMentorId || undefined);
     return enriched;
   },
 
-  claimRequest: async (id: string): Promise<CodeReviewRequestItem> => {
+  claimRequest: async (id: string, mentorId?: string): Promise<CodeReviewRequestItem> => {
     const updated = await apiClient.post<CodeReviewRequestItem>(`/code-reviews/${id}/claim`);
     const current = codeReviewCache.get(id);
+    const resolvedMentorId = updated?.assignedMentorId || mentorId || current?.assignedMentorId;
+    const isQuick = (updated?.tier || current?.tier) === "QUICK";
+    const slaMs = isQuick ? 2 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
     const enriched: CodeReviewRequestItem = {
       ...(current || {}),
       ...updated,
       status: "CLAIMED",
+      assignedMentorId: resolvedMentorId,
+      deliveryDeadline:
+        updated?.deliveryDeadline ||
+        new Date(Date.now() + slaMs).toISOString(),
+      previewMentorId: null,
+      previewExpiresAt: null,
     } as CodeReviewRequestItem;
-    codeReviewCache.save(enriched);
+    codeReviewCache.save(enriched, resolvedMentorId || undefined);
     return enriched;
   },
 
-  submitReview: (id: string, payload: SubmitCodeReviewInput) =>
-    apiClient.post<{ request: CodeReviewRequestItem; submission: unknown }>(
+  submitReview: async (id: string, payload: SubmitCodeReviewInput) => {
+    const res = await apiClient.post<{ request: CodeReviewRequestItem; submission: unknown }>(
       `/code-reviews/${id}/submit`,
       payload
-    ),
+    );
+    if (res?.request) {
+      codeReviewCache.save(res.request);
+    }
+    return res;
+  },
 
   approveAndRelease: (id: string) =>
     apiClient.post(`/code-reviews/${id}/approve`),

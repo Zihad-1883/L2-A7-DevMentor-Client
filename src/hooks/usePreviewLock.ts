@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useCurrentTime } from "@/hooks/useCurrentTime";
 
 interface UsePreviewLockOptions {
   expiresAt?: string | null;
@@ -17,53 +18,34 @@ export interface UsePreviewLockReturn {
   isActive: boolean;
 }
 
-function computeSecondsRemaining(expiresAt?: string | null): number {
-  if (!expiresAt) return 0;
-  const expiryTime = new Date(expiresAt).getTime();
-  if (isNaN(expiryTime)) return 0;
-  return Math.max(0, Math.floor((expiryTime - Date.now()) / 1000));
-}
-
 export function usePreviewLock({
   expiresAt,
   totalDurationSeconds = 600,
   onExpire,
 }: UsePreviewLockOptions = {}): UsePreviewLockReturn {
-  const [secondsLeft, setSecondsLeft] = React.useState<number>(() =>
-    computeSecondsRemaining(expiresAt)
-  );
-  const [prevExpiresAt, setPrevExpiresAt] = React.useState<string | null | undefined>(
-    expiresAt
-  );
+  const now = useCurrentTime();
 
-  // Adjust state during rendering when expiresAt changes (avoids cascading render effects)
-  if (expiresAt !== prevExpiresAt) {
-    setPrevExpiresAt(expiresAt);
-    setSecondsLeft(computeSecondsRemaining(expiresAt));
-  }
+  const secondsLeft = React.useMemo(() => {
+    if (!expiresAt) return 0;
+    const expiryTime = new Date(expiresAt).getTime();
+    if (isNaN(expiryTime)) return 0;
+    return Math.max(0, Math.floor((expiryTime - now) / 1000));
+  }, [expiresAt, now]);
 
-  // Subscribe to external timer interval
+  const hasExpiredRef = React.useRef(false);
+
   React.useEffect(() => {
-    if (!expiresAt) return;
-
-    const remaining = computeSecondsRemaining(expiresAt);
-    if (remaining <= 0) {
-      onExpire?.();
+    if (!expiresAt) {
+      hasExpiredRef.current = false;
       return;
     }
-
-    const interval = setInterval(() => {
-      const nextRemaining = computeSecondsRemaining(expiresAt);
-      setSecondsLeft(nextRemaining);
-
-      if (nextRemaining <= 0) {
-        clearInterval(interval);
-        onExpire?.();
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [expiresAt, onExpire]);
+    if (secondsLeft <= 0 && !hasExpiredRef.current) {
+      hasExpiredRef.current = true;
+      onExpire?.();
+    } else if (secondsLeft > 0) {
+      hasExpiredRef.current = false;
+    }
+  }, [expiresAt, secondsLeft, onExpire]);
 
   const isExpired = Boolean(expiresAt && secondsLeft <= 0);
   const isUrgent = Boolean(expiresAt && secondsLeft > 0 && secondsLeft <= 120);

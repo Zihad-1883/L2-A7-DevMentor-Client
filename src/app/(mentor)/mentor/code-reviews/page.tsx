@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -12,8 +11,6 @@ import {
   Search,
   Filter,
   Clock,
-  Sparkles,
-  ShieldCheck,
   CheckCircle2,
   AlertCircle,
   Copy,
@@ -24,14 +21,12 @@ import {
   ArrowRight,
   X,
   Loader2,
-  ChevronRight,
-  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { useCurrentTime } from "@/hooks/useCurrentTime";
 import EmptyState from "@/components/shared/EmptyState";
-import ConfirmModal from "@/components/shared/ConfirmModal";
 import ReviewPoolCard from "@/features/code-review/ReviewPoolCard";
 import { codeReviewService, codeReviewCache } from "@/services/code-review.service";
 import type {
@@ -57,6 +52,10 @@ export default function MentorCodeReviewsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuthContext();
+  const now = useCurrentTime();
+
+  // Active Tab: "pool" (Available open requests) vs "in_progress" (Current mentor's locked / claimed reviews)
+  const [activeTab, setActiveTab] = React.useState<"pool" | "in_progress">("pool");
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -73,15 +72,11 @@ export default function MentorCodeReviewsPage() {
     inspectedRequest &&
     inspectedRequest.status === "PREVIEW_LOCKED" &&
     inspectedRequest.previewExpiresAt &&
-    new Date(inspectedRequest.previewExpiresAt).getTime() > Date.now() &&
+    new Date(inspectedRequest.previewExpiresAt).getTime() > now &&
     (!user?.id || inspectedRequest.previewMentorId !== user.id)
   );
 
-  // Claim Confirmation Modal
-  const [requestToClaim, setRequestToClaim] =
-    React.useState<CodeReviewRequestItem | null>(null);
-
-  // 1. Fetch Open Code Review Pool
+  // 1. Fetch Open Code Review Pool from Backend
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       "mentor",
@@ -111,70 +106,77 @@ export default function MentorCodeReviewsPage() {
     (data as unknown as { requests?: CodeReviewRequestItem[]; data?: CodeReviewRequestItem[] })?.data ||
     [];
 
-  // Merge mentor's active preview locks into the pool so they NEVER disappear for this mentor
-  const myActiveLocks = React.useMemo(() => {
-    return codeReviewCache.getMyActiveLocks(user?.id);
-  }, [data, user?.id]);
+  // 2. Mentor's In-Progress Reviews (Active preview locks & claimed delivery workspaces)
+  const inProgressReviews = React.useMemo(() => {
+    return codeReviewCache.getMyInProgressReviews(user?.id);
+  }, [user?.id, data, now]);
 
-  const requests: CodeReviewRequestItem[] = React.useMemo(() => {
-    const list = Array.isArray(rawRequests) ? [...rawRequests] : [];
-    myActiveLocks.forEach((locked) => {
-      const idx = list.findIndex((r) => r.id === locked.id);
-      if (idx === -1) {
-        list.unshift(locked);
-      } else {
-        list[idx] = { ...list[idx], ...locked };
+  // 3. Filter Available Requests Pool:
+  // Must ONLY show requests not locked by others. If locked by another mentor, do not show anything!
+  // If preview lock is expired, it returns to the pool and is available to any mentor.
+  const availableRequests: CodeReviewRequestItem[] = React.useMemo(() => {
+    const list = Array.isArray(rawRequests) ? rawRequests : [];
+    return list.filter((r) => {
+      // Exclude claimed, delivered, completed, or cancelled requests
+      if (
+        r.status === "CLAIMED" ||
+        r.status === "DELIVERED" ||
+        r.status === "COMPLETED" ||
+        r.status === "CANCELLED"
+      ) {
+        return false;
       }
-    });
-    return list;
-  }, [rawRequests, myActiveLocks]);
 
-  // Metrics Calculations
-  const totalOpenCount = requests.length;
-  const quickCount = requests.filter((r) => r.tier === "QUICK").length;
-  const deepCount = requests.filter((r) => r.tier === "DEEP").length;
-  const totalBountyCredits = requests.reduce(
+      // Check preview locks
+      if (r.status === "PREVIEW_LOCKED") {
+        const isExpired =
+          r.previewExpiresAt == null ||
+          new Date(r.previewExpiresAt).getTime() <= now;
+
+        // If lock has expired, it is open for any mentor to claim or preview!
+        if (isExpired) {
+          return true;
+        }
+
+        // Active lock: if locked by another mentor, DO NOT SHOW ANYTHING.
+        // If locked by current mentor, it is accessible under "My In-Progress Reviews".
+        return false;
+      }
+
+      // Status is OPEN: available!
+      return true;
+    });
+  }, [rawRequests, now]);
+
+  // Pool Metrics
+  const totalOpenCount = availableRequests.length;
+  const quickCount = availableRequests.filter((r) => r.tier === "QUICK").length;
+  const deepCount = availableRequests.filter((r) => r.tier === "DEEP").length;
+  const totalBountyCredits = availableRequests.reduce(
     (acc, curr) => acc + (curr.creditReward || (curr.tier === "QUICK" ? 10 : 50)),
     0
   );
 
-  // Mutation: Acquire 10-Minute Preview Lock
+  // Mutation: Acquire 10-Minute Preview Lock from Modal & Immediately Navigate to Details Page
   const previewLockMutation = useMutation({
-    mutationFn: (requestId: string) => codeReviewService.previewLock(requestId),
+    mutationFn: (requestId: string) =>
+      codeReviewService.previewLock(requestId, user?.id),
     onSuccess: (updated) => {
       toast.success(
-        "10-Minute Preview Lock acquired! Other mentors cannot claim this request while you inspect it."
+        "10-Minute Preview Lock acquired! Opening your code review workspace..."
       );
       if (updated) {
-        codeReviewCache.save(updated);
+        codeReviewCache.save(updated, user?.id);
         queryClient.setQueryData(["code-review", updated.id], updated);
       }
-      if (inspectedRequest && updated) {
-        setInspectedRequest({ ...inspectedRequest, ...updated });
-      }
-      refetch();
-    },
-    onError: (err: Error) => {
-      toast.error(err.message || "Failed to acquire preview lock.");
-    },
-  });
-
-  // Mutation: Officially Claim Request
-  const claimMutation = useMutation({
-    mutationFn: (requestId: string) => codeReviewService.claimRequest(requestId),
-    onSuccess: (updated) => {
-      toast.success("Code review claimed! SLA delivery clock has started.");
-      setRequestToClaim(null);
       setInspectedRequest(null);
       refetch();
-      queryClient.invalidateQueries({ queryKey: ["mentor", "code-reviews"] });
-      // Redirect to delivery workspace
       if (updated?.id) {
         router.push(`/mentor/code-reviews/${updated.id}`);
       }
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Failed to claim code review request.");
+      toast.error(err.message || "Failed to acquire preview lock.");
     },
   });
 
@@ -204,7 +206,7 @@ export default function MentorCodeReviewsPage() {
             Code Review Delivery Hub
           </h1>
           <p className="text-xs sm:text-sm text-text-secondary mt-1 max-w-2xl leading-relaxed">
-            Browse submitted codebases from student developers. Lock 10-minute preview windows to review complexity, claim requests, and earn escrow credits upon review delivery.
+            Browse submitted codebases from student developers. Lock 10-minute preview windows to inspect complexity, claim requests, and deliver architectural feedback within SLA.
           </p>
         </div>
 
@@ -213,278 +215,468 @@ export default function MentorCodeReviewsPage() {
             size="sm"
             variant="outline"
             onClick={() => refetch()}
-            className="text-xs border-border bg-surface hover:bg-surface-raised gap-1.5 h-9"
+            className="text-xs border-border bg-surface hover:bg-surface-raised gap-1.5 h-9 cursor-pointer"
           >
             <Clock className="size-3.5 text-amber" /> Refresh Pool
           </Button>
         </div>
       </div>
 
-      {/* 2. Top Metrics Strip (4 Stat Cards) */}
+      {/* 2. Key Metrics Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-surface border border-border shadow-xs space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">
-            Open in Pool
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="font-serif text-2xl font-bold text-text-primary">
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border flex items-center gap-3.5 shadow-2xs">
+          <div className="size-11 rounded-xl bg-amber-light text-amber flex items-center justify-center shrink-0">
+            <Code2 className="size-5" />
+          </div>
+          <div>
+            <span className="text-xs text-text-muted font-medium block">
+              Available Requests
+            </span>
+            <span className="text-xl sm:text-2xl font-bold text-text-primary font-serif">
               {totalOpenCount}
             </span>
-            <span className="text-[11px] font-semibold text-text-muted">
-              requests
-            </span>
           </div>
-          <span className="text-[11px] text-text-muted block">
-            Ready for mentor inspection
-          </span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-surface border border-border shadow-xs space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">
-            Total Bounty Pool
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="font-serif text-2xl font-bold text-amber">
-              {totalBountyCredits}
-            </span>
-            <span className="text-[11px] font-semibold text-emerald">
-              ৳{totalBountyCredits * 4} BDT
-            </span>
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border flex items-center gap-3.5 shadow-2xs">
+          <div className="size-11 rounded-xl bg-amber-light text-amber flex items-center justify-center shrink-0">
+            <Zap className="size-5" />
           </div>
-          <span className="text-[11px] text-text-muted block">
-            100% platform escrow locked
-          </span>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-surface border border-border shadow-xs space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">
-            Quick Reviews (10 Cr)
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="font-serif text-2xl font-bold text-text-primary">
+          <div>
+            <span className="text-xs text-text-muted font-medium block">
+              Quick Reviews (2h SLA)
+            </span>
+            <span className="text-xl sm:text-2xl font-bold text-text-primary font-serif">
               {quickCount}
             </span>
-            <span className="text-[11px] font-bold text-amber">
-              2h SLA Target
-            </span>
           </div>
-          <span className="text-[11px] text-text-muted block">
-            Focused functions & bug fixes
-          </span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-surface border border-border shadow-xs space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">
-            Deep Reviews (50 Cr)
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="font-serif text-2xl font-bold text-text-primary">
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border flex items-center gap-3.5 shadow-2xs">
+          <div className="size-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <Layers className="size-5" />
+          </div>
+          <div>
+            <span className="text-xs text-text-muted font-medium block">
+              Deep Reviews (24h SLA)
+            </span>
+            <span className="text-xl sm:text-2xl font-bold text-text-primary font-serif">
               {deepCount}
             </span>
-            <span className="text-[11px] font-bold text-indigo-600">
-              24h SLA Target
-            </span>
           </div>
-          <span className="text-[11px] text-text-muted block">
-            Full architecture & PR teardowns
-          </span>
-        </div>
-      </div>
-
-      {/* 3. Mentor Educational Banner: 3-Step Review Flow */}
-      <div className="p-6 rounded-3xl bg-amber-50/50 border border-amber/20 space-y-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="size-4 text-amber" />
-          <h3 className="font-serif text-sm font-bold text-text-primary">
-            How Code Review Delivery Works for Mentors
-          </h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-text-secondary pt-1">
-          <div className="p-3.5 rounded-2xl bg-surface border border-border/80 space-y-1">
-            <span className="font-bold text-text-primary flex items-center gap-1.5">
-              <span className="size-5 rounded-full bg-amber-light text-amber font-mono font-bold text-[10px] flex items-center justify-center">
-                1
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border flex items-center gap-3.5 shadow-2xs">
+          <div className="size-11 rounded-xl bg-emerald-light text-emerald flex items-center justify-center shrink-0">
+            <Coins className="size-5" />
+          </div>
+          <div>
+            <span className="text-xs text-text-muted font-medium block">
+              Total Bounty Pool
+            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-xl sm:text-2xl font-bold text-text-primary font-serif">
+                {totalBountyCredits}
               </span>
-              10-Minute Preview Lock
-            </span>
-            <p className="leading-relaxed">
-              Click &ldquo;Inspect Code&rdquo; to review the snippet. You can acquire a 10-min lock to hold the request while reading.
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-surface border border-border/80 space-y-1">
-            <span className="font-bold text-text-primary flex items-center gap-1.5">
-              <span className="size-5 rounded-full bg-amber-light text-amber font-mono font-bold text-[10px] flex items-center justify-center">
-                2
-              </span>
-              Claim &amp; SLA Clock
-            </span>
-            <p className="leading-relaxed">
-              Officially claim the request to start your delivery clock: <strong>2 Hours</strong> for Quick, <strong>24 Hours</strong> for Deep reviews.
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-surface border border-border/80 space-y-1">
-            <span className="font-bold text-text-primary flex items-center gap-1.5">
-              <span className="size-5 rounded-full bg-amber-light text-amber font-mono font-bold text-[10px] flex items-center justify-center">
-                3
-              </span>
-              Deliver &amp; 100% Payout
-            </span>
-            <p className="leading-relaxed">
-              Submit refactored code and inline comments. On delivery approval, 100% of escrow credits release directly to your wallet.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. Search & Filter Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 rounded-2xl bg-surface border border-border shadow-xs">
-        {/* Search */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="size-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <Input
-            type="text"
-            placeholder="Search by title, description, or target files..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-10 text-xs bg-surface-raised rounded-xl"
-          />
-        </div>
-
-        {/* Tier Filter Pills */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted mr-1 flex items-center gap-1">
-            <Filter className="size-3" /> Tier:
-          </span>
-
-          <button
-            type="button"
-            onClick={() => setTierFilter("ALL")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-              tierFilter === "ALL"
-                ? "bg-amber text-white"
-                : "bg-surface-raised text-text-secondary hover:text-text-primary border border-border"
-            }`}
-          >
-            All Tiers
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setTierFilter("QUICK")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
-              tierFilter === "QUICK"
-                ? "bg-amber text-white"
-                : "bg-surface-raised text-text-secondary hover:text-text-primary border border-border"
-            }`}
-          >
-            <Zap className="size-3" /> Quick (10 Cr)
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setTierFilter("DEEP")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
-              tierFilter === "DEEP"
-                ? "bg-amber text-white"
-                : "bg-surface-raised text-text-secondary hover:text-text-primary border border-border"
-            }`}
-          >
-            <Layers className="size-3" /> Deep (50 Cr)
-          </button>
-        </div>
-
-        {/* Language Filter */}
-        <div className="flex items-center gap-2">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted shrink-0">
-            Language:
-          </label>
-          <select
-            value={languageFilter}
-            onChange={(e) => setLanguageFilter(e.target.value)}
-            className="h-9 px-3 text-xs bg-surface-raised border border-border rounded-xl text-text-primary font-medium focus:outline-none focus:ring-2 focus:ring-amber/50 cursor-pointer"
-          >
-            {LANGUAGES.map((lang) => (
-              <option key={lang.value} value={lang.value}>
-                {lang.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* 5. Code Review Requests Grid */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="p-6 rounded-3xl bg-surface border border-border animate-pulse space-y-4"
-            >
-              <div className="flex justify-between">
-                <div className="h-5 w-28 bg-border/80 rounded" />
-                <div className="h-5 w-24 bg-border/80 rounded" />
-              </div>
-              <div className="h-6 w-3/4 bg-border/80 rounded" />
-              <div className="h-16 w-full bg-border/50 rounded-xl" />
-              <div className="h-8 w-full bg-border/40 rounded" />
+              <span className="text-xs font-semibold text-text-muted">Cr</span>
             </div>
-          ))}
+          </div>
         </div>
-      ) : isError ? (
-        <div className="p-8 rounded-3xl bg-surface border border-rose/20 text-center space-y-3">
-          <AlertCircle className="size-8 text-rose mx-auto" />
-          <h3 className="text-sm font-bold text-text-primary">
-            Failed to load code review pool
-          </h3>
-          <p className="text-xs text-text-secondary max-w-sm mx-auto">
-            {error instanceof Error ? error.message : "Something went wrong fetching available reviews."}
-          </p>
-          <Button size="sm" variant="outline" onClick={() => refetch()} className="text-xs">
-            Try Again
-          </Button>
-        </div>
-      ) : requests.length === 0 ? (
-        <EmptyState
-          title="No code reviews available in pool"
-          description={
-            searchQuery || tierFilter !== "ALL" || languageFilter !== "ALL"
-              ? "No review requests match your active filters. Try resetting your search or tier selector."
-              : "There are currently no open code review requests from students. Check back soon!"
-          }
-          icon={Code2}
-          action={
-            searchQuery || tierFilter !== "ALL" || languageFilter !== "ALL"
-              ? {
-                  label: "Clear All Filters",
-                  onClick: () => {
-                    setSearchQuery("");
-                    setTierFilter("ALL");
-                    setLanguageFilter("ALL");
-                  },
-                }
-              : {
-                  label: "Refresh Pool",
-                  onClick: () => refetch(),
-                }
-          }
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {requests.map((request) => (
-            <ReviewPoolCard
-              key={request.id}
-              request={request}
-              onInspect={(req) => setInspectedRequest(req)}
+      </div>
+
+      {/* 3. Navigation Tab Selector: Available Pool vs My In-Progress Reviews */}
+      <div className="flex items-center gap-3 border-b border-border/80 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab("pool")}
+          className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeTab === "pool"
+            ? "bg-amber text-white shadow-xs"
+            : "bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-raised border border-border"
+            }`}
+        >
+          <Code2 className="size-4" />
+          <span>Available Requests Pool</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-bold ${activeTab === "pool"
+              ? "bg-white/20 text-white"
+              : "bg-surface-raised text-text-muted border border-border"
+              }`}
+          >
+            {availableRequests.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("in_progress")}
+          className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeTab === "in_progress"
+            ? "bg-amber text-white shadow-xs"
+            : "bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-raised border border-border"
+            }`}
+        >
+          <Clock className="size-4" />
+          <span>My In-Progress Reviews</span>
+          {inProgressReviews.length > 0 ? (
+            <span
+              className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-bold ${activeTab === "in_progress"
+                ? "bg-white text-amber"
+                : "bg-amber text-white shadow-xs"
+                }`}
+            >
+              {inProgressReviews.length} Active
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-surface-raised text-text-muted border border-border">
+              0
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* VIEW A: AVAILABLE REQUESTS POOL */}
+      {/* ========================================================================= */}
+      {activeTab === "pool" && (
+        <div className="space-y-6">
+          {/* Search & Filter Bar */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 rounded-2xl bg-surface border border-border shadow-xs">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="size-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Input
+                type="text"
+                placeholder="Search by title, description, or target files..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-10 text-xs bg-surface-raised rounded-xl"
+              />
+            </div>
+
+            {/* Tier Filter Pills */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted mr-1 flex items-center gap-1">
+                <Filter className="size-3" /> Tier:
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setTierFilter("ALL")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${tierFilter === "ALL"
+                  ? "bg-amber text-white"
+                  : "bg-surface-raised text-text-secondary hover:text-text-primary border border-border"
+                  }`}
+              >
+                All Tiers
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTierFilter("QUICK")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 ${tierFilter === "QUICK"
+                  ? "bg-amber text-white"
+                  : "bg-surface-raised text-text-secondary hover:text-text-primary border border-border"
+                  }`}
+              >
+                <Zap className="size-3" /> Quick (10 Cr)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTierFilter("DEEP")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 ${tierFilter === "DEEP"
+                  ? "bg-amber text-white"
+                  : "bg-surface-raised text-text-secondary hover:text-text-primary border border-border"
+                  }`}
+              >
+                <Layers className="size-3" /> Deep (50 Cr)
+              </button>
+            </div>
+
+            {/* Language Filter */}
+            <div className="flex items-center gap-2">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted shrink-0">
+                Language:
+              </label>
+              <select
+                value={languageFilter}
+                onChange={(e) => setLanguageFilter(e.target.value)}
+                className="h-9 px-3 text-xs bg-surface-raised border border-border rounded-xl text-text-primary font-medium focus:outline-none focus:ring-2 focus:ring-amber/50 cursor-pointer"
+              >
+                {LANGUAGES.map((lang) => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Code Review Requests Grid */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="p-6 rounded-3xl bg-surface border border-border animate-pulse space-y-4"
+                >
+                  <div className="flex justify-between">
+                    <div className="h-5 w-28 bg-border/80 rounded" />
+                    <div className="h-5 w-24 bg-border/80 rounded" />
+                  </div>
+                  <div className="h-6 w-3/4 bg-border/80 rounded" />
+                  <div className="h-16 w-full bg-border/50 rounded-xl" />
+                  <div className="h-8 w-full bg-border/40 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : isError ? (
+            <div className="p-8 rounded-3xl bg-surface border border-rose/20 text-center space-y-3">
+              <AlertCircle className="size-8 text-rose mx-auto" />
+              <h3 className="text-sm font-bold text-text-primary">
+                Failed to load code review pool
+              </h3>
+              <p className="text-xs text-text-secondary max-w-sm mx-auto">
+                {error instanceof Error
+                  ? error.message
+                  : "Something went wrong fetching available reviews."}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => refetch()}
+                className="text-xs cursor-pointer"
+              >
+                Try Again
+              </Button>
+            </div>
+          ) : availableRequests.length === 0 ? (
+            <EmptyState
+              title="No code reviews available in pool"
+              description={
+                searchQuery || tierFilter !== "ALL" || languageFilter !== "ALL"
+                  ? "No review requests match your active filters. Try resetting your search or tier selector."
+                  : "There are currently no open code review requests from students. Check back soon!"
+              }
+              icon={Code2}
+              action={
+                searchQuery || tierFilter !== "ALL" || languageFilter !== "ALL"
+                  ? {
+                    label: "Clear All Filters",
+                    onClick: () => {
+                      setSearchQuery("");
+                      setTierFilter("ALL");
+                      setLanguageFilter("ALL");
+                    },
+                  }
+                  : {
+                    label: "Refresh Pool",
+                    onClick: () => refetch(),
+                  }
+              }
             />
-          ))}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {availableRequests.map((request) => (
+                <ReviewPoolCard
+                  key={request.id}
+                  request={request}
+                  onInspect={(req) => setInspectedRequest(req)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* 6. MODAL: Code Snippet Quick Inspector & Preview Lock */}
+      {/* VIEW B: MY IN-PROGRESS REVIEWS */}
+      {/* ========================================================================= */}
+      {activeTab === "in_progress" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold font-serif text-text-primary">
+                Your Active Reservations &amp; In-Progress Workspaces
+              </h2>
+              <p className="text-xs text-text-secondary">
+                You can leave the UI and return anytime. Active 10-minute preview locks and delivery workspaces remain accessible here.
+              </p>
+            </div>
+          </div>
+
+          {inProgressReviews.length === 0 ? (
+            <EmptyState
+              title="No in-progress code reviews"
+              description="You do not hold any active preview locks or claimed reviews right now. Browse the available requests pool to lock a preview or claim a request."
+              icon={Clock}
+              action={{
+                label: "Browse Available Requests",
+                onClick: () => setActiveTab("pool"),
+              }}
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {inProgressReviews.map((item) => {
+                const isQuick = item.tier === "QUICK";
+                const reward = item.creditReward || (isQuick ? 10 : 50);
+                const bdt = reward * 4;
+
+                // Preview lock countdown
+                const previewSecsLeft = item.previewExpiresAt
+                  ? Math.max(0, Math.floor((new Date(item.previewExpiresAt).getTime() - now) / 1000))
+                  : 0;
+                const previewMins = Math.floor(previewSecsLeft / 60);
+                const previewSecs = previewSecsLeft % 60;
+
+                // Delivery SLA countdown
+                const slaSecsLeft = item.deliveryDeadline
+                  ? Math.max(0, Math.floor((new Date(item.deliveryDeadline).getTime() - now) / 1000))
+                  : 0;
+                const slaHrs = Math.floor(slaSecsLeft / 3600);
+                const slaMins = Math.floor((slaSecsLeft % 3600) / 60);
+
+                return (
+                  <div
+                    key={item.id}
+                    className="flex flex-col justify-between p-6 rounded-3xl bg-surface border border-border shadow-xs hover:border-amber/40 transition-all space-y-5"
+                  >
+                    <div className="space-y-4">
+                      {/* Status & Tier Header */}
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${isQuick
+                              ? "bg-amber-light text-amber border-amber/20"
+                              : "bg-indigo-50 text-indigo-600 border-indigo-200"
+                              }`}
+                          >
+                            {isQuick ? <Zap className="size-3.5" /> : <Layers className="size-3.5" />}
+                            {item.tier} Review
+                          </span>
+
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-surface-raised border border-border text-text-primary capitalize">
+                            <Code2 className="size-3 text-text-muted" />
+                            {item.language || "TypeScript"}
+                          </span>
+
+                          {item.status === "PREVIEW_LOCKED" && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-amber-50 text-amber border border-amber/30">
+                              <Lock className="size-3" /> Preview Lock Active
+                            </span>
+                          )}
+
+                          {item.status === "CLAIMED" && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-200">
+                              <Clock className="size-3" /> Claimed (In Delivery)
+                            </span>
+                          )}
+
+                          {item.status === "DELIVERED" && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-600 border border-blue-200">
+                              <CheckCircle2 className="size-3" /> Feedback Delivered
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-surface-raised border border-border/80">
+                          <Coins className="size-4 text-amber" />
+                          <span className="font-bold text-sm text-text-primary">
+                            +{reward} Credits
+                          </span>
+                          <span className="text-[11px] font-semibold text-emerald">
+                            (≈ ৳{bdt} BDT)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Title & Description */}
+                      <div className="space-y-1">
+                        <h3 className="font-serif text-lg font-bold text-text-primary line-clamp-1">
+                          {item.title}
+                        </h3>
+                        <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
+                          {item.description}
+                        </p>
+                      </div>
+
+                      {/* Active Countdown Info Box */}
+                      {item.status === "PREVIEW_LOCKED" && (
+                        <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber/30 text-amber-950 dark:text-amber-200 space-y-1">
+                          <div className="flex items-center justify-between text-xs font-bold">
+                            <span className="text-amber flex items-center gap-1.5">
+                              <Lock className="size-3.5" /> 10-Minute Lock Countdown:
+                            </span>
+                            <span className="font-mono text-sm text-amber font-bold">
+                              {previewMins}:{previewSecs < 10 ? "0" : ""}{previewSecs} remaining
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-text-secondary leading-normal">
+                            You have exclusive reservation. Open the workspace to claim before the timer expires!
+                          </p>
+                        </div>
+                      )}
+
+                      {item.status === "CLAIMED" && (
+                        <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200 text-indigo-950 space-y-1">
+                          <div className="flex items-center justify-between text-xs font-bold">
+                            <span className="text-indigo-700 flex items-center gap-1.5">
+                              <Clock className="size-3.5" /> Delivery SLA Clock:
+                            </span>
+                            <span className="font-mono text-sm text-indigo-700 font-bold">
+                              {slaHrs > 0 ? `${slaHrs}h ${slaMins}m` : `${slaMins}m`} left
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-indigo-800 leading-normal">
+                            Target deadline:{" "}
+                            <strong>
+                              {item.deliveryDeadline ? formatDate(item.deliveryDeadline) : "Active"}
+                            </strong>
+                            . Submit refactored code and architectural feedback.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bottom Action Button */}
+                    <div className="pt-4 border-t border-border/70 flex items-center justify-between">
+                      <span className="text-xs text-text-muted">
+                        Student: <strong>{item.student?.name || "Student"}</strong>
+                      </span>
+
+                      <Button
+                        size="sm"
+                        onClick={() => router.push(`/mentor/code-reviews/${item.id}`)}
+                        className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-9 px-4 gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        {item.status === "PREVIEW_LOCKED" ? (
+                          <>
+                            <span>Resume Preview &amp; Claim</span>
+                            <ArrowRight className="size-3.5" />
+                          </>
+                        ) : item.status === "CLAIMED" ? (
+                          <>
+                            <span>Open Workspace &amp; Deliver</span>
+                            <ArrowRight className="size-3.5" />
+                          </>
+                        ) : (
+                          <>
+                            <span>View Review Workspace</span>
+                            <ArrowRight className="size-3.5" />
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 4. MODAL: Code Snippet Quick Inspector & Preview Lock */}
+      {/* (NO CLAIM FROM MODAL - ONLY LOCK PREVIEW & ROUTE TO DETAILS PAGE) */}
       {/* ========================================================================= */}
       {inspectedRequest && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -498,11 +690,10 @@ export default function MentorCodeReviewsPage() {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                      inspectedRequest.tier === "QUICK"
-                        ? "bg-amber-light text-amber border-amber/20"
-                        : "bg-indigo-50 text-indigo-600 border-indigo-200"
-                    }`}
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${inspectedRequest.tier === "QUICK"
+                      ? "bg-amber-light text-amber border-amber/20"
+                      : "bg-indigo-50 text-indigo-600 border-indigo-200"
+                      }`}
                   >
                     {inspectedRequest.tier === "QUICK" ? (
                       <Zap className="size-3" />
@@ -518,71 +709,85 @@ export default function MentorCodeReviewsPage() {
 
                   <span className="text-xs font-bold text-amber flex items-center gap-1">
                     <Coins className="size-3.5" />
-                    {inspectedRequest.creditReward ||
+                    +{inspectedRequest.creditReward ||
                       (inspectedRequest.tier === "QUICK" ? 10 : 50)}{" "}
-                    Credits (৳
+                    Credits (≈ ৳
                     {(inspectedRequest.creditReward ||
                       (inspectedRequest.tier === "QUICK" ? 10 : 50)) * 4}{" "}
                     BDT)
                   </span>
-
-                  {isInspectedLockedByOther && (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-orange/10 border border-orange/20 text-orange flex items-center gap-1">
-                      <Lock className="size-3" /> Reserved by Mentor
-                    </span>
-                  )}
                 </div>
-
                 <h3 className="font-serif text-lg font-bold text-text-primary">
                   {inspectedRequest.title}
                 </h3>
               </div>
 
-              <button
-                type="button"
+              <Button
+                size="icon"
+                variant="ghost"
                 onClick={() => setInspectedRequest(null)}
-                className="p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-raised cursor-pointer"
+                className="size-8 rounded-full hover:bg-surface-raised text-text-muted hover:text-text-primary cursor-pointer shrink-0"
               >
                 <X className="size-4" />
-              </button>
+              </Button>
             </div>
 
-            {/* Problem Statement */}
+            {/* Student Problem Statement */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-text-primary">
-                Student Problem Description
-              </label>
-              <div className="p-3.5 rounded-xl bg-surface-raised border border-border text-xs text-text-secondary leading-relaxed whitespace-pre-line">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                Student Request &amp; Question:
+              </span>
+              <div className="p-3.5 rounded-2xl bg-surface-raised border border-border text-xs text-text-secondary leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto">
                 {inspectedRequest.description}
               </div>
             </div>
 
-            {/* Code Snippet Container */}
+            {/* Target Files / Repo Context */}
+            {inspectedRequest.githubRepoUrl && (
+              <div className="p-3 rounded-2xl bg-surface-raised border border-border flex items-center justify-between text-xs">
+                <span className="text-text-muted">
+                  Repository:{" "}
+                  <strong className="text-text-primary">
+                    {inspectedRequest.githubRepoUrl.replace("https://github.com/", "")}
+                  </strong>
+                </span>
+                <a
+                  href={inspectedRequest.githubRepoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-amber font-semibold hover:underline"
+                >
+                  View on GitHub <ExternalLink className="size-3" />
+                </a>
+              </div>
+            )}
+
+            {/* Code Snippet Viewer */}
             {inspectedRequest.codeSnippet && (
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
-                  <FileCode2 className="size-3.5 text-amber" /> Submitted Code Snippet
-                </label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
+                    <FileCode2 className="size-3.5 text-amber" /> Submitted Code Preview:
+                  </span>
+                </div>
 
                 <div className="rounded-2xl bg-[#141416] border border-neutral-800 overflow-hidden shadow-sm">
-                  {/* IDE Window Titlebar */}
-                  <div className="flex items-center justify-between px-4 py-2.5 bg-[#1b1b1f] border-b border-neutral-800">
+                  {/* Title Bar */}
+                  <div className="flex items-center justify-between px-3.5 py-2 bg-[#1b1b1f] border-b border-neutral-800">
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="size-2.5 rounded-full bg-rose-500/80" />
-                        <span className="size-2.5 rounded-full bg-amber-500/80" />
-                        <span className="size-2.5 rounded-full bg-emerald-500/80" />
+                      <div className="flex items-center gap-1">
+                        <span className="size-2 rounded-full bg-rose-500/80" />
+                        <span className="size-2 rounded-full bg-amber-500/80" />
+                        <span className="size-2 rounded-full bg-emerald-500/80" />
                       </div>
-                      <span className="font-mono text-[11px] text-neutral-300 ml-1.5 font-medium">
-                        {inspectedRequest.specificFiles || `snippet.${inspectedRequest.language || "ts"}`}
-                      </span>
-                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-neutral-800 text-neutral-400">
-                        {inspectedRequest.language || "code"}
+                      <span className="font-mono text-[11px] text-neutral-300 ml-1">
+                        {inspectedRequest.specificFiles ||
+                          `snippet.${inspectedRequest.language || "ts"}`}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <span className="text-[11px] font-mono text-neutral-400">
+                      <span className="text-[10px] font-mono text-neutral-400">
                         {inspectedRequest.codeSnippet.split("\n").length} lines
                       </span>
                       <Button
@@ -591,7 +796,7 @@ export default function MentorCodeReviewsPage() {
                         onClick={() =>
                           handleCopyCode(inspectedRequest.codeSnippet || "")
                         }
-                        className="text-[11px] h-7 px-2.5 gap-1.5 text-neutral-300 hover:text-white hover:bg-neutral-800 cursor-pointer"
+                        className="text-[11px] h-6 px-2 gap-1 text-neutral-300 hover:text-white hover:bg-neutral-800 cursor-pointer"
                       >
                         {isCopied ? (
                           <>
@@ -667,30 +872,29 @@ export default function MentorCodeReviewsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() =>
-                      previewLockMutation.mutate(inspectedRequest.id)
-                    }
-                    disabled={previewLockMutation.isPending}
-                    className="text-xs h-9 px-3 gap-1.5 border-border cursor-pointer"
-                    title="Lock this request for 10 minutes so no other mentor can claim it while you review"
+                    onClick={() => setInspectedRequest(null)}
+                    className="text-xs h-9 px-4 border-border hover:bg-surface-raised cursor-pointer"
                   >
-                    {previewLockMutation.isPending ? (
-                      <>
-                        <Loader2 className="size-3.5 animate-spin" /> Locking...
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="size-3.5 text-amber" /> Lock 10-Min Preview
-                      </>
-                    )}
+                    Cancel
                   </Button>
 
                   <Button
                     size="sm"
-                    onClick={() => setRequestToClaim(inspectedRequest)}
-                    className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-9 px-4 shadow-2xs gap-1.5 cursor-pointer"
+                    onClick={() => previewLockMutation.mutate(inspectedRequest.id)}
+                    disabled={previewLockMutation.isPending}
+                    className="bg-amber text-white hover:bg-amber-hover font-bold text-xs h-9 px-5 shadow-xs gap-2 cursor-pointer"
+                    title="Lock this request for 10 minutes and open the workspace to claim and review"
                   >
-                    <Sparkles className="size-3.5" /> Claim Review Request
+                    {previewLockMutation.isPending ? (
+                      <>
+                        <Loader2 className="size-3.5 animate-spin" /> Locking &amp; Opening Workspace...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="size-3.5" /> Lock 10-Min Preview &amp; Review
+                        <ArrowRight className="size-3.5" />
+                      </>
+                    )}
                   </Button>
                 </div>
               )}
@@ -698,36 +902,6 @@ export default function MentorCodeReviewsPage() {
           </div>
         </div>
       )}
-
-      {/* ========================================================================= */}
-      {/* 7. MODAL: Claim Review Request Confirmation Modal */}
-      {/* ========================================================================= */}
-      <ConfirmModal
-        isOpen={Boolean(requestToClaim)}
-        title="Claim Code Review Request?"
-        description={
-          requestToClaim
-            ? `You are claiming "${requestToClaim.title}" for ${
-                requestToClaim.creditReward ||
-                (requestToClaim.tier === "QUICK" ? 10 : 50)
-              } Credits (৳${
-                (requestToClaim.creditReward ||
-                  (requestToClaim.tier === "QUICK" ? 10 : 50)) * 4
-              } BDT). The delivery countdown (${
-                requestToClaim.tier === "QUICK" ? "2 Hours" : "24 Hours"
-              } SLA) will begin immediately upon claiming. Do you want to proceed?`
-            : ""
-        }
-        confirmLabel="Claim & Start SLA Clock"
-        variant="success"
-        isLoading={claimMutation.isPending}
-        onConfirm={async () => {
-          if (requestToClaim) {
-            await claimMutation.mutateAsync(requestToClaim.id);
-          }
-        }}
-        onClose={() => setRequestToClaim(null)}
-      />
     </div>
   );
 }

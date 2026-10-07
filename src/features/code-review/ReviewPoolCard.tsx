@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { useCurrentTime } from "@/hooks/useCurrentTime";
 import type { CodeReviewRequestItem } from "@/types/code-review.types";
 import { formatDate } from "@/lib/utils";
 
@@ -46,6 +47,7 @@ export default function ReviewPoolCard({
   onInspect,
 }: ReviewPoolCardProps) {
   const { user } = useAuthContext();
+  const now = useCurrentTime();
   const isQuick = request.tier === "QUICK";
   const rewardCredits = request.creditReward || (isQuick ? 10 : 50);
   const slaText = isQuick ? "2 Hours SLA" : "24 Hours SLA";
@@ -54,7 +56,7 @@ export default function ReviewPoolCard({
   const isPreviewLocked =
     request.status === "PREVIEW_LOCKED" &&
     request.previewExpiresAt != null &&
-    new Date(request.previewExpiresAt).getTime() > Date.now();
+    new Date(request.previewExpiresAt).getTime() > now;
 
   const isLockedByMe =
     isPreviewLocked &&
@@ -197,28 +199,15 @@ export default function ReviewPoolCard({
             </Button>
           ) : null}
 
-          {isLockedByOther ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onInspect?.(request)}
-              className="text-xs h-8 px-3 border-amber/30 bg-amber-500/10 text-amber hover:bg-amber-500/20 font-semibold gap-1.5 cursor-pointer"
-              title="Another mentor currently has this review preview-locked. Click to view status."
-            >
-              <Lock className="size-3 text-amber" />
-              <span>Reserved</span>
-            </Button>
-          ) : (
-            <Link href={`/mentor/code-reviews/${request.id}`}>
-              <Button
-                size="sm"
-                className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-8 px-3 shadow-2xs gap-1.5 cursor-pointer"
-              >
-                <span>Preview &amp; Claim</span>
-                <ArrowRight className="size-3" />
-              </Button>
-            </Link>
-          )}
+          <Button
+            size="sm"
+            onClick={() => (onInspect ? onInspect(request) : undefined)}
+            className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-8 px-3 shadow-2xs gap-1.5 cursor-pointer"
+          >
+            <Lock className="size-3" />
+            <span>Preview &amp; Lock</span>
+            <ArrowRight className="size-3" />
+          </Button>
         </div>
       </div>
     </div>

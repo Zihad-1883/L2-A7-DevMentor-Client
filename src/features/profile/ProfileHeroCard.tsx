@@ -6,7 +6,6 @@ import Link from "next/link";
 import { UserProfileResponse } from "@/services/user.service";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  User,
   ShieldCheck,
   Calendar,
   Wallet,
@@ -108,12 +107,35 @@ export default function ProfileHeroCard({ profile }: ProfileHeroCardProps) {
               <ArrowRight className="size-3" />
             </Link>
 
-            <Link
-              href="/apply-mentor"
-              className="text-xs text-text-muted hover:text-text-primary transition-colors flex items-center gap-1 font-medium"
-            >
-              <Sparkles className="size-3 text-amber" /> Apply as a Mentor
-            </Link>
+            {profile.mentorProfile?.approvalStatus === "PENDING" ? (
+              <Link
+                href="/mentor/pending"
+                className="text-xs text-amber hover:underline transition-colors flex items-center gap-1 font-semibold"
+              >
+                <Sparkles className="size-3 text-amber animate-pulse" /> Application: Under Review
+              </Link>
+            ) : profile.mentorProfile?.approvalStatus === "REJECTED" ? (
+              <Link
+                href="/apply-mentor"
+                className="text-xs text-orange hover:underline transition-colors flex items-center gap-1 font-semibold"
+              >
+                <Sparkles className="size-3 text-orange" /> Not Approved (Click to Re-apply)
+              </Link>
+            ) : profile.mentorProfile?.approvalStatus === "APPROVED" || profile.role === "mentor" ? (
+              <Link
+                href="/mentor"
+                className="text-xs text-emerald hover:underline transition-colors flex items-center gap-1 font-semibold"
+              >
+                <ShieldCheck className="size-3 text-emerald" /> Approved Mentor Hub
+              </Link>
+            ) : (
+              <Link
+                href="/apply-mentor"
+                className="text-xs text-text-muted hover:text-text-primary transition-colors flex items-center gap-1 font-medium"
+              >
+                <Sparkles className="size-3 text-amber" /> Apply as a Mentor
+              </Link>
+            )}
           </div>
         </div>
       </CardContent>

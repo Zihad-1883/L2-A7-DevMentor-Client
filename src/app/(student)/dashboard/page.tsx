@@ -6,9 +6,11 @@ import { useAuthContext } from "@/components/providers/AuthProvider";
 import { useWallet } from "@/hooks/useWallet";
 import { useQuery } from "@tanstack/react-query";
 import { sprintService, type SprintRequestItem, type SprintSessionItem } from "@/services/sprint.service";
-import { cohortService, type CohortItem } from "@/services/cohort.service";
+import { cohortService } from "@/services/cohort.service";
 import { codeReviewService } from "@/services/code-review.service";
 import { examService } from "@/services/exam.service";
+import { userService } from "@/services/user.service";
+import { queryKeys } from "@/lib/query-keys";
 import type { CodeReviewRequestItem } from "@/types/code-review.types";
 import type { ExamAttempt } from "@/types/exam.types";
 import {
@@ -31,8 +33,6 @@ import {
 import { Button } from "@/components/ui/button";
 import StatCard from "@/components/shared/StatCard";
 import StatusBadge from "@/components/shared/StatusBadge";
-import CreditDisplay from "@/components/shared/CreditDisplay";
-import EmptyState from "@/components/shared/EmptyState";
 import ExamAttemptDetailModal from "@/features/exam/ExamAttemptDetailModal";
 import { formatDate } from "@/lib/utils";
 
@@ -63,10 +63,17 @@ export default function StudentDashboardPage() {
   });
 
   // 4. Fetch Open/Active Code Reviews
-  const { data: codeReviewsData, isLoading: isReviewsLoading } = useQuery({
+  const { data: codeReviewsData } = useQuery({
     queryKey: ["student", "code-reviews"],
     queryFn: () => codeReviewService.getOpenPool({ limit: 10 }),
     staleTime: 1000 * 30,
+  });
+
+  // 5. Fetch User Profile to check mentor application status
+  const { data: userProfile } = useQuery({
+    queryKey: queryKeys.users.me,
+    queryFn: () => userService.getMyProfile(),
+    staleTime: 1000 * 60,
   });
 
   const sprints = sprintsData ?? [];
@@ -128,6 +135,80 @@ export default function StudentDashboardPage() {
         {/* Ambient subtle decorative circle */}
         <div className="absolute -right-10 -bottom-10 size-40 bg-amber/10 rounded-full blur-2xl pointer-events-none" />
       </div>
+
+      {/* Mentor Application Status Notification Banner */}
+      {userProfile?.mentorProfile && (
+        <>
+          {userProfile.mentorProfile.approvalStatus === "PENDING" && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-amber-light/70 border border-amber/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs animate-in fade-in">
+              <div className="flex items-start gap-3.5">
+                <div className="size-9 rounded-xl bg-amber text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                  <Clock className="size-5 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-text-primary">
+                    Mentor Application Under Review
+                  </h4>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Your application is currently being vetted by the platform administrators. You will be notified once reviewed.
+                  </p>
+                </div>
+              </div>
+              <Link href="/mentor/pending" className="shrink-0">
+                <Button size="sm" variant="outline" className="text-xs font-semibold border-amber/40 text-amber hover:bg-amber-light gap-1">
+                  View Application Status <ArrowRight className="size-3.5" />
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {userProfile.mentorProfile.approvalStatus === "REJECTED" && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-orange/10 border border-orange/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs animate-in fade-in">
+              <div className="flex items-start gap-3.5">
+                <div className="size-9 rounded-xl bg-orange text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                  <AlertCircle className="size-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-text-primary">
+                    Mentor Application Update
+                  </h4>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Your recent mentor application was not approved by administration. You can update your engineering credentials and re-apply.
+                  </p>
+                </div>
+              </div>
+              <Link href="/apply-mentor" className="shrink-0">
+                <Button size="sm" className="text-xs font-semibold bg-amber text-white hover:bg-amber-hover gap-1">
+                  Submit New Application <ArrowRight className="size-3.5" />
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {(userProfile.mentorProfile.approvalStatus === "APPROVED" || userProfile.role === "mentor") && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-emerald-light/70 border border-emerald/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs animate-in fade-in">
+              <div className="flex items-start gap-3.5">
+                <div className="size-9 rounded-xl bg-emerald text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                  <CheckCircle2 className="size-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-text-primary">
+                    Mentor Application Approved!
+                  </h4>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Congratulations! You are officially an approved mentor. Switch over to the Mentor Workspace to accept sprints and review code.
+                  </p>
+                </div>
+              </div>
+              <Link href="/mentor" className="shrink-0">
+                <Button size="sm" className="text-xs font-bold bg-emerald text-white hover:bg-emerald-hover gap-1">
+                  Go to Mentor Workspace <ArrowRight className="size-3.5" />
+                </Button>
+              </Link>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Metrics Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

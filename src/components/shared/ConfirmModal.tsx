@@ -51,9 +51,9 @@ export default function ConfirmModal({
 
   const variantStyles = {
     danger: {
-      badge: "bg-rose-50 text-rose border-rose/20",
+      badge: "bg-orange/10 text-orange border-orange/20",
       icon: <AlertTriangle className="size-5" />,
-      button: "bg-rose text-white hover:bg-rose/90 shadow-2xs",
+      button: "bg-orange text-white hover:opacity-90 shadow-2xs",
     },
     warning: {
       badge: "bg-amber-light text-amber border-amber/20",
@@ -61,9 +61,9 @@ export default function ConfirmModal({
       button: "bg-amber text-white hover:bg-amber-hover shadow-2xs",
     },
     success: {
-      badge: "bg-emerald-50 text-emerald border-emerald/20",
+      badge: "bg-emerald-light text-emerald border-emerald/20",
       icon: <CheckCircle2 className="size-5" />,
-      button: "bg-emerald text-white hover:bg-emerald-hover shadow-2xs",
+      button: "bg-emerald text-white hover:opacity-90 shadow-2xs",
     },
     primary: {
       badge: "bg-surface-raised text-text-primary border-border",

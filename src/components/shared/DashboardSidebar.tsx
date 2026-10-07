@@ -20,9 +20,7 @@ import {
   User,
   ShieldCheck,
   CheckSquare,
-  Settings,
   DollarSign,
-  History,
   X,
   LogOut,
   Sparkles,
@@ -116,9 +114,6 @@ export default function DashboardSidebar() {
     { label: "Mentor Queue", href: "/admin/mentors", icon: ShieldCheck },
     { label: "Cohort Approvals", href: "/admin/cohorts", icon: CheckSquare },
     { label: "Users Directory", href: "/admin/users", icon: Users },
-    { label: "Payout Requests", href: "/admin/payouts", icon: DollarSign },
-    { label: "System Settings", href: "/admin/settings", icon: Settings },
-    { label: "Audit Logs", href: "/admin/audit-logs", icon: History },
   ];
 
   const navItems =

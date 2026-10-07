@@ -20,9 +20,44 @@ const literata = Literata({
 });
 
 export const metadata: Metadata = {
-  title: "DevMentor — Credit-Based Mentorship & Code Review Marketplace",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "https://devmentor.vercel.app"
+  ),
+  title: {
+    default: "DevMentor — Credit-Based Mentorship & Code Review Marketplace",
+    template: "%s | DevMentor",
+  },
   description:
-    "DevMentor is a credit-based coding mentorship platform. Submit sprint requests, join cohort programs, or get async code reviews from experienced engineers.",
+    "Accelerate your engineering growth with 1-on-1 sprint mentorship, structured multi-week cohorts, and async production-grade code reviews.",
+  keywords: [
+    "developer mentorship",
+    "code review",
+    "software engineering sprints",
+    "coding cohorts",
+    "full-stack mentorship",
+    "credit-based marketplace",
+  ],
+  authors: [{ name: "DevMentor Engineering Team" }],
+  creator: "DevMentor",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://devmentor.vercel.app",
+    title: "DevMentor — Credit-Based Mentorship & Code Review Marketplace",
+    description:
+      "Accelerate your engineering growth with 1-on-1 sprint mentorship, structured multi-week cohorts, and async production-grade code reviews.",
+    siteName: "DevMentor",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DevMentor — Credit-Based Mentorship & Code Review Marketplace",
+    description:
+      "Accelerate your engineering growth with 1-on-1 sprint mentorship, structured multi-week cohorts, and async production-grade code reviews.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

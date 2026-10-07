@@ -11,6 +11,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CohortItem } from "@/services/cohort.service";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Engineering Cohorts & Live Bootcamps",
+  description:
+    "Join intensive, multi-week software engineering cohorts led by industry staff mentors. Small class sizes, live workshops, and real-world projects.",
+};
 
 async function getPublishedCohorts(): Promise<CohortItem[]> {
   const backendUrl =

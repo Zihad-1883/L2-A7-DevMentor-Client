@@ -55,8 +55,8 @@ export default function MentorCohortDetailPage() {
   const queryClient = useQueryClient();
   const cohortId = typeof params?.id === "string" ? params.id : "";
 
-  // Active Tab: "sessions" | "students" | "settings"
-  const [activeTab, setActiveTab] = React.useState<"sessions" | "students" | "settings">("sessions");
+  // Active Tab: "sessions" | "settings"
+  const [activeTab, setActiveTab] = React.useState<"sessions" | "settings">("sessions");
 
   // Modals
   const [isAddSessionOpen, setIsAddSessionOpen] = React.useState(false);
@@ -453,6 +453,10 @@ export default function MentorCohortDetailPage() {
                 Approval: {cohort.approvalStatus}
               </span>
 
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border bg-amber-light text-amber border-amber/20">
+                <Users className="size-3" /> {enrollmentsCount} / {capacity} Enrolled ({Math.round((enrollmentsCount / capacity) * 100)}%)
+              </span>
+
               <span className="text-xs text-text-muted font-medium">
                 Created {formatDate(cohort.createdAt)}
               </span>
@@ -491,13 +495,24 @@ export default function MentorCohortDetailPage() {
               </span>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-surface-raised border border-border/80 space-y-1">
+            <div className="p-3.5 rounded-2xl bg-surface-raised border border-border/80 space-y-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">
                 Student Enrollment
               </span>
-              <span className="font-bold text-base text-text-primary block">
-                {enrollmentsCount} / {capacity}
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-base text-text-primary">
+                  {enrollmentsCount} / {capacity}
+                </span>
+                <span className="text-[11px] font-bold text-amber">
+                  {Math.round((enrollmentsCount / capacity) * 100)}%
+                </span>
+              </div>
+              <div className="h-1.5 w-full bg-border/80 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-amber transition-all"
+                  style={{ width: `${Math.min(100, (enrollmentsCount / capacity) * 100)}%` }}
+                />
+              </div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-surface-raised border border-border/80 space-y-1">
@@ -543,18 +558,6 @@ export default function MentorCohortDetailPage() {
         >
           <Calendar className="size-4" />
           Sessions Schedule ({sessions.length})
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("students")}
-          className={`pb-3 text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${activeTab === "students"
-              ? "text-amber border-b-2 border-amber"
-              : "text-text-muted hover:text-text-primary"
-            }`}
-        >
-          <Users className="size-4" />
-          Enrolled Students ({enrollmentsCount})
         </button>
 
         <button
@@ -736,54 +739,7 @@ export default function MentorCohortDetailPage() {
         </div>
       )}
 
-      {/* 5. TAB CONTENT: Enrolled Students Roster */}
-      {activeTab === "students" && (
-        <div className="space-y-6">
-          <div className="p-6 rounded-3xl bg-surface border border-border shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-serif text-lg font-bold text-text-primary">
-                  Classroom Capacity Meter
-                </h3>
-                <p className="text-xs text-text-secondary mt-0.5">
-                  {enrollmentsCount} out of {capacity} seats currently filled
-                </p>
-              </div>
-
-              <span className="text-xs font-bold text-amber">
-                {Math.round((enrollmentsCount / capacity) * 100)}% Occupancy
-              </span>
-            </div>
-
-            {/* Progress bar */}
-            <div className="h-2.5 w-full bg-surface-raised rounded-full overflow-hidden border border-border">
-              <div
-                className="h-full bg-amber transition-all"
-                style={{ width: `${Math.min(100, (enrollmentsCount / capacity) * 100)}%` }}
-              />
-            </div>
-          </div>
-
-          {enrollmentsCount === 0 ? (
-            <EmptyState
-              title="No students enrolled yet"
-              description="Once your cohort is approved by an administrator and published, students will register and appear in this roster."
-              icon={Users}
-            />
-          ) : (
-            <div className="p-6 rounded-3xl bg-surface border border-border shadow-xs space-y-4">
-              <h3 className="font-serif text-base font-bold text-text-primary">
-                Registered Students ({enrollmentsCount})
-              </h3>
-              <p className="text-xs text-text-secondary">
-                Students who have enrolled in this cohort program.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 6. TAB CONTENT: Overview & Guidelines */}
+      {/* 5. TAB CONTENT: Overview & Guidelines */}
       {activeTab === "settings" && (
         <div className="space-y-6">
           <div className="p-6 sm:p-8 rounded-3xl bg-surface border border-border shadow-xs space-y-6">

@@ -52,10 +52,7 @@ export default function MentorDashboardPage() {
   });
 
   // 3. Fetch Open Code Review Pool (Pending reviews open for claiming)
-  const { data: codeReviewsData, isLoading: isReviewsLoading } = useQuery<{
-    requests: CodeReviewRequestItem[];
-    meta: { total: number };
-  }>({
+  const { data: codeReviewsData, isLoading: isReviewsLoading } = useQuery({
     queryKey: ["mentor", "code-reviews-pool"],
     queryFn: () => codeReviewService.getOpenPool({ limit: 5 }),
     staleTime: 1000 * 30,
@@ -307,7 +304,7 @@ export default function MentorDashboardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {openReviews.slice(0, 3).map((review) => (
+                {openReviews.slice(0, 3).map((review: CodeReviewRequestItem) => (
                   <Link
                     key={review.id}
                     href={`/mentor/code-reviews/${review.id}`}

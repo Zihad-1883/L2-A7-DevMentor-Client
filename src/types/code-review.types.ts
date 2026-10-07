@@ -47,6 +47,8 @@ export interface CodeReviewRequestItem {
   specificFiles?: string | null;
   creditReward: number;
   status: CodeReviewStatus;
+  previewMentorId?: string | null;
+  previewExpiresAt?: string | null;
   deliveryDeadline?: string | null;
   createdAt: string;
   updatedAt: string;

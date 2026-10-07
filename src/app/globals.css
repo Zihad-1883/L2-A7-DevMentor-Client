@@ -5,6 +5,7 @@
   --background: #fafaf8;
   --surface: #ffffff;
   --surface-raised: #f5f4ef;
+  --surface-dark: #18181b;
   --border: #e8e4df;
   --border-strong: #d5cfc7;
 
@@ -35,6 +36,7 @@
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
+  --color-surface-dark: var(--surface-dark);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
 

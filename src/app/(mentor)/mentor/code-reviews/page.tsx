@@ -29,10 +29,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuthContext } from "@/components/providers/AuthProvider";
 import EmptyState from "@/components/shared/EmptyState";
 import ConfirmModal from "@/components/shared/ConfirmModal";
 import ReviewPoolCard from "@/features/code-review/ReviewPoolCard";
-import { codeReviewService } from "@/services/code-review.service";
+import { codeReviewService, codeReviewCache } from "@/services/code-review.service";
 import type {
   CodeReviewRequestItem,
   CodeReviewTier,
@@ -55,6 +56,7 @@ const LANGUAGES = [
 export default function MentorCodeReviewsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuthContext();
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -65,6 +67,15 @@ export default function MentorCodeReviewsPage() {
   const [inspectedRequest, setInspectedRequest] =
     React.useState<CodeReviewRequestItem | null>(null);
   const [isCopied, setIsCopied] = React.useState(false);
+
+  // Check if currently inspected request is preview locked by another mentor
+  const isInspectedLockedByOther = Boolean(
+    inspectedRequest &&
+    inspectedRequest.status === "PREVIEW_LOCKED" &&
+    inspectedRequest.previewExpiresAt &&
+    new Date(inspectedRequest.previewExpiresAt).getTime() > Date.now() &&
+    (!user?.id || inspectedRequest.previewMentorId !== user.id)
+  );
 
   // Claim Confirmation Modal
   const [requestToClaim, setRequestToClaim] =
@@ -95,13 +106,28 @@ export default function MentorCodeReviewsPage() {
     staleTime: 1000 * 15,
   });
 
-  const rawRequests = (data as unknown as { requests?: CodeReviewRequestItem[]; data?: CodeReviewRequestItem[] })?.requests ||
+  const rawRequests =
+    (data as unknown as { requests?: CodeReviewRequestItem[]; data?: CodeReviewRequestItem[] })?.requests ||
     (data as unknown as { requests?: CodeReviewRequestItem[]; data?: CodeReviewRequestItem[] })?.data ||
     [];
 
-  const requests: CodeReviewRequestItem[] = Array.isArray(rawRequests)
-    ? rawRequests
-    : [];
+  // Merge mentor's active preview locks into the pool so they NEVER disappear for this mentor
+  const myActiveLocks = React.useMemo(() => {
+    return codeReviewCache.getMyActiveLocks(user?.id);
+  }, [data, user?.id]);
+
+  const requests: CodeReviewRequestItem[] = React.useMemo(() => {
+    const list = Array.isArray(rawRequests) ? [...rawRequests] : [];
+    myActiveLocks.forEach((locked) => {
+      const idx = list.findIndex((r) => r.id === locked.id);
+      if (idx === -1) {
+        list.unshift(locked);
+      } else {
+        list[idx] = { ...list[idx], ...locked };
+      }
+    });
+    return list;
+  }, [rawRequests, myActiveLocks]);
 
   // Metrics Calculations
   const totalOpenCount = requests.length;
@@ -119,6 +145,10 @@ export default function MentorCodeReviewsPage() {
       toast.success(
         "10-Minute Preview Lock acquired! Other mentors cannot claim this request while you inspect it."
       );
+      if (updated) {
+        codeReviewCache.save(updated);
+        queryClient.setQueryData(["code-review", updated.id], updated);
+      }
       if (inspectedRequest && updated) {
         setInspectedRequest({ ...inspectedRequest, ...updated });
       }
@@ -495,6 +525,12 @@ export default function MentorCodeReviewsPage() {
                       (inspectedRequest.tier === "QUICK" ? 10 : 50)) * 4}{" "}
                     BDT)
                   </span>
+
+                  {isInspectedLockedByOther && (
+                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-orange/10 border border-orange/20 text-orange flex items-center gap-1">
+                      <Lock className="size-3" /> Reserved by Mentor
+                    </span>
+                  )}
                 </div>
 
                 <h3 className="font-serif text-lg font-bold text-text-primary">
@@ -580,6 +616,23 @@ export default function MentorCodeReviewsPage() {
               </div>
             )}
 
+            {/* Warning if preview locked by another mentor */}
+            {isInspectedLockedByOther && (
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber/30 text-amber-950 dark:text-amber-200 flex items-start gap-3">
+                <div className="size-8 rounded-xl bg-amber/20 text-amber flex items-center justify-center shrink-0 mt-0.5">
+                  <Lock className="size-4" />
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-amber">
+                    Preview Lock Active — Reserved by Another Mentor
+                  </h4>
+                  <p className="text-xs text-text-secondary leading-relaxed">
+                    Another mentor currently holds the 10-minute preview lock on this code review. You cannot claim this request or enter the delivery workspace until their reservation expires.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Action Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-border/60">
               <div className="text-xs text-text-muted flex items-center gap-1.5">
@@ -590,36 +643,57 @@ export default function MentorCodeReviewsPage() {
                 </strong>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    previewLockMutation.mutate(inspectedRequest.id)
-                  }
-                  disabled={previewLockMutation.isPending}
-                  className="text-xs h-9 px-3 gap-1.5 border-border"
-                  title="Lock this request for 10 minutes so no other mentor can claim it while you review"
-                >
-                  {previewLockMutation.isPending ? (
-                    <>
-                      <Loader2 className="size-3.5 animate-spin" /> Locking...
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="size-3.5 text-amber" /> Lock 10-Min Preview
-                    </>
-                  )}
-                </Button>
+              {isInspectedLockedByOther ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    disabled
+                    variant="outline"
+                    className="text-xs h-9 px-3 gap-1.5 border-border opacity-70 cursor-not-allowed text-text-muted"
+                  >
+                    <Lock className="size-3.5 text-amber" /> Reserved by Another Mentor
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setInspectedRequest(null)}
+                    className="text-xs h-9 px-4 border-border hover:bg-surface-raised cursor-pointer"
+                  >
+                    Close Preview
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      previewLockMutation.mutate(inspectedRequest.id)
+                    }
+                    disabled={previewLockMutation.isPending}
+                    className="text-xs h-9 px-3 gap-1.5 border-border cursor-pointer"
+                    title="Lock this request for 10 minutes so no other mentor can claim it while you review"
+                  >
+                    {previewLockMutation.isPending ? (
+                      <>
+                        <Loader2 className="size-3.5 animate-spin" /> Locking...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="size-3.5 text-amber" /> Lock 10-Min Preview
+                      </>
+                    )}
+                  </Button>
 
-                <Button
-                  size="sm"
-                  onClick={() => setRequestToClaim(inspectedRequest)}
-                  className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-9 px-4 shadow-2xs gap-1.5 cursor-pointer"
-                >
-                  <Sparkles className="size-3.5" /> Claim Review Request
-                </Button>
-              </div>
+                  <Button
+                    size="sm"
+                    onClick={() => setRequestToClaim(inspectedRequest)}
+                    className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-9 px-4 shadow-2xs gap-1.5 cursor-pointer"
+                  >
+                    <Sparkles className="size-3.5" /> Claim Review Request
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

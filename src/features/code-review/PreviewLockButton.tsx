@@ -31,8 +31,14 @@ export default function PreviewLockButton({
       toast.success(
         "10-Minute Preview Lock acquired! You have exclusive reservation while reviewing this code."
       );
-      queryClient.invalidateQueries({ queryKey: ["code-review", request.id] });
-      queryClient.invalidateQueries({ queryKey: ["mentor", "code-reviews-pool"] });
+      queryClient.setQueryData<CodeReviewRequestItem>(
+        ["code-review", request.id],
+        (prev) => ({
+          ...(prev || request),
+          ...data,
+          status: "PREVIEW_LOCKED",
+        })
+      );
       onLockSuccess?.(data);
     },
     onError: (err: Error) => {

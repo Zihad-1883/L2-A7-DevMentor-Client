@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/components/providers/AuthProvider";
-import { codeReviewService } from "@/services/code-review.service";
+import { codeReviewService, codeReviewCache } from "@/services/code-review.service";
 import { usePreviewLock } from "@/hooks/usePreviewLock";
 import ClaimReviewButton from "@/features/code-review/ClaimReviewButton";
 import PreviewLockButton from "@/features/code-review/PreviewLockButton";
@@ -79,16 +79,15 @@ export default function MentorCodeReviewDetailPage() {
     queryFn: async () => {
       try {
         return await codeReviewService.getById(id);
-      } catch {
-        // Fallback: search open pool or cache
-        const pool = await codeReviewService.getOpenPool({ limit: 100 });
-        const found = pool.requests?.find((r) => r.id === id);
-        if (found) return found;
-        throw new Error("Code review request not found");
+      } catch (err) {
+        const cached = codeReviewCache.get(id);
+        if (cached) return cached;
+        throw err;
       }
     },
     enabled: Boolean(id),
-    staleTime: 1000 * 15,
+    staleTime: 1000 * 30,
+    initialData: () => codeReviewCache.get(id) || undefined,
   });
 
   // 2. 10-Minute Preview Lock Countdown Hook
@@ -163,6 +162,45 @@ export default function MentorCodeReviewDetailPage() {
   const isPreviewLocked =
     request.status === "PREVIEW_LOCKED" && !isPreviewExpired && isPreviewActive;
   const isLockedByMe = isPreviewLocked && request.previewMentorId === user?.id;
+  const isLockedByOther = isPreviewLocked && !isLockedByMe;
+
+  if (isLockedByOther) {
+    return (
+      <div className="max-w-xl mx-auto py-16 text-center space-y-5 animate-in fade-in duration-300">
+        <div className="size-16 rounded-2xl bg-amber-500/10 text-amber flex items-center justify-center mx-auto border border-amber/30 shadow-xs">
+          <Lock className="size-8 text-amber" />
+        </div>
+
+        <div className="space-y-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/10 text-amber border border-amber/30">
+            Preview Lock Active
+          </span>
+          <h2 className="text-xl sm:text-2xl font-bold font-serif text-text-primary">
+            Reserved by Another Mentor
+          </h2>
+          <p className="text-sm text-text-secondary max-w-md mx-auto leading-relaxed">
+            Another mentor currently holds an exclusive 10-minute preview lock on this code review request. You cannot access this delivery workspace until their preview window expires.
+          </p>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-surface border border-border inline-flex items-center gap-2 text-xs text-text-muted">
+          <Clock className="size-4 text-amber" />
+          Time remaining on reservation:{" "}
+          <strong className="text-text-primary font-mono font-semibold">
+            {previewTimeLeft || "Active"}
+          </strong>
+        </div>
+
+        <div className="pt-3">
+          <Link href="/mentor/code-reviews">
+            <Button className="bg-amber text-white hover:bg-amber-hover gap-2 cursor-pointer shadow-xs font-semibold h-10 px-5">
+              <ArrowLeft className="size-4" /> Back to Code Review Pool
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const isClaimedByMe =
     request.status === "CLAIMED" &&
@@ -181,13 +219,6 @@ export default function MentorCodeReviewDetailPage() {
         >
           <ArrowLeft className="size-4" /> Back to Code Review Pool
         </Link>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-text-muted">Request ID:</span>
-          <span className="text-xs font-mono font-medium px-2 py-0.5 rounded bg-surface border border-border text-text-secondary">
-            {request.id.slice(0, 10)}...
-          </span>
-        </div>
       </div>
 
       {/* 2. Hero Header Banner */}
@@ -197,11 +228,10 @@ export default function MentorCodeReviewDetailPage() {
             {/* Status & Tier Badges */}
             <div className="flex items-center gap-2 flex-wrap">
               <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                  isQuick
-                    ? "bg-amber-light text-amber border-amber/20"
-                    : "bg-indigo-50 text-indigo-600 border-indigo-200"
-                }`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${isQuick
+                  ? "bg-amber-light text-amber border-amber/20"
+                  : "bg-indigo-50 text-indigo-600 border-indigo-200"
+                  }`}
               >
                 {isQuick ? <Zap className="size-3.5" /> : <Layers className="size-3.5" />}
                 {request.tier} Review
@@ -213,17 +243,16 @@ export default function MentorCodeReviewDetailPage() {
               </span>
 
               <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                  request.status === "COMPLETED"
-                    ? "bg-emerald-light text-emerald border-emerald/20"
-                    : request.status === "DELIVERED"
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${request.status === "COMPLETED"
+                  ? "bg-emerald-light text-emerald border-emerald/20"
+                  : request.status === "DELIVERED"
                     ? "bg-blue-50 text-blue-600 border-blue-200"
                     : request.status === "CLAIMED"
-                    ? "bg-indigo-50 text-indigo-600 border-indigo-200"
-                    : request.status === "PREVIEW_LOCKED"
-                    ? "bg-amber-50 text-amber border-amber/20"
-                    : "bg-emerald-50 text-emerald border-emerald-200"
-                }`}
+                      ? "bg-indigo-50 text-indigo-600 border-indigo-200"
+                      : request.status === "PREVIEW_LOCKED"
+                        ? "bg-amber-50 text-amber border-amber/20"
+                        : "bg-emerald-50 text-emerald border-emerald-200"
+                  }`}
               >
                 {request.status === "PREVIEW_LOCKED" ? (
                   <>
@@ -299,22 +328,20 @@ export default function MentorCodeReviewDetailPage() {
         {/* 3. 10-Minute Preview Lock Countdown Banner (if currently preview locked) */}
         {isPreviewLocked && (
           <div
-            className={`p-4 rounded-2xl border transition-all ${
-              isLockedByMe
-                ? isPreviewUrgent
-                  ? "bg-rose-50/70 border-rose-300 text-rose-900"
-                  : "bg-amber-50/70 border-amber/30 text-amber-950"
-                : "bg-surface-raised border-border text-text-secondary"
-            }`}
+            className={`p-4 rounded-2xl border transition-all ${isLockedByMe
+              ? isPreviewUrgent
+                ? "bg-rose-50/70 border-rose-300 text-rose-900"
+                : "bg-amber-50/70 border-amber/30 text-amber-950"
+              : "bg-surface-raised border-border text-text-secondary"
+              }`}
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div
-                  className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    isPreviewUrgent
-                      ? "bg-rose-100 text-rose-600 animate-pulse"
-                      : "bg-amber-light text-amber"
-                  }`}
+                  className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${isPreviewUrgent
+                    ? "bg-rose-100 text-rose-600 animate-pulse"
+                    : "bg-amber-light text-amber"
+                    }`}
                 >
                   <Lock className="size-5" />
                 </div>
@@ -356,9 +383,8 @@ export default function MentorCodeReviewDetailPage() {
             {isLockedByMe && (
               <div className="w-full bg-border/50 h-1.5 rounded-full mt-3 overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-1000 ${
-                    isPreviewUrgent ? "bg-rose-500" : "bg-amber"
-                  }`}
+                  className={`h-full transition-all duration-1000 ${isPreviewUrgent ? "bg-rose-500" : "bg-amber"
+                    }`}
                   style={{ width: `${previewPercentRemaining}%` }}
                 />
               </div>
@@ -614,11 +640,10 @@ export default function MentorCodeReviewDetailPage() {
             <div className="p-6 rounded-3xl bg-surface border border-border shadow-xs space-y-6">
               <div className="space-y-2">
                 <span
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                    request.status === "COMPLETED"
-                      ? "bg-emerald-light text-emerald border-emerald/20"
-                      : "bg-blue-50 text-blue-600 border-blue-200"
-                  }`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${request.status === "COMPLETED"
+                    ? "bg-emerald-light text-emerald border-emerald/20"
+                    : "bg-blue-50 text-blue-600 border-blue-200"
+                    }`}
                 >
                   {request.status === "COMPLETED" ? (
                     <>

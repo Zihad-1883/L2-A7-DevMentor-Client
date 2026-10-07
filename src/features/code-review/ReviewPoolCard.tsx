@@ -15,6 +15,7 @@ import {
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuthContext } from "@/components/providers/AuthProvider";
 import type { CodeReviewRequestItem } from "@/types/code-review.types";
 import { formatDate } from "@/lib/utils";
 
@@ -44,6 +45,7 @@ export default function ReviewPoolCard({
   request,
   onInspect,
 }: ReviewPoolCardProps) {
+  const { user } = useAuthContext();
   const isQuick = request.tier === "QUICK";
   const rewardCredits = request.creditReward || (isQuick ? 10 : 50);
   const slaText = isQuick ? "2 Hours SLA" : "24 Hours SLA";
@@ -51,8 +53,15 @@ export default function ReviewPoolCard({
 
   const isPreviewLocked =
     request.status === "PREVIEW_LOCKED" &&
-    request.previewExpiresAt &&
-    new Date(request.previewExpiresAt) > new Date();
+    request.previewExpiresAt != null &&
+    new Date(request.previewExpiresAt).getTime() > Date.now();
+
+  const isLockedByMe =
+    isPreviewLocked &&
+    Boolean(request.previewMentorId) &&
+    request.previewMentorId === user?.id;
+
+  const isLockedByOther = isPreviewLocked && !isLockedByMe;
 
   return (
     <div className="flex flex-col justify-between p-6 rounded-3xl bg-surface border border-border hover:border-amber/40 shadow-xs hover:shadow-md transition-all group">
@@ -79,8 +88,15 @@ export default function ReviewPoolCard({
             )}
 
             {isPreviewLocked && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-orange/10 text-orange border border-orange/20">
-                <Lock className="size-3" /> Preview Locked
+              <span
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold border ${
+                  isLockedByMe
+                    ? "bg-amber-light text-amber border-amber/30"
+                    : "bg-orange/10 text-orange border-orange/20"
+                }`}
+              >
+                <Lock className="size-3" />
+                {isLockedByMe ? "Your Preview Lock" : "Reserved by Mentor"}
               </span>
             )}
           </div>
@@ -181,15 +197,28 @@ export default function ReviewPoolCard({
             </Button>
           ) : null}
 
-          <Link href={`/mentor/code-reviews/${request.id}`}>
+          {isLockedByOther ? (
             <Button
               size="sm"
-              className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-8 px-3 shadow-2xs gap-1.5 cursor-pointer"
+              variant="outline"
+              onClick={() => onInspect?.(request)}
+              className="text-xs h-8 px-3 border-amber/30 bg-amber-500/10 text-amber hover:bg-amber-500/20 font-semibold gap-1.5 cursor-pointer"
+              title="Another mentor currently has this review preview-locked. Click to view status."
             >
-              <span>Preview &amp; Claim</span>
-              <ArrowRight className="size-3" />
+              <Lock className="size-3 text-amber" />
+              <span>Reserved</span>
             </Button>
-          </Link>
+          ) : (
+            <Link href={`/mentor/code-reviews/${request.id}`}>
+              <Button
+                size="sm"
+                className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-8 px-3 shadow-2xs gap-1.5 cursor-pointer"
+              >
+                <span>Preview &amp; Claim</span>
+                <ArrowRight className="size-3" />
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </div>

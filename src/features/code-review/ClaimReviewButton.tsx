@@ -37,8 +37,14 @@ export default function ClaimReviewButton({
       toast.success(
         `Code review claimed! Your ${slaText} SLA delivery clock is now active.`
       );
-      queryClient.invalidateQueries({ queryKey: ["code-review", request.id] });
-      queryClient.invalidateQueries({ queryKey: ["mentor", "code-reviews-pool"] });
+      queryClient.setQueryData<CodeReviewRequestItem>(
+        ["code-review", request.id],
+        (prev) => ({
+          ...(prev || request),
+          ...data,
+          status: "CLAIMED",
+        })
+      );
       queryClient.invalidateQueries({ queryKey: ["mentor", "dashboard-summary"] });
       setShowConfirmModal(false);
       onClaimSuccess?.(data);

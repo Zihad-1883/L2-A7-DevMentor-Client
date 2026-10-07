@@ -21,7 +21,7 @@ export interface SubmitCodeReviewInput {
     filePath: string;
     lineNumber: number;
     commentText: string;
-    severity?: "SUGGESTION" | "WARNING" | "CRITICAL";
+    severity?: "SUGGESTION" | "BUG" | "SECURITY" | "WARNING" | "CRITICAL";
   }>;
 }
 
@@ -39,6 +39,9 @@ export interface CodeReviewPoolResponse {
 export const codeReviewService = {
   getOpenPool: (params?: Record<string, string | number | boolean | null | undefined>) =>
     apiClient.get<CodeReviewPoolResponse>("/code-reviews/pool", { params }),
+
+  getById: (id: string) =>
+    apiClient.get<CodeReviewRequestItem>(`/code-reviews/${id}`),
 
   createRequest: (payload: CreateCodeReviewInput) =>
     apiClient.post<{ request: CodeReviewRequestItem }>("/code-reviews", payload),

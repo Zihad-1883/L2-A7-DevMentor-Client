@@ -14,7 +14,7 @@ export interface CodeReviewComment {
   filePath: string;
   lineNumber: number;
   commentText: string;
-  severity?: "SUGGESTION" | "WARNING" | "CRITICAL";
+  severity?: "SUGGESTION" | "BUG" | "SECURITY" | "WARNING" | "CRITICAL";
   createdAt: string;
 }
 
@@ -49,6 +49,7 @@ export interface CodeReviewRequestItem {
   status: CodeReviewStatus;
   previewMentorId?: string | null;
   previewExpiresAt?: string | null;
+  assignedMentorId?: string | null;
   deliveryDeadline?: string | null;
   createdAt: string;
   updatedAt: string;

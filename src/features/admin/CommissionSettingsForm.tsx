@@ -237,7 +237,7 @@ function CommissionSettingsFormFields({
                     type="number"
                     min={1}
                     max={5000}
-                    step={5}
+                    step={1}
                     value={sprintCredits}
                     onChange={(e) => setSprintCredits(Number(e.target.value))}
                     className="w-28 font-mono text-sm font-bold"

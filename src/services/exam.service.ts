@@ -124,4 +124,31 @@ export const examService = {
   publishExam: async (examId: string): Promise<Exam> => {
     return await apiClient.patch<Exam>(`/exams/${examId}/publish`);
   },
+
+  // Get exam details by ID
+  getExamById: async (examId: string): Promise<Exam> => {
+    return await apiClient.get<Exam>(`/exams/${examId}`);
+  },
+
+  // Update exam metadata and/or questions (mentor only)
+  updateExam: async (
+    examId: string,
+    payload: Partial<import("@/types/exam.types").CreateExamInput> & {
+      questions?: import("@/types/exam.types").CreateQuestionInput[];
+      status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+      passMark?: number;
+      passingMarks?: number;
+    }
+  ): Promise<Exam> => {
+    return await apiClient.patch<Exam>(`/exams/${examId}`, payload);
+  },
+
+  // Delete or archive exam (mentor only)
+  deleteExam: async (
+    examId: string
+  ): Promise<{ message: string; archived?: boolean; deleted?: boolean }> => {
+    return await apiClient.delete<{ message: string; archived?: boolean; deleted?: boolean }>(
+      `/exams/${examId}`
+    );
+  },
 };

@@ -29,7 +29,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-12">
-      {/* 1. Page Header */}
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/80">
         <div>
           <div className="flex items-center gap-2 mb-2">
@@ -67,7 +67,7 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      {/* 2. Main Commission Settings Form */}
+      {/* Main Commission Settings Form */}
       <CommissionSettingsForm />
     </div>
   );

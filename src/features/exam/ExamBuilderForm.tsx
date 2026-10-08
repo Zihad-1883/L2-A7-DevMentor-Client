@@ -24,51 +24,77 @@ import QuestionBuilder from "@/features/exam/QuestionBuilder";
 import { examService } from "@/services/exam.service";
 import { cohortService } from "@/services/cohort.service";
 import type { QuestionItemFormData } from "@/lib/validations/exam.schema";
+import type { Exam } from "@/types/exam.types";
 import { toast } from "sonner";
 
-export default function ExamBuilderForm() {
+interface ExamBuilderFormProps {
+  initialExam?: Exam;
+  isEditMode?: boolean;
+}
+
+export default function ExamBuilderForm({
+  initialExam,
+  isEditMode = false,
+}: ExamBuilderFormProps = {}) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
   // Basic Exam Details State
-  const [title, setTitle] = React.useState("");
-  const [description, setDescription] = React.useState("");
-  const [durationMinutes, setDurationMinutes] = React.useState<number>(30);
-  const [passMark, setPassMark] = React.useState<number>(70);
-  const [accessMode, setAccessMode] = React.useState<"free" | "cohort">("free");
-  const [selectedCohortId, setSelectedCohortId] = React.useState<string>("");
+  const [title, setTitle] = React.useState(initialExam?.title || "");
+  const [description, setDescription] = React.useState(initialExam?.description || "");
+  const [durationMinutes, setDurationMinutes] = React.useState<number>(
+    initialExam?.durationMinutes || 30
+  );
+  const [passMark, setPassMark] = React.useState<number>(initialExam?.passMark || 70);
+  const [accessMode, setAccessMode] = React.useState<"free" | "cohort">(
+    initialExam?.cohortId ? "cohort" : "free"
+  );
+  const [selectedCohortId, setSelectedCohortId] = React.useState<string>(
+    initialExam?.cohortId || ""
+  );
 
   // Questions State
-  const [questions, setQuestions] = React.useState<QuestionItemFormData[]>([
-    {
-      questionText:
-        "What is the primary benefit of React Server Components (RSC) compared to traditional client rendering?",
-      options: [
-        "Zero bundle size for server dependencies and direct access to backend resources",
-        "Automatic conversion of all client components into static HTML files",
-        "Eliminates the requirement for HTTP cookies or tokens",
-        "Replaces JavaScript with WebAssembly for DOM manipulation",
-      ],
-      correctOptionIndex: 0,
-      explanation:
-        "RSC executes solely on the server, reducing the client JavaScript bundle size and allowing direct access to databases without API routes.",
-      marks: 1,
-    },
-    {
-      questionText:
-        "In TypeScript, what is the distinction between 'unknown' and 'any'?",
-      options: [
-        "'unknown' is type-safe and requires type narrowing before operations, while 'any' disables type checking completely",
-        "'unknown' cannot be assigned to any variable, while 'any' can only hold primitive values",
-        "'unknown' is only valid in interface declarations, while 'any' is for classes",
-        "There is no difference; they are exact aliases in TypeScript compiler",
-      ],
-      correctOptionIndex: 0,
-      explanation:
-        "'unknown' enforces type checks and narrowing before you can invoke methods or access properties on it, maintaining compile-time safety.",
-      marks: 1,
-    },
-  ]);
+  const [questions, setQuestions] = React.useState<QuestionItemFormData[]>(() => {
+    if (initialExam?.questions && initialExam.questions.length > 0) {
+      return initialExam.questions.map((q) => ({
+        questionText: q.questionText,
+        options: q.options || [],
+        correctOptionIndex: q.correctOptionIndex ?? 0,
+        explanation: q.explanation || "",
+        marks: q.marks || 1,
+      }));
+    }
+    return [
+      {
+        questionText:
+          "What is the primary benefit of React Server Components (RSC) compared to traditional client rendering?",
+        options: [
+          "Zero bundle size for server dependencies and direct access to backend resources",
+          "Automatic conversion of all client components into static HTML files",
+          "Eliminates the requirement for HTTP cookies or tokens",
+          "Replaces JavaScript with WebAssembly for DOM manipulation",
+        ],
+        correctOptionIndex: 0,
+        explanation:
+          "RSC executes solely on the server, reducing the client JavaScript bundle size and allowing direct access to databases without API routes.",
+        marks: 1,
+      },
+      {
+        questionText:
+          "In TypeScript, what is the distinction between 'unknown' and 'any'?",
+        options: [
+          "'unknown' is type-safe and requires type narrowing before operations, while 'any' disables type checking completely",
+          "'unknown' cannot be assigned to any variable, while 'any' can only hold primitive values",
+          "'unknown' is only valid in interface declarations, while 'any' is for classes",
+          "There is no difference; they are exact aliases in TypeScript compiler",
+        ],
+        correctOptionIndex: 0,
+        explanation:
+          "'unknown' enforces type checks and narrowing before you can invoke methods or access properties on it, maintaining compile-time safety.",
+        marks: 1,
+      },
+    ];
+  });
 
   // Validation Errors State
   const [formErrors, setFormErrors] = React.useState<{
@@ -170,45 +196,71 @@ export default function ExamBuilderForm() {
 
   const saveExamMutation = useMutation({
     mutationFn: async ({ publish }: { publish: boolean }) => {
-      // 1. Create Base Exam
-      const createdExam = await examService.createExam({
-        title: title.trim(),
-        description: description.trim() || undefined,
-        durationMinutes,
-        totalMarks: totalMarks >= 5 ? totalMarks : undefined,
-        passMark,
-        isFree: accessMode === "free",
-        cohortId: accessMode === "cohort" ? selectedCohortId || undefined : undefined,
-      });
+      const formattedQuestions = questions.map((q) => ({
+        questionText: q.questionText.trim(),
+        options: q.options.map((opt) => opt.trim()),
+        correctOptionIndex: q.correctOptionIndex,
+        explanation: q.explanation?.trim() || undefined,
+        marks: q.marks || 1,
+      }));
 
-      if (!createdExam?.id) {
-        throw new Error("Failed to initialize exam record");
+      if (isEditMode && initialExam?.id) {
+        // 1. Update Existing Exam
+        const updatedExam = await examService.updateExam(initialExam.id, {
+          title: title.trim(),
+          description: description.trim() || undefined,
+          durationMinutes,
+          totalMarks: totalMarks >= 1 ? totalMarks : undefined,
+          passMark,
+          isFree: accessMode === "free",
+          cohortId: accessMode === "cohort" ? selectedCohortId || null : null,
+          questions: formattedQuestions,
+          status: publish ? "PUBLISHED" : initialExam.status,
+        });
+
+        if (publish && initialExam.status !== "PUBLISHED") {
+          await examService.publishExam(initialExam.id);
+        }
+
+        return { exam: updatedExam, published: publish, isEdit: true };
+      } else {
+        // 1. Create Base Exam
+        const createdExam = await examService.createExam({
+          title: title.trim(),
+          description: description.trim() || undefined,
+          durationMinutes,
+          totalMarks: totalMarks >= 5 ? totalMarks : undefined,
+          passMark,
+          isFree: accessMode === "free",
+          cohortId: accessMode === "cohort" ? selectedCohortId || undefined : undefined,
+        });
+
+        if (!createdExam?.id) {
+          throw new Error("Failed to initialize exam record");
+        }
+
+        // 2. Add Questions to Exam
+        await examService.addQuestionsToExam(createdExam.id, formattedQuestions);
+
+        // 3. Publish Exam if requested
+        if (publish) {
+          await examService.publishExam(createdExam.id);
+        }
+
+        return { exam: createdExam, published: publish, isEdit: false };
       }
-
-      // 2. Add Questions to Exam
-      await examService.addQuestionsToExam(
-        createdExam.id,
-        questions.map((q) => ({
-          questionText: q.questionText.trim(),
-          options: q.options.map((opt) => opt.trim()),
-          correctOptionIndex: q.correctOptionIndex,
-          explanation: q.explanation?.trim() || undefined,
-          marks: q.marks || 1,
-        }))
-      );
-
-      // 3. Publish Exam if requested
-      if (publish) {
-        await examService.publishExam(createdExam.id);
-      }
-
-      return { exam: createdExam, published: publish };
     },
-    onSuccess: ({ published }) => {
+    onSuccess: ({ published, isEdit }) => {
       queryClient.invalidateQueries({ queryKey: ["mentor", "exams"] });
       queryClient.invalidateQueries({ queryKey: ["exams"] });
 
-      if (published) {
+      if (isEdit) {
+        toast.success(
+          published
+            ? "Assessment updated and published live!"
+            : "Assessment changes saved successfully!"
+        );
+      } else if (published) {
         toast.success(
           "Exam created and published successfully! Students can now take this assessment."
         );
@@ -219,7 +271,7 @@ export default function ExamBuilderForm() {
       router.push("/mentor/exams");
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Failed to create exam. Please check all fields.");
+      toast.error(err.message || "Failed to save exam. Please check all fields.");
     },
   });
 
@@ -480,13 +532,15 @@ export default function ExamBuilderForm() {
       <div className="sticky bottom-4 z-20 p-4 sm:p-5 rounded-3xl bg-surface/90 backdrop-blur-md border border-border/80 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="text-xs text-text-secondary leading-normal">
           <strong className="text-text-primary block">
-            Ready to finalize this assessment?
+            {isEditMode ? "Ready to update this assessment?" : "Ready to finalize this assessment?"}
           </strong>
-          Save as a draft to edit later or publish immediately for students.
+          {isEditMode
+            ? "Save your modified questions and metadata, or publish live for enrolled learners."
+            : "Save as a draft to edit later or publish immediately for students."}
         </div>
 
         <div className="flex items-center gap-3 self-end sm:self-auto">
-          {/* Save as Draft */}
+          {/* Save Draft / Save Changes */}
           <Button
             type="button"
             variant="outline"
@@ -496,7 +550,11 @@ export default function ExamBuilderForm() {
           >
             {saveExamMutation.isPending && !isPublishing ? (
               <>
-                <Loader2 className="size-3.5 animate-spin" /> Saving Draft...
+                <Loader2 className="size-3.5 animate-spin" /> Saving...
+              </>
+            ) : isEditMode ? (
+              <>
+                <Save className="size-3.5 text-text-muted" /> Save Changes
               </>
             ) : (
               <>
@@ -515,6 +573,10 @@ export default function ExamBuilderForm() {
             {saveExamMutation.isPending && isPublishing ? (
               <>
                 <Loader2 className="size-4 animate-spin" /> Publishing...
+              </>
+            ) : isEditMode ? (
+              <>
+                <Send className="size-4" /> Save &amp; Publish Live
               </>
             ) : (
               <>

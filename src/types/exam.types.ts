@@ -17,8 +17,8 @@ export interface CreateExamInput {
   totalMarks?: number;
   passMark?: number;
   isFree?: boolean;
-  cohortId?: string;
-  sprintId?: string;
+  cohortId?: string | null;
+  sprintId?: string | null;
 }
 
 export interface Question {

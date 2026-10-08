@@ -18,10 +18,13 @@ import {
   Loader2,
   FileQuestion,
   Sparkles,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import EmptyState from "@/components/shared/EmptyState";
+import ConfirmModal from "@/components/shared/ConfirmModal";
 import { examService } from "@/services/exam.service";
 import type { Exam, ExamStatus } from "@/types/exam.types";
 import { toast } from "sonner";
@@ -78,6 +81,21 @@ export default function MentorExamsPage() {
     },
     onError: (err: Error) => {
       toast.error(err.message || "Failed to publish exam.");
+    },
+  });
+
+  // Delete / Archive Mutation
+  const [deleteExamTarget, setDeleteExamTarget] = React.useState<Exam | null>(null);
+  const deleteMutation = useMutation({
+    mutationFn: (examId: string) => examService.deleteExam(examId),
+    onSuccess: (res) => {
+      toast.success(res?.message || "Exam removed successfully.");
+      setDeleteExamTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["mentor", "exams"] });
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to delete exam.");
     },
   });
 
@@ -374,7 +392,7 @@ export default function MentorExamsPage() {
                 </div>
 
                 {/* Bottom Actions */}
-                <div className="pt-4 border-t border-border/70 flex items-center justify-between">
+                <div className="pt-4 border-t border-border/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="text-xs text-text-muted flex items-center gap-1.5">
                     <Users className="size-3.5 text-text-muted" />
                     <span>
@@ -385,7 +403,7 @@ export default function MentorExamsPage() {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     {!isPublished && (
                       <Button
                         size="sm"
@@ -404,7 +422,7 @@ export default function MentorExamsPage() {
                             ? "Cannot publish an exam with 0 questions"
                             : "Publish exam for students"
                         }
-                        className={`font-semibold text-xs h-8 px-3 gap-1.5 shadow-2xs ${qCount === 0
+                        className={`font-semibold text-xs h-8 px-2.5 gap-1 shadow-2xs ${qCount === 0
                           ? "bg-surface-raised text-text-muted border border-border cursor-not-allowed opacity-60"
                           : "bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
                           }`}
@@ -415,28 +433,78 @@ export default function MentorExamsPage() {
                           </>
                         ) : (
                           <>
-                            <Send className="size-3" /> Publish Now
+                            <Send className="size-3" /> Publish
                           </>
                         )}
                       </Button>
                     )}
 
+                    <Link href={`/mentor/exams/${exam.id}/edit`}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs h-8 px-2.5 gap-1 border-border bg-surface hover:bg-amber-light/40 hover:text-amber hover:border-amber/40 cursor-pointer transition-colors"
+                        title="Edit exam metadata & questions"
+                      >
+                        <Edit className="size-3.5 text-text-muted" />
+                        <span>Edit</span>
+                      </Button>
+                    </Link>
+
                     <Link href={`/exams/${exam.id}`}>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-xs h-8 px-3 gap-1.5 border-border bg-surface hover:bg-surface-raised cursor-pointer"
+                        className="text-xs h-8 px-2.5 gap-1 border-border bg-surface hover:bg-surface-raised cursor-pointer"
+                        title="Preview exam as student"
                       >
                         <Eye className="size-3.5 text-text-muted" />
                         <span>Preview</span>
                       </Button>
                     </Link>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setDeleteExamTarget(exam)}
+                      className="text-xs h-8 px-2.5 gap-1 border-border bg-surface hover:bg-rose-light/50 text-text-secondary hover:text-rose hover:border-rose/30 cursor-pointer transition-colors"
+                      title="Delete or archive this exam"
+                    >
+                      <Trash2 className="size-3.5" />
+                      <span>Delete</span>
+                    </Button>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {/* Delete / Archive Confirmation Modal */}
+      {deleteExamTarget && (
+        <ConfirmModal
+          isOpen={!!deleteExamTarget}
+          onClose={() => setDeleteExamTarget(null)}
+          onConfirm={() => deleteMutation.mutate(deleteExamTarget.id)}
+          title={
+            (deleteExamTarget._count?.attempts ?? 0) > 0
+              ? "Archive Exam?"
+              : "Delete Exam?"
+          }
+          description={
+            (deleteExamTarget._count?.attempts ?? 0) > 0
+              ? `"${deleteExamTarget.title}" has ${deleteExamTarget._count?.attempts} student attempt(s). It cannot be permanently deleted, but it will be safely archived and unpublished from the student catalog.`
+              : `Are you sure you want to delete "${deleteExamTarget.title}"? This draft assessment and its questions will be permanently removed.`
+          }
+          confirmLabel={
+            (deleteExamTarget._count?.attempts ?? 0) > 0
+              ? "Archive Exam"
+              : "Delete Exam"
+          }
+          variant="danger"
+          isLoading={deleteMutation.isPending}
+        />
       )}
     </div>
   );

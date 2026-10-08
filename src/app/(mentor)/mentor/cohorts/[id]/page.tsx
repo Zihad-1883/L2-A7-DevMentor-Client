@@ -91,7 +91,7 @@ export default function MentorCohortDetailPage() {
     isOpen: false,
     title: "",
     description: "",
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   // Form states for Add Resource
@@ -172,8 +172,8 @@ export default function MentorCohortDetailPage() {
   const maxAllowedForSession = isFreeCohort
     ? 0
     : editingSession
-    ? remainingCredits + (editingSession.creditCost || 0)
-    : remainingCredits;
+      ? remainingCredits + (editingSession.creditCost || 0)
+      : remainingCredits;
 
   const isSessionCostExceedingBudget =
     !isFreeCohort && sessionCreditCost > maxAllowedForSession;
@@ -478,10 +478,10 @@ export default function MentorCohortDetailPage() {
 
               <span
                 className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${cohort.approvalStatus === "APPROVED"
-                    ? "bg-emerald-light text-emerald border-emerald/20"
-                    : cohort.approvalStatus === "REJECTED"
-                      ? "bg-rose-50 text-rose border-rose/20"
-                      : "bg-amber-light text-amber border-amber/20"
+                  ? "bg-emerald-light text-emerald border-emerald/20"
+                  : cohort.approvalStatus === "REJECTED"
+                    ? "bg-rose-50 text-rose border-rose/20"
+                    : "bg-amber-light text-amber border-amber/20"
                   }`}
               >
                 Approval: {cohort.approvalStatus}
@@ -586,8 +586,8 @@ export default function MentorCohortDetailPage() {
           type="button"
           onClick={() => setActiveTab("sessions")}
           className={`pb-3 text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${activeTab === "sessions"
-              ? "text-amber border-b-2 border-amber"
-              : "text-text-muted hover:text-text-primary"
+            ? "text-amber border-b-2 border-amber"
+            : "text-text-muted hover:text-text-primary"
             }`}
         >
           <Calendar className="size-4" />
@@ -598,8 +598,8 @@ export default function MentorCohortDetailPage() {
           type="button"
           onClick={() => setActiveTab("students")}
           className={`pb-3 text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${activeTab === "students"
-              ? "text-amber border-b-2 border-amber"
-              : "text-text-muted hover:text-text-primary"
+            ? "text-amber border-b-2 border-amber"
+            : "text-text-muted hover:text-text-primary"
             }`}
         >
           <Users className="size-4" />
@@ -610,8 +610,8 @@ export default function MentorCohortDetailPage() {
           type="button"
           onClick={() => setActiveTab("settings")}
           className={`pb-3 text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${activeTab === "settings"
-              ? "text-amber border-b-2 border-amber"
-              : "text-text-muted hover:text-text-primary"
+            ? "text-amber border-b-2 border-amber"
+            : "text-text-muted hover:text-text-primary"
             }`}
         >
           <Info className="size-4" />
@@ -691,13 +691,12 @@ export default function MentorCohortDetailPage() {
                 </div>
                 <div className="h-2 w-full bg-surface-raised rounded-full overflow-hidden border border-border/80">
                   <div
-                    className={`h-full transition-all duration-300 ${
-                      allocatedCredits > totalCohortBudget
+                    className={`h-full transition-all duration-300 ${allocatedCredits > totalCohortBudget
                         ? "bg-rose"
                         : allocatedCredits === totalCohortBudget
-                        ? "bg-emerald"
-                        : "bg-amber"
-                    }`}
+                          ? "bg-emerald"
+                          : "bg-amber"
+                      }`}
                     style={{
                       width: `${Math.min(100, (allocatedCredits / (totalCohortBudget || 1)) * 100)}%`,
                     }}
@@ -1050,17 +1049,6 @@ export default function MentorCohortDetailPage() {
                                 </>
                               )}
                             </button>
-
-                            <a
-                              href={`mailto:${studentEmail}?subject=${encodeURIComponent(
-                                `[${cohort.title}] Welcome & Course Updates`
-                              )}`}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber text-white hover:bg-amber-hover transition-colors shadow-2xs"
-                              title="Send email to student"
-                            >
-                              <Mail className="size-3" />
-                              <span>Email</span>
-                            </a>
                           </>
                         )}
                       </div>
@@ -1259,9 +1247,8 @@ export default function MentorCohortDetailPage() {
                     disabled={isFreeCohort}
                     value={isFreeCohort ? 0 : sessionCreditCost}
                     onChange={(e) => setSessionCreditCost(Math.max(0, Number(e.target.value)))}
-                    className={`h-10 text-sm bg-surface rounded-xl ${
-                      isSessionCostExceedingBudget ? "border-rose focus-visible:ring-rose" : ""
-                    }`}
+                    className={`h-10 text-sm bg-surface rounded-xl ${isSessionCostExceedingBudget ? "border-rose focus-visible:ring-rose" : ""
+                      }`}
                   />
                   {isFreeCohort ? (
                     <span className="text-[11px] text-text-muted block">
@@ -1567,9 +1554,8 @@ export default function MentorCohortDetailPage() {
                   min={allocatedCredits}
                   value={editTotalCost}
                   onChange={(e) => setEditTotalCost(Number(e.target.value))}
-                  className={`h-10 text-sm bg-surface rounded-xl ${
-                    isEditTotalCostBelowAllocated ? "border-rose focus-visible:ring-rose" : ""
-                  }`}
+                  className={`h-10 text-sm bg-surface rounded-xl ${isEditTotalCostBelowAllocated ? "border-rose focus-visible:ring-rose" : ""
+                    }`}
                 />
                 {isEditTotalCostBelowAllocated ? (
                   <span className="text-[11px] font-medium text-rose block">

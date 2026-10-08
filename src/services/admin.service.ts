@@ -7,6 +7,8 @@ import type {
   ToggleUserBlockPayload,
   ApproveCohortPayload,
   PlatformOverviewStats,
+  PlatformSettingsResponse,
+  UpdatePlatformSettingsPayload,
 } from "@/types/admin.types";
 
 export const adminService = {
@@ -90,4 +92,12 @@ export const adminService = {
       return [];
     }
   },
+
+  // 7. Get Dynamic Platform & Commission Settings
+  getPlatformSettings: () =>
+    apiClient.get<PlatformSettingsResponse>("/admin/settings"),
+
+  // 8. Update Dynamic Platform & Commission Settings
+  updatePlatformSettings: (payload: UpdatePlatformSettingsPayload) =>
+    apiClient.patch<PlatformSettingsResponse>("/admin/settings", payload),
 };

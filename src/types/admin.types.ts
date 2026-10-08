@@ -69,3 +69,15 @@ export interface RevenueMonthlyDataPoint {
   platformCommission: number;
   mentorPayouts: number;
 }
+
+export interface PlatformSettingsResponse {
+  id: string;
+  sprintCreditPerSession: number;
+  sessionCommissionPercent: number;
+  updatedAt: string;
+}
+
+export interface UpdatePlatformSettingsPayload {
+  sprintCreditPerSession?: number;
+  sessionCommissionPercent?: number;
+}

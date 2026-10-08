@@ -101,6 +101,7 @@ export default function ExamBuilderForm({
     title?: string;
     duration?: string;
     passMark?: string;
+    cohort?: string;
     questions?: Record<number, Partial<Record<keyof QuestionItemFormData, string>>>;
   }>({});
 
@@ -124,26 +125,42 @@ export default function ExamBuilderForm({
     totalQuestions > 0 ? (durationMinutes / totalQuestions).toFixed(1) : "0";
 
   // Validate entire builder
-  const validateForm = (): boolean => {
+  const validateForm = (): { isValid: boolean; errorMessages: string[] } => {
     const errors: typeof formErrors = {};
+    const errorMessages: string[] = [];
     let isValid = true;
 
     if (!title.trim() || title.trim().length < 3) {
       errors.title = "Exam title must be at least 3 characters long.";
       isValid = false;
+      errorMessages.push("Title: Must be at least 3 characters long.");
     } else if (title.trim().length > 150) {
       errors.title = "Exam title cannot exceed 150 characters.";
       isValid = false;
+      errorMessages.push("Title: Cannot exceed 150 characters.");
     }
 
-    if (!durationMinutes || durationMinutes < 5 || durationMinutes > 300) {
-      errors.duration = "Duration must be between 5 and 300 minutes.";
+    if (!durationMinutes || durationMinutes < 1 || durationMinutes > 300) {
+      errors.duration = "Duration must be between 1 and 300 minutes.";
       isValid = false;
+      errorMessages.push("Duration: Must be between 1 and 300 minutes.");
     }
 
     if (!passMark || passMark < 1 || passMark > 100) {
       errors.passMark = "Pass mark percentage must be between 1% and 100%.";
       isValid = false;
+      errorMessages.push("Pass Mark: Must be between 1% and 100%.");
+    }
+
+    if (accessMode === "cohort" && !selectedCohortId) {
+      errors.cohort = "Please select a cohort program for cohort-exclusive access.";
+      isValid = false;
+      errorMessages.push("Access: Please select a cohort program.");
+    }
+
+    if (questions.length === 0) {
+      isValid = false;
+      errorMessages.push("Questions: Assessment requires at least 1 question.");
     }
 
     const questionErrors: Record<
@@ -155,18 +172,21 @@ export default function ExamBuilderForm({
       const qErr: Partial<Record<keyof QuestionItemFormData, string>> = {};
 
       if (!q.questionText.trim() || q.questionText.trim().length < 5) {
-        qErr.questionText = "Question text must be at least 5 characters.";
+        qErr.questionText = "Question statement must be at least 5 characters.";
         isValid = false;
+        errorMessages.push(`Question #${idx + 1}: Statement must be at least 5 characters.`);
       }
 
       if (q.options.length < 2) {
         qErr.options = "Question must have at least 2 choices.";
         isValid = false;
+        errorMessages.push(`Question #${idx + 1}: Must have at least 2 choices.`);
       } else {
         const hasEmptyOption = q.options.some((opt) => !opt.trim());
         if (hasEmptyOption) {
           qErr.options = "All choice options must have text.";
           isValid = false;
+          errorMessages.push(`Question #${idx + 1}: All choice options must have text.`);
         }
       }
 
@@ -176,6 +196,7 @@ export default function ExamBuilderForm({
       ) {
         qErr.correctOptionIndex = "Invalid correct choice index.";
         isValid = false;
+        errorMessages.push(`Question #${idx + 1}: Please select a valid correct answer key.`);
       }
 
       if (Object.keys(qErr).length > 0) {
@@ -188,7 +209,7 @@ export default function ExamBuilderForm({
     }
 
     setFormErrors(errors);
-    return isValid;
+    return { isValid, errorMessages };
   };
 
   // Mutation: Create & Save Exam (Draft or Publish)
@@ -229,7 +250,7 @@ export default function ExamBuilderForm({
           title: title.trim(),
           description: description.trim() || undefined,
           durationMinutes,
-          totalMarks: totalMarks >= 5 ? totalMarks : undefined,
+          totalMarks: totalMarks >= 1 ? totalMarks : undefined,
           passMark,
           isFree: accessMode === "free",
           cohortId: accessMode === "cohort" ? selectedCohortId || undefined : undefined,
@@ -276,10 +297,13 @@ export default function ExamBuilderForm({
   });
 
   const handleSubmit = (publish: boolean) => {
-    if (!validateForm()) {
-      toast.error(
-        "Please fix the validation errors in your exam configuration and questions."
-      );
+    const { isValid, errorMessages } = validateForm();
+    if (!isValid) {
+      const summary =
+        errorMessages.length > 0
+          ? errorMessages[0]
+          : "Please fix the validation errors in your exam configuration.";
+      toast.error(summary);
       return;
     }
     setIsPublishing(publish);
@@ -363,17 +387,28 @@ export default function ExamBuilderForm({
             </label>
             <Input
               type="number"
-              min={5}
+              min={1}
               max={300}
               value={durationMinutes}
-              onChange={(e) =>
-                setDurationMinutes(Math.max(5, parseInt(e.target.value) || 5))
-              }
-              className="h-11 text-xs font-mono font-bold bg-surface-raised rounded-2xl border-border"
+              onChange={(e) => {
+                setDurationMinutes(Math.max(1, parseInt(e.target.value) || 1));
+                if (formErrors.duration) {
+                  setFormErrors((prev) => ({ ...prev, duration: undefined }));
+                }
+              }}
+              className={`h-11 text-xs font-mono font-bold bg-surface-raised rounded-2xl ${
+                formErrors.duration ? "border-rose-400 focus:border-rose-500" : "border-border"
+              }`}
             />
-            <p className="text-[11px] text-text-muted">
-              Auto-submits when countdown timer reaches 00:00.
-            </p>
+            {formErrors.duration ? (
+              <p className="text-[11px] text-rose-500 flex items-center gap-1">
+                <AlertCircle className="size-3" /> {formErrors.duration}
+              </p>
+            ) : (
+              <p className="text-[11px] text-text-muted">
+                Auto-submits when countdown timer reaches 00:00.
+              </p>
+            )}
           </div>
 
           {/* Description */}
@@ -402,16 +437,27 @@ export default function ExamBuilderForm({
                 max={90}
                 step={5}
                 value={passMark}
-                onChange={(e) => setPassMark(parseInt(e.target.value))}
+                onChange={(e) => {
+                  setPassMark(parseInt(e.target.value));
+                  if (formErrors.passMark) {
+                    setFormErrors((prev) => ({ ...prev, passMark: undefined }));
+                  }
+                }}
                 className="flex-1 accent-amber"
               />
               <span className="px-3 py-1 rounded-xl bg-surface-raised border border-border font-mono font-bold text-xs text-text-primary min-w-[55px] text-center">
                 {passMark}%
               </span>
             </div>
-            <p className="text-[11px] text-text-muted">
-              Students scoring ≥ {passMark}% will receive a verified pass credential.
-            </p>
+            {formErrors.passMark ? (
+              <p className="text-[11px] text-rose-500 flex items-center gap-1">
+                <AlertCircle className="size-3" /> {formErrors.passMark}
+              </p>
+            ) : (
+              <p className="text-[11px] text-text-muted">
+                Students scoring ≥ {passMark}% will receive a verified pass credential.
+              </p>
+            )}
           </div>
 
           {/* Access Control (Free vs Cohort Restricted) */}
@@ -422,7 +468,12 @@ export default function ExamBuilderForm({
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setAccessMode("free")}
+                onClick={() => {
+                  setAccessMode("free");
+                  if (formErrors.cohort) {
+                    setFormErrors((prev) => ({ ...prev, cohort: undefined }));
+                  }
+                }}
                 className={`p-2.5 rounded-2xl border text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
                   accessMode === "free"
                     ? "bg-amber text-white border-amber shadow-2xs"
@@ -449,8 +500,15 @@ export default function ExamBuilderForm({
               <div className="pt-2">
                 <select
                   value={selectedCohortId}
-                  onChange={(e) => setSelectedCohortId(e.target.value)}
-                  className="w-full h-9 px-3 text-xs bg-surface-raised border border-border rounded-xl text-text-primary font-medium focus:outline-none focus:ring-2 focus:ring-amber/50 cursor-pointer"
+                  onChange={(e) => {
+                    setSelectedCohortId(e.target.value);
+                    if (formErrors.cohort) {
+                      setFormErrors((prev) => ({ ...prev, cohort: undefined }));
+                    }
+                  }}
+                  className={`w-full h-9 px-3 text-xs bg-surface-raised border rounded-xl text-text-primary font-medium focus:outline-none focus:ring-2 focus:ring-amber/50 cursor-pointer ${
+                    formErrors.cohort ? "border-rose-400" : "border-border"
+                  }`}
                 >
                   <option value="">Select one of your cohort programs...</option>
                   {cohorts.map((c) => (
@@ -459,6 +517,11 @@ export default function ExamBuilderForm({
                     </option>
                   ))}
                 </select>
+                {formErrors.cohort && (
+                  <p className="text-[11px] text-rose-500 flex items-center gap-1 mt-1">
+                    <AlertCircle className="size-3" /> {formErrors.cohort}
+                  </p>
+                )}
               </div>
             )}
           </div>

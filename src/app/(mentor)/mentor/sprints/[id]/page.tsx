@@ -159,6 +159,11 @@ export default function MentorSprintDetailPage() {
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={sprint.status} />
+              {sprint.targetMentorId && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                  🎯 Direct Student Request
+                </span>
+              )}
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-light text-amber border border-amber/20">
                 <Clock className="size-3" /> {sprint.durationDays} Days ({totalSessionsCount} Sessions)
               </span>

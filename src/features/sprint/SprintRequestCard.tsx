@@ -106,6 +106,11 @@ export default function SprintRequestCard({ sprint }: SprintRequestCardProps) {
                 <span className="size-2 rounded-full bg-emerald" />
                 {mentorName}
               </span>
+            ) : sprint.targetMentorId ? (
+              <span className="text-purple-600 dark:text-purple-400 text-[11px] font-semibold flex items-center gap-1">
+                <span className="size-1.5 rounded-full bg-purple-600 animate-pulse" />
+                Targeted: {sprint.targetMentor?.name || "Dedicated Mentor"}
+              </span>
             ) : (
               <span className="text-amber text-[11px] font-semibold flex items-center gap-1">
                 <span className="size-1.5 rounded-full bg-amber animate-pulse" />

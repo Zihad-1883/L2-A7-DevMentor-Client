@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   AlertCircle,
   XCircle,
+  FileDiff,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -127,6 +128,13 @@ export default function ReviewRequestCard({ request }: ReviewRequestCardProps) {
             <span className="inline-flex items-center gap-1 bg-stone-50 px-2 py-1 rounded border border-stone-200/60 max-w-[200px] truncate">
               <GitBranch className="w-3 h-3 text-stone-400 shrink-0" />
               <span className="truncate">{request.githubRepoUrl.replace("https://github.com/", "")}</span>
+            </span>
+          )}
+
+          {request.attachmentUrl && (
+            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-900 px-2 py-1 rounded border border-amber-200/60 max-w-[200px] truncate">
+              <FileDiff className="w-3 h-3 text-amber-600 shrink-0" />
+              <span className="truncate">{request.attachmentName || "Diff Patch Attached"}</span>
             </span>
           )}
 

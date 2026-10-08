@@ -24,7 +24,10 @@ import {
   Loader2,
   Save,
   Shield,
+  UploadCloud,
 } from "lucide-react";
+import { toast } from "sonner";
+import { uploadService } from "@/services/upload.service";
 
 interface ProfileDetailsFormProps {
   profile: UserProfileResponse;
@@ -35,12 +38,16 @@ export default function ProfileDetailsForm({ profile }: ProfileDetailsFormProps)
   const { refetch: refetchAuth } = useAuthContext();
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = React.useState(false);
+  const avatarFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isDirty },
     reset,
+    setValue,
+    watch,
   } = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
@@ -49,6 +56,37 @@ export default function ProfileDetailsForm({ profile }: ProfileDetailsFormProps)
       bio: profile.mentorProfile?.bio || "",
     },
   });
+
+  const avatarUrl = watch("image");
+
+  const handleAvatarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file (PNG, JPG, WebP, GIF).");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image file exceeds the 5MB limit.");
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      const res = await uploadService.uploadFile(file);
+      setValue("image", res.url, { shouldDirty: true, shouldValidate: true });
+      toast.success("Profile photo uploaded to Cloudinary!");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload photo to Cloudinary");
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarFileInputRef.current) {
+        avatarFileInputRef.current.value = "";
+      }
+    }
+  };
 
   const updateMutation = useMutation({
     mutationFn: (data: UpdateProfileInput) =>
@@ -159,27 +197,71 @@ export default function ProfileDetailsForm({ profile }: ProfileDetailsFormProps)
             </p>
           </div>
 
-          {/* Avatar Image URL */}
+          {/* Avatar Image URL + Upload */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
-              <ImageIcon className="size-3.5 text-text-muted" />
-              Profile Avatar URL
-            </label>
-            <Input
-              type="url"
-              placeholder="https://images.unsplash.com/... or hosted picture link"
-              {...register("image")}
-              className={`bg-surface-raised border-border/80 focus:border-amber ${
-                errors.image ? "border-orange focus-visible:ring-orange" : ""
-              }`}
-            />
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+                <ImageIcon className="size-3.5 text-text-muted" />
+                Profile Avatar
+              </label>
+              <input
+                ref={avatarFileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={handleAvatarFileUpload}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isUploadingAvatar}
+                onClick={() => avatarFileInputRef.current?.click()}
+                className="h-7 text-[11px] gap-1.5 border-dashed border-border hover:border-amber/60 hover:bg-amber/5 text-text-secondary hover:text-amber"
+              >
+                {isUploadingAvatar ? (
+                  <>
+                    <Loader2 className="size-3 animate-spin text-amber" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud className="size-3 text-amber" />
+                    Upload Image
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Avatar preview"
+                  className="size-10 rounded-full object-cover border border-border/80 shrink-0"
+                />
+              ) : (
+                <div className="size-10 rounded-full bg-surface-sunken border border-border/60 flex items-center justify-center text-text-muted text-xs font-semibold shrink-0">
+                  {profile.name?.slice(0, 2).toUpperCase() || "ME"}
+                </div>
+              )}
+              <Input
+                type="url"
+                placeholder="https://images.unsplash.com/... or upload image directly"
+                {...register("image")}
+                className={`bg-surface-raised border-border/80 focus:border-amber flex-1 ${
+                  errors.image ? "border-orange focus-visible:ring-orange" : ""
+                }`}
+              />
+            </div>
+
             {errors.image && (
               <p className="text-[11px] text-orange font-medium mt-1">
                 {errors.image.message}
               </p>
             )}
             <p className="text-[11px] text-text-muted">
-              Direct link to an image (PNG, JPG, or WebP). Leave blank to use fallback initials.
+              Upload a picture directly (stored securely on Cloudinary) or paste a custom image URL.
             </p>
           </div>
 

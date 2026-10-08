@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Lock,
   User,
+  FileDiff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/components/providers/AuthProvider";
@@ -158,6 +159,29 @@ export default function ReviewPoolCard({
                 <GitBranch className="size-3 text-text-muted" /> {request.branchName}
               </span>
             )}
+          </div>
+        ) : request.attachmentUrl ? (
+          <div className="p-3 rounded-xl bg-amber-light/30 border border-amber/30 flex items-center justify-between text-xs text-text-secondary">
+            <div className="flex items-center gap-2 truncate">
+              <FileDiff className="size-4 text-amber shrink-0" />
+              <span className="font-semibold text-text-primary truncate">
+                {request.attachmentName || "Attached Git Diff / Patch"}
+              </span>
+              {request.attachmentSize && (
+                <span className="text-[11px] text-text-muted">
+                  ({Math.round(request.attachmentSize / 1024)} KB)
+                </span>
+              )}
+            </div>
+            <a
+              href={request.attachmentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] font-bold text-amber hover:underline shrink-0 ml-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Download
+            </a>
           </div>
         ) : null}
 

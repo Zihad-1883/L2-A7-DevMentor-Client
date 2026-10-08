@@ -19,6 +19,7 @@ export interface SprintRequestItem {
     studentId: string;
     mentorId?: string | null;
     claimedByMentorId?: string | null;
+    targetMentorId?: string | null;
     title: string;
     description: string;
     techStackTags: string[];
@@ -34,6 +35,18 @@ export interface SprintRequestItem {
         email: string;
         image?: string | null;
     };
+    targetMentor?: {
+        id: string;
+        name: string;
+        email?: string;
+        image?: string | null;
+        mentorProfile?: {
+            title?: string | null;
+            bio?: string | null;
+            experienceLevel?: string | null;
+            hourlyRate?: number | null;
+        } | null;
+    } | null;
     mentor?: {
         id: string;
         name: string;
@@ -64,6 +77,7 @@ export interface CreateSprintInput {
     startDate: string;
     durationDays: number;
     selectedDays: number[];
+    targetMentorId?: string;
 }
 
 export interface UpdateSprintInput {

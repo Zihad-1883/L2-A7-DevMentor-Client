@@ -14,8 +14,8 @@ export const createCodeReviewFormSchema = z
       .string()
       .trim()
       .min(10, "Please provide at least 10 characters explaining what to review or look out for"),
-    submissionMode: z.enum(["snippet", "github"], {
-      message: "Please choose whether to paste code or provide a GitHub repository link",
+    submissionMode: z.enum(["snippet", "github", "patch"], {
+      message: "Please choose whether to paste code, provide a GitHub repository link, or upload a patch/file",
     }),
     codeSnippet: z.string().optional(),
     language: z.string().trim().default("typescript"),
@@ -26,6 +26,9 @@ export const createCodeReviewFormSchema = z
       .or(z.literal("")),
     branchName: z.string().trim().optional().default("main"),
     specificFiles: z.string().trim().optional(),
+    attachmentUrl: z.string().trim().optional().or(z.literal("")),
+    attachmentName: z.string().trim().optional(),
+    attachmentSize: z.number().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.submissionMode === "snippet") {
@@ -60,6 +63,14 @@ export const createCodeReviewFormSchema = z
             path: ["githubRepoUrl"],
           });
         }
+      }
+    } else if (data.submissionMode === "patch") {
+      if (!data.attachmentUrl || data.attachmentUrl.trim().length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please upload a git diff patch or source file for review.",
+          path: ["attachmentUrl"],
+        });
       }
     }
   });

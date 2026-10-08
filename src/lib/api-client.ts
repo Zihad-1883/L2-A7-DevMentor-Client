@@ -62,8 +62,10 @@ async function request<T>(
     // ignore
   }
 
+  const isFormData = typeof FormData !== "undefined" && restOptions.body instanceof FormData;
+
   const reqHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(headers as Record<string, string>),
   };
@@ -113,14 +115,24 @@ export const apiClient = {
   post: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     request<T>(endpoint, {
       method: "POST",
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body:
+        typeof FormData !== "undefined" && body instanceof FormData
+          ? body
+          : body !== undefined
+          ? JSON.stringify(body)
+          : undefined,
       ...options,
     }),
 
   patch: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     request<T>(endpoint, {
       method: "PATCH",
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body:
+        typeof FormData !== "undefined" && body instanceof FormData
+          ? body
+          : body !== undefined
+          ? JSON.stringify(body)
+          : undefined,
       ...options,
     }),
 

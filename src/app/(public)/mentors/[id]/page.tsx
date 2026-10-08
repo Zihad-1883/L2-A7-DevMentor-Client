@@ -290,13 +290,17 @@ export default async function MentorDetailPage({
               </div>
 
               <div className="space-y-3">
-                <SmartAuthButton
-                  size="lg"
-                  unauthRedirect="/login?redirectTo=/dashboard/sprints/new"
-                  className="w-full bg-amber text-white hover:bg-amber-hover font-bold shadow-md py-6 text-sm cursor-pointer"
+                <Link
+                  href={`/dashboard/sprints/new?mentorId=${mentor.userId || mentor.user?.id || mentor.id}&mentorName=${encodeURIComponent(name)}`}
+                  className="w-full block"
                 >
-                  Request a 1-on-1 Sprint
-                </SmartAuthButton>
+                  <Button
+                    size="lg"
+                    className="w-full bg-amber text-white hover:bg-amber-hover font-bold shadow-md py-6 text-sm cursor-pointer"
+                  >
+                    Request 1-on-1 Sprint with {name.split(" ")[0]}
+                  </Button>
+                </Link>
 
                 <Link href="/mentors" className="w-full block">
                   <Button variant="outline" size="sm" className="w-full border-border text-xs">

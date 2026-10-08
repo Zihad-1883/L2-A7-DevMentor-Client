@@ -242,6 +242,18 @@ export default function SprintDetailPage() {
                   <span>Claimed &amp; actively mentoring</span>
                 </div>
               </div>
+            ) : sprint.targetMentorId ? (
+              <div className="p-4 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 text-center space-y-2">
+                <div className="size-10 rounded-full bg-surface text-purple-600 flex items-center justify-center mx-auto shadow-2xs">
+                  <User className="size-5" />
+                </div>
+                <h3 className="text-xs font-bold text-text-primary">
+                  Direct Request: {sprint.targetMentor?.name || "Targeted Mentor"}
+                </h3>
+                <p className="text-[11px] text-text-secondary leading-relaxed">
+                  This sprint is routed exclusively to your selected mentor. We are waiting for them to accept and schedule your sessions.
+                </p>
+              </div>
             ) : (
               <div className="p-4 rounded-2xl bg-amber-light/30 border border-amber/30 text-center space-y-2">
                 <div className="size-10 rounded-full bg-surface text-amber flex items-center justify-center mx-auto shadow-2xs">

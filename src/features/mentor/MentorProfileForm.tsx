@@ -27,7 +27,10 @@ import {
   Eye,
   Plus,
   X,
+  UploadCloud,
+  Trash2,
 } from "lucide-react";
+import { uploadService } from "@/services/upload.service";
 import { z } from "zod";
 
 function GithubIcon({ className }: { className?: string }) {
@@ -113,6 +116,48 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
     githubUrl?: string;
     resumeUrl?: string;
   }>({});
+
+  const [isUploadingAvatar, setIsUploadingAvatar] = React.useState(false);
+  const [isUploadingResume, setIsUploadingResume] = React.useState(false);
+  const avatarFileInputRef = React.useRef<HTMLInputElement>(null);
+  const resumeFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleAvatarFileUpload = async (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image file exceeds maximum allowed size (5 MB).");
+      return;
+    }
+    setIsUploadingAvatar(true);
+    try {
+      const res = await uploadService.uploadFile(file);
+      setImage(res.url);
+      setAvatarPreviewError(false);
+      toast.success("Profile photo uploaded to Cloudinary!");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to upload photo.";
+      toast.error(message);
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleResumeFileUpload = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Resume file exceeds maximum allowed size (10 MB).");
+      return;
+    }
+    setIsUploadingResume(true);
+    try {
+      const res = await uploadService.uploadFile(file);
+      setResumeUrl(res.url);
+      toast.success("Resume uploaded to Cloudinary!");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to upload resume.";
+      toast.error(message);
+    } finally {
+      setIsUploadingResume(false);
+    }
+  };
 
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
@@ -308,9 +353,37 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
 
                 {/* Profile Photo / Avatar URL */}
                 <div className="space-y-2">
-                  <label htmlFor="mentor-image-input" className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
-                    <ImageIcon className="size-3.5 text-text-muted" /> Profile Avatar URL
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="mentor-image-input" className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+                      <ImageIcon className="size-3.5 text-text-muted" /> Profile Avatar URL
+                    </label>
+                    <input
+                      type="file"
+                      ref={avatarFileInputRef}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleAvatarFileUpload(file);
+                      }}
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => avatarFileInputRef.current?.click()}
+                      disabled={isUploadingAvatar}
+                      className="text-[11px] font-semibold text-amber hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    >
+                      {isUploadingAvatar ? (
+                        <>
+                          <Loader2 className="size-3 animate-spin" /> Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud className="size-3" /> Upload Photo
+                        </>
+                      )}
+                    </button>
+                  </div>
                   <div className="flex gap-3">
                     <div className="relative size-12 rounded-xl overflow-hidden border border-border shrink-0 bg-surface-sunken flex items-center justify-center">
                       {image && !avatarPreviewError ? (
@@ -534,25 +607,68 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label htmlFor="mentor-resume-input" className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
-                      <FileCode className="size-3.5 text-text-muted" /> Resume / CV / Portfolio URL
-                    </label>
-                    <Input
-                      id="mentor-resume-input"
-                      type="url"
-                      value={resumeUrl}
-                      onChange={(e) => {
-                        setResumeUrl(e.target.value);
-                        if (fieldErrors.resumeUrl) setFieldErrors((p) => ({ ...p, resumeUrl: undefined }));
-                      }}
-                      placeholder="https://drive.google.com/... or https://portfolio.dev"
-                      className={fieldErrors.resumeUrl ? "border-orange/60 focus-visible:ring-orange/30" : ""}
-                    />
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="mentor-resume-input" className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+                        <FileCode className="size-3.5 text-text-muted" /> Resume / CV / Portfolio URL
+                      </label>
+                      <input
+                        type="file"
+                        ref={resumeFileInputRef}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleResumeFileUpload(file);
+                        }}
+                        accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf"
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => resumeFileInputRef.current?.click()}
+                        disabled={isUploadingResume}
+                        className="text-[11px] font-semibold text-amber hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        {isUploadingResume ? (
+                          <>
+                            <Loader2 className="size-3 animate-spin" /> Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <UploadCloud className="size-3" /> Upload PDF / Doc
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="mentor-resume-input"
+                        type="url"
+                        value={resumeUrl}
+                        onChange={(e) => {
+                          setResumeUrl(e.target.value);
+                          if (fieldErrors.resumeUrl) setFieldErrors((p) => ({ ...p, resumeUrl: undefined }));
+                        }}
+                        placeholder="https://drive.google.com/... or upload PDF above"
+                        className={fieldErrors.resumeUrl ? "border-orange/60 focus-visible:ring-orange/30 pr-8" : "pr-8"}
+                      />
+                      {resumeUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setResumeUrl("");
+                            if (resumeFileInputRef.current) resumeFileInputRef.current.value = "";
+                          }}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-orange cursor-pointer"
+                          title="Clear"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
                     {fieldErrors.resumeUrl ? (
                       <p className="text-xs text-orange font-medium">{fieldErrors.resumeUrl}</p>
                     ) : (
                       <p className="text-[11px] text-text-muted">
-                        Direct public URL to your CV, portfolio website, or professional resume.
+                        Direct public URL to your CV, portfolio website, or uploaded resume document.
                       </p>
                     )}
                   </div>

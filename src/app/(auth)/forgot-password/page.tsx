@@ -8,12 +8,14 @@ import {
   forgotPasswordSchema,
   type ForgotPasswordInput,
 } from "@/lib/validations/auth.schema";
+import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Mail, Loader2, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Mail, Loader2, ArrowRight, ArrowLeft, CheckCircle2, KeyRound, RefreshCw } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isResending, setIsResending] = React.useState(false);
   const [isSubmitted, setIsSubmitted] = React.useState(false);
   const [submittedEmail, setSubmittedEmail] = React.useState("");
 
@@ -31,14 +33,43 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: ForgotPasswordInput) => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const res = await authClient.emailOtp.sendVerificationOtp({
+        email: data.email,
+        type: "forget-password",
+      });
+
+      if (res.error) {
+        toast.error(res.error.message || "Failed to send reset code. Please check your email address.");
+        return;
+      }
+
       setSubmittedEmail(data.email);
       setIsSubmitted(true);
-      toast.success("Password reset instructions sent to your email!");
-    } catch {
-      toast.error("Failed to send reset link. Please try again.");
+      toast.success("6-digit verification code sent to your email!");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to send reset link. Please try again.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!submittedEmail) return;
+    setIsResending(true);
+    try {
+      const res = await authClient.emailOtp.sendVerificationOtp({
+        email: submittedEmail,
+        type: "forget-password",
+      });
+      if (res.error) {
+        toast.error(res.error.message || "Failed to resend code");
+      } else {
+        toast.success("New verification code sent!");
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to resend code");
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -52,13 +83,29 @@ export default function ForgotPasswordPage() {
           Check your email ✉️
         </h1>
         <p className="text-sm text-text-muted leading-relaxed">
-          We have sent password recovery instructions to{" "}
+          We have sent a 6-digit password reset code to{" "}
           <strong className="text-text-primary">{submittedEmail}</strong>.
         </p>
-        <div className="pt-4">
-          <Link href="/login">
+        <div className="pt-2 space-y-2">
+          <Link href={`/reset-password?email=${encodeURIComponent(submittedEmail)}`}>
             <Button variant="default" className="w-full gap-2">
-              <ArrowLeft className="size-4" />
+              <KeyRound className="size-4" />
+              <span>Enter 6-Digit Code & Set Password</span>
+            </Button>
+          </Link>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isResending}
+            onClick={handleResend}
+            className="w-full gap-2 text-xs"
+          >
+            <RefreshCw className={`size-3.5 ${isResending ? "animate-spin" : ""}`} />
+            <span>{isResending ? "Resending..." : "Resend Code"}</span>
+          </Button>
+          <Link href="/login" className="block pt-2">
+            <Button variant="ghost" className="w-full gap-2 text-xs text-text-muted hover:text-text-primary">
+              <ArrowLeft className="size-3.5" />
               <span>Back to Sign In</span>
             </Button>
           </Link>

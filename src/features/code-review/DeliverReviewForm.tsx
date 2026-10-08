@@ -14,11 +14,15 @@ import {
   Loader2,
   Copy,
   ChevronUp,
+  UploadCloud,
+  Paperclip,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ConfirmModal from "@/components/shared/ConfirmModal";
 import { codeReviewService } from "@/services/code-review.service";
+import { uploadService } from "@/services/upload.service";
 import type { CodeReviewRequestItem } from "@/types/code-review.types";
 import { toast } from "sonner";
 
@@ -45,6 +49,35 @@ export default function DeliverReviewForm({
   const [reviewedCodeSnippet, setReviewedCodeSnippet] = React.useState("");
   const [videoUrl, setVideoUrl] = React.useState("");
   const [pullRequestUrl, setPullRequestUrl] = React.useState("");
+  const [attachmentUrl, setAttachmentUrl] = React.useState("");
+  const [attachmentName, setAttachmentName] = React.useState("");
+  const [isUploadingAttachment, setIsUploadingAttachment] = React.useState(false);
+  const attachmentFileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error("File size cannot exceed 25MB");
+      return;
+    }
+
+    try {
+      setIsUploadingAttachment(true);
+      const res = await uploadService.uploadFile(file);
+      setAttachmentUrl(res.url);
+      setAttachmentName(file.name);
+      toast.success("Attachment file uploaded to Cloudinary!");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload file");
+    } finally {
+      setIsUploadingAttachment(false);
+      if (attachmentFileInputRef.current) {
+        attachmentFileInputRef.current.value = "";
+      }
+    }
+  };
 
   // Inline Line-by-Line Annotations
   const defaultFile =
@@ -106,6 +139,8 @@ export default function DeliverReviewForm({
         reviewedCodeSnippet: reviewedCodeSnippet.trim() || undefined,
         videoUrl: videoUrl.trim() || undefined,
         pullRequestUrl: pullRequestUrl.trim() || undefined,
+        attachmentUrl: attachmentUrl.trim() || undefined,
+        attachmentName: attachmentName.trim() || undefined,
         comments: comments.map((c) => ({
           filePath: c.filePath,
           lineNumber: c.lineNumber,
@@ -440,6 +475,71 @@ export default function DeliverReviewForm({
               GitHub or GitLab PR link if review changes were branched.
             </p>
           </div>
+        </div>
+
+        {/* 5. Optional File Attachment / Solution Patch (Cloudinary) */}
+        <div className="space-y-2 p-4 rounded-2xl bg-surface border border-border">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
+              <Paperclip className="size-3.5 text-amber" /> Review File Attachment / Patch (Optional)
+            </label>
+            <input
+              ref={attachmentFileInputRef}
+              type="file"
+              accept=".diff,.patch,.txt,.zip,.tar.gz,.ts,.js,.tsx,.jsx,.py,.go"
+              className="hidden"
+              onChange={handleAttachmentUpload}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isUploadingAttachment}
+              onClick={() => attachmentFileInputRef.current?.click()}
+              className="h-7 text-[11px] gap-1.5 border-dashed border-border hover:border-amber/60 hover:bg-amber/5 text-text-secondary hover:text-amber cursor-pointer"
+            >
+              {isUploadingAttachment ? (
+                <>
+                  <Loader2 className="size-3 animate-spin text-amber" /> Uploading...
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="size-3 text-amber" /> Upload Diff / Patch / Zip
+                </>
+              )}
+            </Button>
+          </div>
+
+          {attachmentUrl ? (
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber/30 text-xs">
+              <div className="flex items-center gap-2 truncate">
+                <Paperclip className="size-4 text-amber shrink-0" />
+                <span className="font-semibold text-text-primary truncate font-mono">
+                  {attachmentName || "Attached Review File"}
+                </span>
+                <span className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  Cloudinary Uploaded
+                </span>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setAttachmentUrl("");
+                  setAttachmentName("");
+                }}
+                className="h-7 w-7 p-0 text-text-muted hover:text-red-500 hover:bg-red-50 cursor-pointer shrink-0"
+                title="Remove attachment"
+              >
+                <X className="size-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <p className="text-[11px] text-text-muted">
+              Attach a <code className="font-mono text-amber">.diff</code> patch, solution archive (<code className="font-mono text-amber">.zip</code>), or refactored files directly to this delivery review.
+            </p>
+          )}
         </div>
 
         {/* Submit Action Button */}

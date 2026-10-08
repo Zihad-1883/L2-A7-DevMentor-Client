@@ -24,6 +24,7 @@ export const createSprintSchema = z.object({
   selectedDays: z
     .array(z.number().int().positive())
     .min(1, "Please select at least one session day within the sprint duration"),
+  targetMentorId: z.string().optional(),
 });
 
 export type CreateSprintFormData = z.infer<typeof createSprintSchema>;

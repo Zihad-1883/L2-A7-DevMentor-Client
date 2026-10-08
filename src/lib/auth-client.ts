@@ -1,4 +1,5 @@
 import { createAuthClient } from "better-auth/react";
+import { emailOTPClient } from "better-auth/client/plugins";
 
 export const authClient = createAuthClient({
   baseURL:
@@ -6,6 +7,8 @@ export const authClient = createAuthClient({
       ? window.location.origin
       : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   basePath: "/api/auth",
+  plugins: [emailOTPClient()],
 });
 
 export const { signIn, signUp, signOut, useSession, getSession } = authClient;
+

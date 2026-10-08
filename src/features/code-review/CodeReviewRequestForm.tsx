@@ -20,12 +20,18 @@ import {
   Layers,
   Terminal,
   FileText,
+  FileDiff,
+  UploadCloud,
+  Paperclip,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useWallet } from "@/hooks/useWallet";
 import { codeReviewService } from "@/services/code-review.service";
+import { uploadService } from "@/services/upload.service";
 import { queryKeys } from "@/lib/query-keys";
 import {
   createCodeReviewFormSchema,
@@ -76,7 +82,7 @@ export default function CodeReviewRequestForm() {
 
   // Form State
   const [tier, setTier] = React.useState<CodeReviewTier>("QUICK");
-  const [submissionMode, setSubmissionMode] = React.useState<"snippet" | "github">("snippet");
+  const [submissionMode, setSubmissionMode] = React.useState<"snippet" | "github" | "patch">("snippet");
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [language, setLanguage] = React.useState("typescript");
@@ -84,6 +90,13 @@ export default function CodeReviewRequestForm() {
   const [githubRepoUrl, setGithubRepoUrl] = React.useState("");
   const [branchName, setBranchName] = React.useState("main");
   const [specificFiles, setSpecificFiles] = React.useState("");
+
+  // Patch / File Attachment state
+  const [attachmentUrl, setAttachmentUrl] = React.useState("");
+  const [attachmentName, setAttachmentName] = React.useState("");
+  const [attachmentSize, setAttachmentSize] = React.useState<number | undefined>(undefined);
+  const [isUploadingAttachment, setIsUploadingAttachment] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
@@ -102,6 +115,36 @@ export default function CodeReviewRequestForm() {
     }
   };
 
+  const handleFileUpload = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File exceeds maximum allowed size (10 MB).");
+      return;
+    }
+
+    setIsUploadingAttachment(true);
+    setFieldErrors((prev) => ({ ...prev, attachmentUrl: "" }));
+
+    try {
+      const res = await uploadService.uploadFile(file);
+      setAttachmentUrl(res.url);
+      setAttachmentName(file.name);
+      setAttachmentSize(res.bytes || file.size);
+      toast.success(`Attached "${file.name}" successfully!`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to upload file attachment. Please try again.";
+      toast.error(message);
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
+  const handleRemoveAttachment = () => {
+    setAttachmentUrl("");
+    setAttachmentName("");
+    setAttachmentSize(undefined);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFieldErrors({});
@@ -116,6 +159,9 @@ export default function CodeReviewRequestForm() {
       githubRepoUrl: submissionMode === "github" ? githubRepoUrl : undefined,
       branchName: submissionMode === "github" ? branchName : undefined,
       specificFiles: specificFiles.trim() || undefined,
+      attachmentUrl: submissionMode === "patch" ? attachmentUrl : undefined,
+      attachmentName: submissionMode === "patch" ? attachmentName : undefined,
+      attachmentSize: submissionMode === "patch" ? attachmentSize : undefined,
     };
 
     // Validate with Zod
@@ -152,6 +198,9 @@ export default function CodeReviewRequestForm() {
         githubRepoUrl: formData.githubRepoUrl || undefined,
         branchName: formData.branchName || "main",
         specificFiles: formData.specificFiles,
+        attachmentUrl: formData.attachmentUrl || undefined,
+        attachmentName: formData.attachmentName || undefined,
+        attachmentSize: formData.attachmentSize || undefined,
       });
 
       toast.success(
@@ -343,12 +392,12 @@ export default function CodeReviewRequestForm() {
           </label>
 
           {/* Toggle Button Group */}
-          <div className="inline-flex p-1 rounded-xl bg-surface-raised border border-border self-start sm:self-auto">
+          <div className="inline-flex p-1 rounded-xl bg-surface-raised border border-border self-start sm:self-auto flex-wrap">
             <button
               type="button"
               onClick={() => {
                 setSubmissionMode("snippet");
-                setFieldErrors((p) => ({ ...p, codeSnippet: "", githubRepoUrl: "" }));
+                setFieldErrors((p) => ({ ...p, codeSnippet: "", githubRepoUrl: "", attachmentUrl: "" }));
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                 submissionMode === "snippet"
@@ -362,7 +411,7 @@ export default function CodeReviewRequestForm() {
               type="button"
               onClick={() => {
                 setSubmissionMode("github");
-                setFieldErrors((p) => ({ ...p, codeSnippet: "", githubRepoUrl: "" }));
+                setFieldErrors((p) => ({ ...p, codeSnippet: "", githubRepoUrl: "", attachmentUrl: "" }));
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                 submissionMode === "github"
@@ -371,6 +420,20 @@ export default function CodeReviewRequestForm() {
               }`}
             >
               <GitPullRequest className="size-3.5" /> GitHub Repository
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSubmissionMode("patch");
+                setFieldErrors((p) => ({ ...p, codeSnippet: "", githubRepoUrl: "", attachmentUrl: "" }));
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                submissionMode === "patch"
+                  ? "bg-surface text-text-primary shadow-2xs font-bold"
+                  : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              <FileDiff className="size-3.5 text-amber" /> Diff Patch / File
             </button>
           </div>
         </div>
@@ -512,6 +575,141 @@ export default function CodeReviewRequestForm() {
               <p className="text-[11px] text-text-muted">
                 Guide the mentor directly to the relevant files in your repository.
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* MODE C: DIFF PATCH / FILE ATTACHMENT */}
+        {submissionMode === "patch" && (
+          <div className="space-y-4 animate-in fade-in duration-200">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileUpload(file);
+              }}
+              accept=".diff,.patch,.txt,.md,.ts,.tsx,.js,.jsx,.py,.go,.rs,.java,.cpp,.c,.json,.zip,text/*"
+              className="hidden"
+            />
+
+            {/* If attachment already uploaded, show file card */}
+            {attachmentUrl ? (
+              <div className="p-4 rounded-2xl bg-amber-light/30 border border-amber/30 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="size-10 rounded-xl bg-amber/20 text-amber flex items-center justify-center shrink-0">
+                    <FileDiff className="size-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-text-primary truncate">
+                      {attachmentName || "Attached Patch File"}
+                    </p>
+                    <p className="text-[11px] text-text-secondary flex items-center gap-2 mt-0.5">
+                      {attachmentSize ? (
+                        <span>{(attachmentSize / 1024).toFixed(1)} KB</span>
+                      ) : null}
+                      <span className="inline-flex items-center gap-1 text-emerald font-semibold">
+                        <CheckCircle2 className="size-3" /> Cloudinary Verified
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingAttachment}
+                    className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface border border-border hover:bg-surface-raised transition-colors cursor-pointer"
+                  >
+                    Replace
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRemoveAttachment}
+                    className="p-1.5 text-text-muted hover:text-rose transition-colors cursor-pointer rounded-lg hover:bg-rose/10"
+                    title="Remove attachment"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Dropzone */
+              <div
+                onClick={() => !isUploadingAttachment && fileInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) handleFileUpload(file);
+                }}
+                className={`p-6 sm:p-8 rounded-2xl border-2 border-dashed transition-all text-center flex flex-col items-center justify-center cursor-pointer ${
+                  fieldErrors.attachmentUrl
+                    ? "border-rose bg-rose/5"
+                    : "border-border hover:border-amber/50 bg-surface-raised/40 hover:bg-surface-raised/80"
+                } ${isUploadingAttachment ? "opacity-60 pointer-events-none" : ""}`}
+              >
+                {isUploadingAttachment ? (
+                  <div className="flex flex-col items-center gap-2 py-2">
+                    <Loader2 className="size-8 text-amber animate-spin" />
+                    <p className="text-xs font-bold text-text-primary">Uploading patch to Cloudinary...</p>
+                    <p className="text-[11px] text-text-muted">Storing secure signed asset</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="size-12 rounded-2xl bg-amber-light text-amber flex items-center justify-center mb-3">
+                      <UploadCloud className="size-6" />
+                    </div>
+                    <p className="text-xs font-bold text-text-primary">
+                      Click to browse or drag &amp; drop a file
+                    </p>
+                    <p className="text-[11px] text-text-secondary mt-1">
+                      Git diff patches (<code className="font-mono text-amber">.diff</code>, <code className="font-mono text-amber">.patch</code>), source code files, or <code className="font-mono text-amber">.zip</code> archives up to 10MB
+                    </p>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold bg-surface border border-border mt-3 text-text-muted">
+                      <Terminal className="size-3" /> git diff &gt; my-changes.patch
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {fieldErrors.attachmentUrl && (
+              <p className="text-xs text-rose flex items-center gap-1">
+                <AlertCircle className="size-3" /> {fieldErrors.attachmentUrl}
+              </p>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-text-primary">
+                  Language Context
+                </label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl border border-border bg-background text-xs font-semibold text-text-primary focus:outline-none focus:ring-2 focus:ring-amber/20"
+                >
+                  {PROGRAMMING_LANGUAGES.map((lang) => (
+                    <option key={lang.value} value={lang.value}>
+                      {lang.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-text-primary">
+                  Specific Files / Areas to Review (Optional)
+                </label>
+                <Input
+                  value={specificFiles}
+                  onChange={(e) => setSpecificFiles(e.target.value)}
+                  placeholder="e.g. auth flow, database queries"
+                  className="h-10 bg-background text-sm"
+                />
+              </div>
             </div>
           </div>
         )}

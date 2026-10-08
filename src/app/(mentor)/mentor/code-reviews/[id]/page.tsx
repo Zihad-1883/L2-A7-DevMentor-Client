@@ -25,6 +25,7 @@ import {
   User,
   ShieldCheck,
   Calendar,
+  FileDiff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/components/providers/AuthProvider";
@@ -564,6 +565,36 @@ export default function MentorCodeReviewDetailPage() {
                   </span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Attached Git Diff Patch / File (if present) */}
+          {request.attachmentUrl && (
+            <div className="p-5 rounded-3xl bg-surface border border-border space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
+                <FileDiff className="size-4 text-amber" /> Attached Git Diff Patch / Source File
+              </h3>
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-amber-light/30 border border-amber/30 text-xs flex-wrap gap-2">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="font-semibold text-text-primary truncate font-mono">
+                    {request.attachmentName || "Attached Patch File"}
+                  </span>
+                  {request.attachmentSize && (
+                    <span className="text-[11px] text-text-muted">
+                      ({Math.round(request.attachmentSize / 1024)} KB)
+                    </span>
+                  )}
+                </div>
+
+                <a
+                  href={request.attachmentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-amber hover:underline ml-auto"
+                >
+                  Download / View Patch <ExternalLink className="size-3.5" />
+                </a>
+              </div>
             </div>
           )}
 

@@ -15,11 +15,16 @@ import {
   ShieldCheck,
   Clock,
   Layers,
+  UploadCloud,
+  FileCode,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { mentorService } from "@/services/mentor.service";
+import { uploadService } from "@/services/upload.service";
 
 const POPULAR_SKILLS = [
   "React",
@@ -51,8 +56,39 @@ export default function MentorApplicationForm() {
   const [customTagInput, setCustomTagInput] = React.useState("");
   const [githubUrl, setGithubUrl] = React.useState("");
   const [resumeUrl, setResumeUrl] = React.useState("");
+  const [isUploadingResume, setIsUploadingResume] = React.useState(false);
+  const [resumeFileName, setResumeFileName] = React.useState("");
+  const resumeFileInputRef = React.useRef<HTMLInputElement>(null);
+
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submittedSuccess, setSubmittedSuccess] = React.useState(false);
+
+  const handleResumeFileUpload = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Resume file exceeds maximum allowed size (10 MB).");
+      return;
+    }
+
+    setIsUploadingResume(true);
+    try {
+      const res = await uploadService.uploadFile(file);
+      setResumeUrl(res.url);
+      setResumeFileName(file.name);
+      toast.success(`Uploaded ${file.name} to Cloudinary!`);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to upload resume. Please try again.";
+      toast.error(message);
+    } finally {
+      setIsUploadingResume(false);
+    }
+  };
+
+  const handleRemoveResume = () => {
+    setResumeUrl("");
+    setResumeFileName("");
+    if (resumeFileInputRef.current) resumeFileInputRef.current.value = "";
+  };
 
   // 1. If user is already a mentor, inform and let them go to mentor hub
   if (isAuthenticated && role === "mentor") {
@@ -73,6 +109,63 @@ export default function MentorApplicationForm() {
             className="bg-amber text-white hover:bg-amber-hover font-semibold"
           >
             Go to Mentor Dashboard <ArrowRight className="size-4 ml-1.5" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. If user is not authenticated, prompt to sign in or register first
+  if (!isAuthenticated) {
+    return (
+      <div className="p-8 sm:p-12 rounded-3xl bg-surface border border-border shadow-xs text-center max-w-xl mx-auto space-y-4">
+        <div className="size-14 rounded-2xl bg-amber-light text-amber flex items-center justify-center mx-auto shadow-xs">
+          <ShieldCheck className="size-8" />
+        </div>
+        <h2 className="font-serif text-2xl font-bold text-text-primary">
+          Sign In as a Student to Apply
+        </h2>
+        <p className="text-sm text-text-secondary leading-relaxed">
+          You need an active DevMentor student account to link your mentor application and credentials. Please sign in or create an account to proceed.
+        </p>
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Button
+            onClick={() => router.push("/login?redirectTo=/apply-mentor")}
+            className="w-full sm:w-auto bg-amber text-white hover:bg-amber-hover font-semibold px-6"
+          >
+            Sign In to Continue
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/register?redirectTo=/apply-mentor")}
+            className="w-full sm:w-auto font-semibold px-6"
+          >
+            Create Free Account
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Admin account notice
+  if (role === "admin") {
+    return (
+      <div className="p-8 sm:p-12 rounded-3xl bg-surface border border-border shadow-xs text-center max-w-xl mx-auto space-y-4">
+        <div className="size-14 rounded-2xl bg-surface-raised text-text-muted flex items-center justify-center mx-auto shadow-xs">
+          <ShieldCheck className="size-8 text-amber" />
+        </div>
+        <h2 className="font-serif text-2xl font-bold text-text-primary">
+          Administrator Account
+        </h2>
+        <p className="text-sm text-text-secondary leading-relaxed">
+          You are currently logged in with Platform Administrator privileges. Mentor applications must be submitted by student accounts.
+        </p>
+        <div className="pt-2">
+          <Button
+            onClick={() => router.push("/admin")}
+            className="bg-amber text-white hover:bg-amber-hover font-semibold"
+          >
+            Go to Admin Console
           </Button>
         </div>
       </div>
@@ -285,17 +378,67 @@ export default function MentorApplicationForm() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-text-primary flex items-center gap-1.5">
-            <FileText className="size-3.5 text-text-muted" /> Resume / Portfolio Link *
-          </label>
-          <Input
-            type="url"
-            value={resumeUrl}
-            onChange={(e) => setResumeUrl(e.target.value)}
-            placeholder="https://linkedin.com/in/... or drive link"
-            className="h-10 text-xs"
-            required
-          />
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-text-primary flex items-center gap-1.5">
+              <FileText className="size-3.5 text-text-muted" /> Resume / CV / Portfolio *
+            </label>
+            <input
+              type="file"
+              ref={resumeFileInputRef}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleResumeFileUpload(file);
+              }}
+              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf"
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => resumeFileInputRef.current?.click()}
+              disabled={isUploadingResume}
+              className="text-[11px] font-semibold text-amber hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+            >
+              {isUploadingResume ? (
+                <>
+                  <Loader2 className="size-3 animate-spin" /> Uploading...
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="size-3" /> Upload PDF / Doc
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="relative">
+            <Input
+              type="url"
+              value={resumeUrl}
+              onChange={(e) => {
+                setResumeUrl(e.target.value);
+                setResumeFileName("");
+              }}
+              placeholder="https://drive.google.com/... or upload PDF above"
+              className="h-10 text-xs pr-8"
+              required
+            />
+            {resumeUrl && (
+              <button
+                type="button"
+                onClick={handleRemoveResume}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-rose cursor-pointer"
+                title="Clear"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            )}
+          </div>
+
+          {resumeFileName && (
+            <p className="text-[11px] text-emerald font-semibold flex items-center gap-1">
+              <CheckCircle2 className="size-3" /> Uploaded: {resumeFileName}
+            </p>
+          )}
         </div>
       </div>
 

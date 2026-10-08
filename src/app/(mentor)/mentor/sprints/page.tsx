@@ -268,8 +268,15 @@ export default function MentorSprintPoolPage() {
               >
                 <div className="space-y-4">
                   {/* Top Meta info */}
-                  <div className="flex items-center justify-between gap-2">
-                    <StatusBadge status={sprint.status} />
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <StatusBadge status={sprint.status} />
+                      {sprint.targetMentorId && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                          🎯 Direct Request For You
+                        </span>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-1.5 text-xs text-text-muted">
                       <Clock className="size-3.5" />

@@ -24,10 +24,11 @@ async function proxyHandler(req: NextRequest) {
   }
 
   // Construct request headers
+  const incomingContentType = req.headers.get("content-type");
   const forwardHeaders: Record<string, string> = {
     cookie: forwardedCookie,
     origin: "http://localhost:3000",
-    "content-type": req.headers.get("content-type") || "application/json",
+    ...(incomingContentType ? { "content-type": incomingContentType } : {}),
   };
 
   console.log(`[API Proxy] ${req.method} ${targetUrl} | cookie: ${forwardedCookie.slice(0, 50)}...`);
@@ -39,7 +40,7 @@ async function proxyHandler(req: NextRequest) {
   };
 
   if (req.method !== "GET" && req.method !== "HEAD") {
-    init.body = await req.text();
+    init.body = await req.arrayBuffer();
   }
 
   const backendResponse = await fetch(targetUrl, init);

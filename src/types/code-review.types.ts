@@ -24,6 +24,8 @@ export interface CodeReviewSubmission {
   reviewedCodeSnippet?: string | null;
   videoUrl?: string | null;
   pullRequestUrl?: string | null;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
   comments: CodeReviewComment[];
   createdAt: string;
   mentor?: {
@@ -45,6 +47,9 @@ export interface CodeReviewRequestItem {
   githubRepoUrl?: string | null;
   branchName?: string | null;
   specificFiles?: string | null;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  attachmentSize?: number | null;
   creditReward: number;
   status: CodeReviewStatus;
   previewMentorId?: string | null;

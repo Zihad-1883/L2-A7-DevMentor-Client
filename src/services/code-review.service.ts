@@ -10,6 +10,9 @@ export interface CreateCodeReviewInput {
   githubRepoUrl?: string;
   branchName?: string;
   specificFiles?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentSize?: number;
 }
 
 export interface SubmitCodeReviewInput {
@@ -17,6 +20,8 @@ export interface SubmitCodeReviewInput {
   reviewedCodeSnippet?: string;
   videoUrl?: string;
   pullRequestUrl?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
   comments?: Array<{
     filePath: string;
     lineNumber: number;

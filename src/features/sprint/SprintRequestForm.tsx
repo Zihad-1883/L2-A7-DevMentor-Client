@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Rocket,
   Calendar,
@@ -20,12 +20,17 @@ import {
   ShieldCheck,
   Plus,
   X,
+  Globe,
+  Target,
+  UserCheck,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useWallet } from "@/hooks/useWallet";
 import { sprintService } from "@/services/sprint.service";
+import { mentorService, type MentorProfileItem } from "@/services/mentor.service";
 import { queryKeys } from "@/lib/query-keys";
 import { createSprintSchema } from "@/lib/validations/sprint.schema";
 
@@ -52,8 +57,30 @@ const DURATION_PRESETS = [
 
 export default function SprintRequestForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const mentorIdParam = searchParams.get("mentorId");
+  const mentorNameParam = searchParams.get("mentorName");
+
   const queryClient = useQueryClient();
   const { balance, isLoading: isWalletLoading } = useWallet();
+
+  // Dispatch mode: "BROADCAST" (open pool) vs "DIRECT" (specific mentor)
+  const [dispatchMode, setDispatchMode] = React.useState<"BROADCAST" | "DIRECT">(
+    mentorIdParam ? "DIRECT" : "BROADCAST"
+  );
+  const [selectedTargetMentorId, setSelectedTargetMentorId] = React.useState<string>(
+    mentorIdParam || ""
+  );
+  const [selectedTargetMentorName, setSelectedTargetMentorName] = React.useState<string>(
+    mentorNameParam || ""
+  );
+  const [mentorSearchQuery, setMentorSearchQuery] = React.useState("");
+
+  // Query approved mentors for direct targeting
+  const { data: mentorsData, isLoading: isLoadingMentors } = useQuery({
+    queryKey: ["mentors", "approved-list"],
+    queryFn: () => mentorService.getApprovedMentors({ limit: 50 }),
+  });
 
   // Form State
   const [title, setTitle] = React.useState("");
@@ -168,6 +195,11 @@ export default function SprintRequestForm() {
     e.preventDefault();
     setFieldErrors({});
 
+    if (dispatchMode === "DIRECT" && !selectedTargetMentorId) {
+      toast.error("Please select a specific mentor for Direct Dispatch mode, or switch to Open Broadcast.");
+      return;
+    }
+
     // Validate inputs with Zod
     const startIso = new Date(`${startDateStr}T09:00:00.000Z`).toISOString();
     const parseResult = createSprintSchema.safeParse({
@@ -177,6 +209,7 @@ export default function SprintRequestForm() {
       startDate: startIso,
       durationDays,
       selectedDays,
+      targetMentorId: dispatchMode === "DIRECT" && selectedTargetMentorId ? selectedTargetMentorId : undefined,
     });
 
     if (!parseResult.success) {
@@ -202,7 +235,11 @@ export default function SprintRequestForm() {
     setIsSubmitting(true);
     try {
       const createdSprint = await sprintService.createSprintRequest(parseResult.data);
-      toast.success("Sprint request posted successfully to the open mentor pool!");
+      if (dispatchMode === "DIRECT" && selectedTargetMentorName) {
+        toast.success(`Sprint request dispatched directly to ${selectedTargetMentorName}!`);
+      } else {
+        toast.success("Sprint request posted successfully to the open mentor pool!");
+      }
 
       // Invalidate relevant queries
       await queryClient.invalidateQueries({ queryKey: queryKeys.sprints.all });
@@ -222,6 +259,228 @@ export default function SprintRequestForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
+      {/* 0. Mentor Dispatch Mode (Broadcast vs. Direct) */}
+      <div className="p-7 sm:p-9 rounded-3xl bg-surface border border-border shadow-xs space-y-6">
+        <div className="flex items-center gap-3 pb-4 border-b border-border/80">
+          <div className="size-10 rounded-xl bg-amber-light text-amber flex items-center justify-center border border-amber/30 shrink-0">
+            <Target className="size-5" />
+          </div>
+          <div>
+            <h2 className="font-serif text-lg sm:text-xl font-bold text-text-primary">
+              Mentor Dispatch &amp; Routing Mode
+            </h2>
+            <p className="text-xs text-text-secondary">
+              Choose whether to broadcast this sprint to all qualified mentors or route directly to a specific senior engineer.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Option A: Open Broadcast */}
+          <div
+            onClick={() => setDispatchMode("BROADCAST")}
+            className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+              dispatchMode === "BROADCAST"
+                ? "border-amber bg-amber/5 shadow-xs"
+                : "border-border hover:border-border/80 bg-surface-raised"
+            }`}
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber bg-amber-light px-2.5 py-0.5 rounded-full border border-amber/20">
+                  <Globe className="size-3.5" /> Open Broadcast
+                </span>
+                <input
+                  type="radio"
+                  name="dispatchMode"
+                  checked={dispatchMode === "BROADCAST"}
+                  onChange={() => setDispatchMode("BROADCAST")}
+                  className="accent-amber size-4"
+                />
+              </div>
+              <h3 className="font-bold text-sm text-text-primary pt-1">
+                Open Mentor Pool
+              </h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Broadcast your sprint to all approved platform mentors matching your stack. Fastest claim turnaround time.
+              </p>
+            </div>
+            <div className="text-[11px] font-semibold text-text-muted pt-3 border-t border-border/60 mt-3 flex items-center gap-1">
+              <CheckCircle2 className="size-3 text-emerald" /> Available to any verified mentor
+            </div>
+          </div>
+
+          {/* Option B: Direct Mentor Dispatch */}
+          <div
+            onClick={() => setDispatchMode("DIRECT")}
+            className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+              dispatchMode === "DIRECT"
+                ? "border-amber bg-amber/5 shadow-xs"
+                : "border-border hover:border-border/80 bg-surface-raised"
+            }`}
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-purple-600 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
+                  <UserCheck className="size-3.5" /> Direct Dispatch
+                </span>
+                <input
+                  type="radio"
+                  name="dispatchMode"
+                  checked={dispatchMode === "DIRECT"}
+                  onChange={() => setDispatchMode("DIRECT")}
+                  className="accent-amber size-4"
+                />
+              </div>
+              <h3 className="font-bold text-sm text-text-primary pt-1">
+                Specific Senior Mentor
+              </h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Target a dedicated mentor directly. Only your chosen mentor can review and claim this sprint request.
+              </p>
+            </div>
+            <div className="text-[11px] font-semibold text-purple-600 pt-3 border-t border-border/60 mt-3 flex items-center gap-1">
+              <ShieldCheck className="size-3 text-purple-600" /> Exclusive 1-on-1 reservation
+            </div>
+          </div>
+        </div>
+
+        {/* If Direct Dispatch is selected: Mentor Picker */}
+        {dispatchMode === "DIRECT" && (
+          <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
+                <UserCheck className="size-3.5 text-amber" />
+                Target Mentor <span className="text-amber">*</span>
+              </label>
+              {selectedTargetMentorId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTargetMentorId("");
+                    setSelectedTargetMentorName("");
+                  }}
+                  className="text-[11px] text-text-muted hover:text-amber underline cursor-pointer"
+                >
+                  Clear Selection
+                </button>
+              )}
+            </div>
+
+            {/* If a mentor is already selected */}
+            {selectedTargetMentorId ? (
+              <div className="p-4 rounded-2xl bg-amber-light/30 border border-amber/30 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-11 rounded-full bg-amber/20 border border-amber/40 text-amber font-bold text-sm flex items-center justify-center shrink-0">
+                    {selectedTargetMentorName?.charAt(0) || "M"}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-bold text-text-primary">
+                        {selectedTargetMentorName || "Selected Mentor"}
+                      </h4>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald bg-emerald-light px-2 py-0.5 rounded-full border border-emerald/20">
+                        Verified Mentor
+                      </span>
+                    </div>
+                    <p className="text-xs text-text-secondary">
+                      This sprint will be routed exclusively to this mentor.
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedTargetMentorId("")}
+                  className="text-xs h-8 border-border hover:bg-surface-raised cursor-pointer shrink-0"
+                >
+                  Change Mentor
+                </Button>
+              </div>
+            ) : (
+              /* Mentor Selection Search & List (if no mentor selected or changing) */
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-text-muted pointer-events-none" />
+                  <Input
+                    type="text"
+                    placeholder="Search approved mentors by name, tech stack, or expertise..."
+                    value={mentorSearchQuery}
+                    onChange={(e) => setMentorSearchQuery(e.target.value)}
+                    className="pl-10 text-xs h-10 bg-surface-raised border-border"
+                  />
+                </div>
+
+                <div className="max-h-60 overflow-y-auto space-y-2 pr-1 rounded-2xl border border-border p-2 bg-surface-raised">
+                  {isLoadingMentors ? (
+                    <div className="p-4 text-center text-xs text-text-muted">
+                      Loading verified mentors...
+                    </div>
+                  ) : mentorsData?.mentors?.length ? (
+                    mentorsData.mentors
+                      .filter((m) => {
+                        if (!mentorSearchQuery.trim()) return true;
+                        const q = mentorSearchQuery.toLowerCase();
+                        const name = (m.user?.name || "").toLowerCase();
+                        const bio = (m.bio || "").toLowerCase();
+                        const tags = (m.techStackTags || []).join(" ").toLowerCase();
+                        return name.includes(q) || bio.includes(q) || tags.includes(q);
+                      })
+                      .map((mentor) => {
+                        const mUserId = mentor.userId || mentor.user?.id || mentor.id;
+                        const mName = mentor.user?.name || "Mentor";
+                        return (
+                          <div
+                            key={mentor.id}
+                            onClick={() => {
+                              setSelectedTargetMentorId(mUserId);
+                              setSelectedTargetMentorName(mName);
+                            }}
+                            className="p-3 rounded-xl bg-surface border border-border/70 hover:border-amber hover:bg-amber/5 transition-all cursor-pointer flex items-center justify-between gap-3"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="size-9 rounded-full bg-amber-light text-amber font-bold text-xs flex items-center justify-center shrink-0 border border-amber/30">
+                                {mName.charAt(0)}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-text-primary truncate">
+                                    {mName}
+                                  </span>
+                                  <span className="text-[10px] font-semibold text-text-muted px-1.5 py-0.5 rounded bg-surface-raised border border-border">
+                                    {mentor.experienceLevel}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-text-muted truncate max-w-sm">
+                                  {mentor.techStackTags?.slice(0, 4).join(", ") || mentor.bio}
+                                </p>
+                              </div>
+                            </div>
+
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="h-7 text-xs bg-amber text-white hover:bg-amber-hover shrink-0 font-semibold"
+                            >
+                              Select
+                            </Button>
+                          </div>
+                        );
+                      })
+                  ) : (
+                    <div className="p-4 text-center text-xs text-text-muted">
+                      No approved mentors found.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* 1. Sprint Objective & Details */}
       <div className="p-7 sm:p-9 rounded-3xl bg-surface border border-border shadow-xs space-y-6">
         <div className="flex items-center gap-3 pb-4 border-b border-border/80">

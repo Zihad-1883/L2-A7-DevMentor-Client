@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { cohortService } from "@/services/cohort.service";
+import { adminService } from "@/services/admin.service";
 import { queryKeys } from "@/lib/query-keys";
 import CohortApprovalCard from "@/features/cohort/CohortApprovalCard";
 import { Input } from "@/components/ui/input";
@@ -23,8 +23,13 @@ type Tab = "PENDING" | "APPROVED" | "ALL";
 const isPendingStatus = (s: CohortApprovalStatus) =>
   s === "PENDING" || s === "PENDING_APPROVAL";
 
+interface CohortQueueEntry {
+  cohort: CohortItem;
+  status: CohortApprovalStatus;
+}
+
 export default function AdminCohortsPage() {
-  const [tab, setTab] = React.useState<Tab>("ALL");
+  const [tab, setTab] = React.useState<Tab>("PENDING");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [overrides, setOverrides] = React.useState<
     Record<string, CohortApprovalStatus>
@@ -38,11 +43,11 @@ export default function AdminCohortsPage() {
     refetch,
   } = useQuery({
     queryKey: queryKeys.admin.cohortsQueue(),
-    queryFn: () => cohortService.getAllPublishedCohorts({ limit: 100 }),
+    queryFn: () => adminService.getCohortsQueue({ limit: 100 }),
     staleTime: 1000 * 60 * 2,
   });
 
-  const cohorts = React.useMemo(
+  const cohorts: CohortQueueEntry[] = React.useMemo(
     () =>
       (data?.cohorts ?? []).map((c: CohortItem) => ({
         cohort: c,
@@ -51,10 +56,10 @@ export default function AdminCohortsPage() {
     [data, overrides],
   );
 
-  const pendingCount = cohorts.filter((c) => isPendingStatus(c.status)).length;
-  const approvedCount = cohorts.filter((c) => c.status === "APPROVED").length;
+  const pendingCount = cohorts.filter((c: CohortQueueEntry) => isPendingStatus(c.status)).length;
+  const approvedCount = cohorts.filter((c: CohortQueueEntry) => c.status === "APPROVED").length;
 
-  const filtered = cohorts.filter(({ cohort, status }) => {
+  const filtered = cohorts.filter(({ cohort, status }: CohortQueueEntry) => {
     if (tab === "PENDING" && !isPendingStatus(status)) return false;
     if (tab === "APPROVED" && status !== "APPROVED") return false;
     const q = searchQuery.trim().toLowerCase();
@@ -62,7 +67,7 @@ export default function AdminCohortsPage() {
       const hit =
         cohort.title.toLowerCase().includes(q) ||
         cohort.mentor?.name?.toLowerCase().includes(q) ||
-        cohort.techStackTags?.some((t) => t.toLowerCase().includes(q));
+        cohort.techStackTags?.some((t: string) => t.toLowerCase().includes(q));
       if (!hit) return false;
     }
     return true;
@@ -192,7 +197,7 @@ export default function AdminCohortsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-5">
-          {filtered.map(({ cohort, status }) => (
+          {filtered.map(({ cohort, status }: CohortQueueEntry) => (
             <CohortApprovalCard
               key={cohort.id}
               cohort={cohort}

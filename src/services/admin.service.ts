@@ -30,6 +30,19 @@ export const adminService = {
   approveOrRejectCohort: (cohortId: string, payload: ApproveCohortPayload) =>
     apiClient.patch<unknown>(`/admin/cohorts/${cohortId}/approve`, payload),
 
+  // 4b. Get Cohorts Queue for Admin Moderation
+  getCohortsQueue: (params?: {
+    approvalStatus?: string;
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) =>
+    apiClient.get<import("@/types/cohort.types").CohortsResponseData>("/admin/cohorts", {
+      params,
+    }),
+
+
   // 5. Aggregate Platform Overview Statistics
   getPlatformStats: async (): Promise<PlatformOverviewStats> => {
     try {

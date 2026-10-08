@@ -3,9 +3,10 @@ import type {
   CohortItem,
   CohortsResponseData,
   GetEnrolledCohortsResponse,
+  CohortRosterEnrollmentItem,
 } from "@/types/cohort.types";
 
-export type { CohortItem, CohortsResponseData, GetEnrolledCohortsResponse };
+export type { CohortItem, CohortsResponseData, GetEnrolledCohortsResponse, CohortRosterEnrollmentItem };
 
 export const cohortService = {
   // Public: Get all published approved cohorts
@@ -148,6 +149,15 @@ export const cohortService = {
   ): Promise<import("@/types/cohort.types").CohortSessionItem> => {
     return await apiClient.patch<import("@/types/cohort.types").CohortSessionItem>(
       `/cohort-sessions/${sessionId}/cancel`
+    );
+  },
+
+  // Mentor: Get cohort enrolled students roster
+  getCohortEnrollments: async (
+    cohortId: string
+  ): Promise<CohortRosterEnrollmentItem[]> => {
+    return await apiClient.get<CohortRosterEnrollmentItem[]>(
+      `/cohorts/${cohortId}/enrollments`
     );
   },
 };

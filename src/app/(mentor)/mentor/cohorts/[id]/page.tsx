@@ -31,6 +31,10 @@ import {
   Layers,
   GraduationCap,
   Info,
+  Mail,
+  Search,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +43,7 @@ import EmptyState from "@/components/shared/EmptyState";
 import ConfirmModal, { ConfirmVariant } from "@/components/shared/ConfirmModal";
 import CohortSessionCard from "@/features/cohort/CohortSessionCard";
 import { cohortService } from "@/services/cohort.service";
+import { queryKeys } from "@/lib/query-keys";
 import type {
   CohortItem,
   CohortSessionItem,
@@ -46,6 +51,7 @@ import type {
   UpdateCohortSessionInput,
   ICohortResourceItem,
   UpdateCohortInput,
+  CohortRosterEnrollmentItem,
 } from "@/types/cohort.types";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
@@ -55,8 +61,10 @@ export default function MentorCohortDetailPage() {
   const queryClient = useQueryClient();
   const cohortId = typeof params?.id === "string" ? params.id : "";
 
-  // Active Tab: "sessions" | "settings"
-  const [activeTab, setActiveTab] = React.useState<"sessions" | "settings">("sessions");
+  // Active Tab: "sessions" | "students" | "settings"
+  const [activeTab, setActiveTab] = React.useState<"sessions" | "students" | "settings">("sessions");
+  const [studentSearchQuery, setStudentSearchQuery] = React.useState("");
+  const [copiedEmail, setCopiedEmail] = React.useState<string | null>(null);
 
   // Modals
   const [isAddSessionOpen, setIsAddSessionOpen] = React.useState(false);
@@ -125,8 +133,34 @@ export default function MentorCohortDetailPage() {
   });
 
   const sessions = sessionsData || cohort?.sessions || [];
-  const enrollmentsCount = cohort?._count?.enrollments ?? 0;
+
+  // 3. Fetch Enrolled Students Roster
+  const {
+    data: enrollmentsData,
+    isLoading: isEnrollmentsLoading,
+    error: enrollmentsError,
+    refetch: refetchEnrollments,
+  } = useQuery<CohortRosterEnrollmentItem[]>({
+    queryKey: queryKeys.cohorts.enrollments(cohortId),
+    queryFn: () => cohortService.getCohortEnrollments(cohortId),
+    enabled: Boolean(cohortId),
+    staleTime: 1000 * 20,
+  });
+
+  const enrollments = enrollmentsData || [];
+  const enrollmentsCount = enrollments.length > 0 ? enrollments.length : (cohort?._count?.enrollments ?? 0);
   const capacity = cohort?.capacity || 20;
+
+  // Filtered enrolled students for search
+  const filteredEnrollments = React.useMemo(() => {
+    if (!studentSearchQuery.trim()) return enrollments;
+    const q = studentSearchQuery.toLowerCase().trim();
+    return enrollments.filter(
+      (e) =>
+        e.student?.name?.toLowerCase().includes(q) ||
+        e.student?.email?.toLowerCase().includes(q)
+    );
+  }, [enrollments, studentSearchQuery]);
 
   // Credit Budget & Economics Calculations
   const totalCohortBudget = cohort?.totalCost ?? 0;
@@ -562,6 +596,18 @@ export default function MentorCohortDetailPage() {
 
         <button
           type="button"
+          onClick={() => setActiveTab("students")}
+          className={`pb-3 text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${activeTab === "students"
+              ? "text-amber border-b-2 border-amber"
+              : "text-text-muted hover:text-text-primary"
+            }`}
+        >
+          <Users className="size-4" />
+          Enrolled Students ({isEnrollmentsLoading ? "..." : enrollments.length})
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab("settings")}
           className={`pb-3 text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${activeTab === "settings"
               ? "text-amber border-b-2 border-amber"
@@ -739,7 +785,295 @@ export default function MentorCohortDetailPage() {
         </div>
       )}
 
-      {/* 5. TAB CONTENT: Overview & Guidelines */}
+      {/* 5. TAB CONTENT: Enrolled Students Roster */}
+      {activeTab === "students" && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Header & Stats Overview */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="font-serif text-lg font-bold text-text-primary">
+                Enrolled Students Roster
+              </h2>
+              <p className="text-xs text-text-secondary">
+                View learners registered for this cohort program, manage communication, and track attendance capacity.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface border border-border text-xs font-semibold text-text-primary">
+                <Users className="size-3.5 text-amber" />
+                <span>{enrollments.length} / {capacity} Enrolled</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Capacity & Tuition Overview Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-2xl bg-surface border border-border shadow-xs space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">
+                Classroom Capacity
+              </span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-xl font-bold font-mono text-text-primary">
+                  {enrollments.length} <span className="text-xs text-text-muted font-sans font-normal">/ {capacity} Seats</span>
+                </span>
+                <span className="text-xs font-bold text-amber">
+                  {Math.round((enrollments.length / (capacity || 1)) * 100)}%
+                </span>
+              </div>
+              <div className="h-2 w-full bg-surface-raised rounded-full overflow-hidden border border-border/80">
+                <div
+                  className="h-full bg-amber transition-all duration-300"
+                  style={{
+                    width: `${Math.min(100, (enrollments.length / (capacity || 1)) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-surface border border-border shadow-xs space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">
+                Available Openings
+              </span>
+              <span className="text-xl font-bold font-mono text-emerald block">
+                {Math.max(0, capacity - enrollments.length)} Seats
+              </span>
+              <p className="text-[11px] text-text-muted">
+                {enrollments.length >= capacity
+                  ? "Cohort is completely full"
+                  : `${capacity - enrollments.length} registration slots remain`}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-surface border border-border shadow-xs space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">
+                Gross Tuition Revenue
+              </span>
+              <span className="text-xl font-bold font-mono text-text-primary block">
+                {isFreeCohort ? "Free" : `${(enrollments.length * (cohort.totalCost || 0)).toLocaleString()} Cr`}
+              </span>
+              <p className="text-[11px] text-emerald font-semibold">
+                {isFreeCohort
+                  ? "Community cohort program"
+                  : `৳${((enrollments.length * (cohort.totalCost || 0)) * 4).toLocaleString()} BDT Total`}
+              </p>
+            </div>
+          </div>
+
+          {/* Search & Filter Bar */}
+          {enrollments.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-surface border border-border shadow-xs">
+              <div className="relative flex-1 max-w-md">
+                <Search className="size-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Input
+                  type="text"
+                  placeholder="Search students by name or email..."
+                  value={studentSearchQuery}
+                  onChange={(e) => setStudentSearchQuery(e.target.value)}
+                  className="pl-9 h-9 text-xs"
+                />
+                {studentSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setStudentSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5 rounded cursor-pointer"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="text-xs text-text-muted flex items-center justify-between sm:justify-end gap-3">
+                <span>
+                  Showing <strong>{filteredEnrollments.length}</strong> of <strong>{enrollments.length}</strong> enrolled
+                </span>
+                {studentSearchQuery && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setStudentSearchQuery("")}
+                    className="h-7 text-xs text-amber hover:text-amber-hover px-2"
+                  >
+                    Clear Filter
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isEnrollmentsLoading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-20 rounded-2xl bg-surface border border-border animate-pulse flex items-center px-6 gap-4"
+                >
+                  <div className="size-10 rounded-full bg-border/80" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 w-1/4 rounded bg-border/80" />
+                    <div className="h-3 w-1/3 rounded bg-border/60" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Error State */}
+          {!isEnrollmentsLoading && enrollmentsError && (
+            <div className="p-8 rounded-2xl bg-surface border border-rose-300 text-center space-y-3">
+              <AlertCircle className="size-8 text-rose mx-auto" />
+              <p className="text-sm font-bold text-text-primary">Failed to load student roster</p>
+              <p className="text-xs text-text-muted">
+                {enrollmentsError instanceof Error ? enrollmentsError.message : "Unable to retrieve student enrollments."}
+              </p>
+              <Button
+                size="sm"
+                onClick={() => refetchEnrollments()}
+                className="bg-amber text-white text-xs cursor-pointer"
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+
+          {/* Empty State: Zero Total Enrollments */}
+          {!isEnrollmentsLoading && !enrollmentsError && enrollments.length === 0 && (
+            <EmptyState
+              title="No students enrolled yet"
+              description={
+                isPublished
+                  ? "Your cohort program is published live! As students discover and enroll in your course, their profiles and contact details will appear in this roster."
+                  : "This cohort is currently in draft or moderation review. Once approved and published to the directory, students can enroll."
+              }
+              icon={Users}
+            />
+          )}
+
+          {/* Empty State: Search yielded no matches */}
+          {!isEnrollmentsLoading && !enrollmentsError && enrollments.length > 0 && filteredEnrollments.length === 0 && (
+            <div className="p-10 rounded-2xl bg-surface border border-border text-center space-y-3">
+              <Users className="size-8 text-text-muted mx-auto" />
+              <p className="text-sm font-bold text-text-primary">No students matching &ldquo;{studentSearchQuery}&rdquo;</p>
+              <p className="text-xs text-text-muted">Try refining your keyword query to find enrolled learners.</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setStudentSearchQuery("")}
+                className="text-xs border-border"
+              >
+                Clear Search
+              </Button>
+            </div>
+          )}
+
+          {/* Student Roster List */}
+          {!isEnrollmentsLoading && !enrollmentsError && filteredEnrollments.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {filteredEnrollments.map((item, idx) => {
+                const studentName = item.student?.name || "Student Learner";
+                const studentEmail = item.student?.email || "";
+                const studentImage = item.student?.image;
+                const initials = studentName
+                  .split(" ")
+                  .map((w) => w[0])
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase() || "S";
+
+                const isCopied = copiedEmail === studentEmail;
+
+                return (
+                  <div
+                    key={item.id || `${item.studentId}-${idx}`}
+                    className="p-4 sm:p-5 rounded-2xl bg-surface border border-border/80 hover:border-amber/40 hover:shadow-2xs transition-all flex flex-col justify-between gap-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {studentImage ? (
+                          <img
+                            src={studentImage}
+                            alt={studentName}
+                            className="size-11 rounded-xl object-cover border border-border shrink-0"
+                          />
+                        ) : (
+                          <div className="size-11 rounded-xl bg-amber-light text-amber flex items-center justify-center font-serif font-bold text-sm border border-amber/20 shrink-0">
+                            {initials}
+                          </div>
+                        )}
+
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-bold text-text-primary truncate">
+                            {studentName}
+                          </h4>
+                          <p className="text-xs text-text-muted truncate">
+                            {studentEmail}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-light text-emerald border border-emerald/20 shrink-0">
+                        <span className="size-1.5 rounded-full bg-emerald" />
+                        Active Learner
+                      </span>
+                    </div>
+
+                    <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs text-text-muted">
+                      <span className="text-[11px] font-mono">
+                        Enrolled {formatDate(item.enrolledAt)}
+                      </span>
+
+                      <div className="flex items-center gap-1.5">
+                        {studentEmail && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(studentEmail);
+                                setCopiedEmail(studentEmail);
+                                toast.success(`Copied ${studentEmail} to clipboard`);
+                                setTimeout(() => setCopiedEmail(null), 2000);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-raised border border-border text-text-secondary hover:text-text-primary hover:border-amber/40 transition-colors cursor-pointer"
+                              title="Copy email address"
+                            >
+                              {isCopied ? (
+                                <>
+                                  <Check className="size-3 text-emerald" />
+                                  <span className="text-emerald">Copied</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="size-3" />
+                                  <span>Copy</span>
+                                </>
+                              )}
+                            </button>
+
+                            <a
+                              href={`mailto:${studentEmail}?subject=${encodeURIComponent(
+                                `[${cohort.title}] Welcome & Course Updates`
+                              )}`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber text-white hover:bg-amber-hover transition-colors shadow-2xs"
+                              title="Send email to student"
+                            >
+                              <Mail className="size-3" />
+                              <span>Email</span>
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 6. TAB CONTENT: Overview & Guidelines */}
       {activeTab === "settings" && (
         <div className="space-y-6">
           <div className="p-6 sm:p-8 rounded-3xl bg-surface border border-border shadow-xs space-y-6">

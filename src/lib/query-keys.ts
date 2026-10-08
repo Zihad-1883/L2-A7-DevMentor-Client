@@ -37,6 +37,8 @@ export const queryKeys = {
     detail: (id: string) => ["cohorts", "detail", id] as const,
     sessions: (cohortId: string) =>
       ["cohorts", cohortId, "sessions"] as const,
+    enrollments: (cohortId: string) =>
+      ["cohorts", cohortId, "enrollments"] as const,
   },
 
   enrollments: {

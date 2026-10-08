@@ -119,6 +119,19 @@ export interface CohortEnrollmentItem {
   cohort: CohortItem;
 }
 
+export interface CohortRosterEnrollmentItem {
+  id: string;
+  cohortId: string;
+  studentId: string;
+  enrolledAt: string;
+  student: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string | null;
+  };
+}
+
 export interface CohortsResponseData {
   meta: {
     page: number;

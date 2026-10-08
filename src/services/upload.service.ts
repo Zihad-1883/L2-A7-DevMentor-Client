@@ -12,6 +12,10 @@ export const uploadService = {
     const formData = new FormData();
     formData.append("file", file);
 
-    return await apiClient.post<UploadResult>("/uploads", formData);
+    const res = await apiClient.post<UploadResult | UploadResult[]>("/uploads", formData);
+    if (Array.isArray(res)) {
+      return res[0];
+    }
+    return res;
   },
 };

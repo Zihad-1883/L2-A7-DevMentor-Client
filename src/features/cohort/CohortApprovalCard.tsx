@@ -7,6 +7,7 @@ import { adminService } from "@/services/admin.service";
 import { queryKeys } from "@/lib/query-keys";
 import type { CohortApprovalStatus, CohortItem } from "@/types/cohort.types";
 import { formatDate } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   Check,
   X,
@@ -44,21 +45,28 @@ export default function CohortApprovalCard({
     mutationFn: (next: "APPROVED" | "REJECTED") =>
       adminService.approveOrRejectCohort(cohort.id, { status: next }),
     onSuccess: (_, next) => {
+      const msg =
+        next === "APPROVED"
+          ? `Cohort "${cohort.title}" approved! The mentor can now publish it.`
+          : `Cohort "${cohort.title}" rejected and hidden from the public directory.`;
+
+      toast.success(msg);
       setFeedback({
         type: "success",
-        message:
-          next === "APPROVED"
-            ? "Cohort approved. The mentor can now publish it."
-            : "Cohort rejected and hidden from the public directory.",
+        message: msg,
       });
+
       queryClient.invalidateQueries({ queryKey: queryKeys.cohorts.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.cohortsQueue() });
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
       onActionComplete?.(cohort.id, next);
     },
     onError: (err: Error) => {
+      const errMsg = err.message || "Failed to update cohort status. Please try again.";
+      toast.error(errMsg);
       setFeedback({
         type: "error",
-        message: err.message || "Failed to update cohort. Please try again.",
+        message: errMsg,
       });
     },
   });

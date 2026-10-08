@@ -22,6 +22,9 @@ export interface UpdateUserProfilePayload {
   name?: string;
   image?: string | null;
   bio?: string;
+  techStackTags?: string[];
+  githubUrl?: string | null;
+  resumeUrl?: string | null;
 }
 
 export interface StudentDashboardSummary {

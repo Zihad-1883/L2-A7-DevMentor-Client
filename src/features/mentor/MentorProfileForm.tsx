@@ -4,12 +4,13 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { userService, type UserProfileResponse } from "@/services/user.service";
+import { userService, type UserProfileResponse, type UpdateUserProfilePayload } from "@/services/user.service";
 import { queryKeys } from "@/lib/query-keys";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   User,
   Image as ImageIcon,
@@ -24,6 +25,8 @@ import {
   Sparkles,
   FileCode,
   Eye,
+  Plus,
+  X,
 } from "lucide-react";
 import { z } from "zod";
 
@@ -52,11 +55,40 @@ const mentorProfileFormSchema = z.object({
     .trim()
     .min(10, "Bio must be at least 10 characters long")
     .max(1000, "Bio cannot exceed 1000 characters"),
+  githubUrl: z
+    .string()
+    .trim()
+    .url("Please enter a valid GitHub URL (e.g. https://github.com/username)")
+    .or(z.literal(""))
+    .optional(),
+  resumeUrl: z
+    .string()
+    .trim()
+    .url("Please enter a valid Resume/Portfolio URL (e.g. https://...)")
+    .or(z.literal(""))
+    .optional(),
+  techStackTags: z.array(z.string()).optional(),
 });
 
 interface MentorProfileFormProps {
   profile: UserProfileResponse;
 }
+
+const POPULAR_TAGS = [
+  "TypeScript",
+  "React",
+  "Next.js",
+  "Node.js",
+  "Express",
+  "Python",
+  "PostgreSQL",
+  "Prisma",
+  "Docker",
+  "AWS",
+  "TailwindCSS",
+  "GraphQL",
+  "System Design",
+];
 
 export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
   const queryClient = useQueryClient();
@@ -67,11 +99,19 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
   const [name, setName] = React.useState(profile.name || "");
   const [image, setImage] = React.useState(profile.image || "");
   const [bio, setBio] = React.useState(mentor?.bio || "");
+  const [githubUrl, setGithubUrl] = React.useState(mentor?.githubUrl || "");
+  const [resumeUrl, setResumeUrl] = React.useState(mentor?.resumeUrl || "");
+  const [techStackTags, setTechStackTags] = React.useState<string[]>(
+    mentor?.techStackTags || []
+  );
+  const [tagInput, setTagInput] = React.useState("");
 
   const [fieldErrors, setFieldErrors] = React.useState<{
     name?: string;
     image?: string;
     bio?: string;
+    githubUrl?: string;
+    resumeUrl?: string;
   }>({});
 
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
@@ -83,32 +123,69 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
       name: profile.name || "",
       image: profile.image || "",
       bio: mentor?.bio || "",
+      githubUrl: mentor?.githubUrl || "",
+      resumeUrl: mentor?.resumeUrl || "",
+      techStackTags: mentor?.techStackTags || [],
     }),
-    [profile.name, profile.image, mentor?.bio]
+    [
+      profile.name,
+      profile.image,
+      mentor?.bio,
+      mentor?.githubUrl,
+      mentor?.resumeUrl,
+      mentor?.techStackTags,
+    ]
   );
+
+  const isTagsEqual =
+    techStackTags.length === initialValues.techStackTags.length &&
+    techStackTags.every((t, i) => t === initialValues.techStackTags[i]);
 
   const isDirty =
     name !== initialValues.name ||
     image !== initialValues.image ||
-    bio !== initialValues.bio;
+    bio !== initialValues.bio ||
+    githubUrl !== initialValues.githubUrl ||
+    resumeUrl !== initialValues.resumeUrl ||
+    !isTagsEqual;
 
-  // Remove useEffect - reset avatar error directly on input change
+  const handleAddTag = (tagToAdd?: string) => {
+    const raw = (tagToAdd ?? tagInput).trim();
+    if (!raw) return;
+    if (techStackTags.some((t) => t.toLowerCase() === raw.toLowerCase())) {
+      setTagInput("");
+      return;
+    }
+    setTechStackTags((prev) => [...prev, raw]);
+    setTagInput("");
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTechStackTags((prev) => prev.filter((t) => t !== tagToRemove));
+  };
 
   const updateMutation = useMutation({
-    mutationFn: (data: { name: string; image: string | null; bio: string }) =>
+    mutationFn: (data: UpdateUserProfilePayload) =>
       userService.updateMyProfile(data),
     onSuccess: async (updated) => {
-      setSuccessMessage("Your mentor profile and biography have been successfully saved.");
+      const msg = "Your mentor profile, expertise badges, and links have been successfully saved.";
+      toast.success(msg);
+      setSuccessMessage(msg);
       setErrorMessage(null);
       queryClient.setQueryData(queryKeys.users.me, updated);
       await refetchAuth();
       setName(updated.name || "");
       setImage(updated.image || "");
       setBio(updated.mentorProfile?.bio || "");
+      setGithubUrl(updated.mentorProfile?.githubUrl || "");
+      setResumeUrl(updated.mentorProfile?.resumeUrl || "");
+      setTechStackTags(updated.mentorProfile?.techStackTags || []);
       setTimeout(() => setSuccessMessage(null), 5000);
     },
     onError: (err: Error) => {
-      setErrorMessage(err.message || "Failed to update profile. Please try again.");
+      const errMsg = err.message || "Failed to update profile. Please try again.";
+      toast.error(errMsg);
+      setErrorMessage(errMsg);
       setSuccessMessage(null);
     },
   });
@@ -118,17 +195,36 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
     setSuccessMessage(null);
     setErrorMessage(null);
 
-    const result = mentorProfileFormSchema.safeParse({ name, image, bio });
+    const result = mentorProfileFormSchema.safeParse({
+      name,
+      image,
+      bio,
+      githubUrl,
+      resumeUrl,
+      techStackTags,
+    });
 
     if (!result.success) {
-      const formattedErrors: { name?: string; image?: string; bio?: string } = {};
+      const formattedErrors: {
+        name?: string;
+        image?: string;
+        bio?: string;
+        githubUrl?: string;
+        resumeUrl?: string;
+      } = {};
       for (const issue of result.error.issues) {
-        const fieldName = issue.path[0] as "name" | "image" | "bio";
+        const fieldName = issue.path[0] as
+          | "name"
+          | "image"
+          | "bio"
+          | "githubUrl"
+          | "resumeUrl";
         if (!formattedErrors[fieldName]) {
           formattedErrors[fieldName] = issue.message;
         }
       }
       setFieldErrors(formattedErrors);
+      toast.error("Please resolve the highlighted errors before saving.");
       return;
     }
 
@@ -138,6 +234,9 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
       name: result.data.name,
       image: result.data.image ? result.data.image : null,
       bio: result.data.bio,
+      githubUrl: result.data.githubUrl ? result.data.githubUrl : null,
+      resumeUrl: result.data.resumeUrl ? result.data.resumeUrl : null,
+      techStackTags,
     });
   };
 
@@ -174,7 +273,7 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
                     Public Identity & Biography
                   </CardTitle>
                   <CardDescription className="text-xs text-text-muted mt-0.5">
-                    Customize the public persona and background details shown to students.
+                    Customize the public persona, stack badges, and background details shown to students.
                   </CardDescription>
                 </div>
               </div>
@@ -303,7 +402,7 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
 
                   <textarea
                     id="mentor-bio-input"
-                    rows={6}
+                    rows={5}
                     value={bio}
                     onChange={(e) => {
                       setBio(e.target.value);
@@ -324,6 +423,141 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
                   )}
                 </div>
 
+                {/* Tech Stack & Expertise Badges */}
+                <div className="space-y-2.5 pt-2 border-t border-border/60">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+                      <Code2 className="size-3.5 text-text-muted" /> Tech Stack & Expertise Badges
+                    </label>
+                    <span className="text-[11px] text-text-muted font-mono">
+                      {techStackTags.length} active tags
+                    </span>
+                  </div>
+
+                  {/* Active Selected Badges */}
+                  <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl border border-border bg-surface-raised/30 min-h-[44px] items-center">
+                    {techStackTags.length > 0 ? (
+                      techStackTags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-surface border border-border text-text-primary shadow-2xs group hover:border-amber/40 transition-colors"
+                        >
+                          <span className="size-1.5 rounded-full bg-amber" />
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTag(tag)}
+                            className="text-text-muted hover:text-orange transition-colors cursor-pointer"
+                            title={`Remove ${tag}`}
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-text-muted italic px-1">
+                        No tech stack badges yet. Type or pick from common suggestions below.
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Add Tag Input */}
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddTag();
+                        }
+                      }}
+                      placeholder="Type a skill or tool (e.g. Next.js, Docker, Rust) & press Enter"
+                      className="text-xs"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => handleAddTag()}
+                      disabled={!tagInput.trim()}
+                      variant="outline"
+                      className="shrink-0 text-xs gap-1.5 border-border hover:border-amber/40 hover:text-amber cursor-pointer"
+                    >
+                      <Plus className="size-3.5" /> Add Badge
+                    </Button>
+                  </div>
+
+                  {/* Suggested Quick Tags */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[11px] text-text-muted mr-1">Suggestions:</span>
+                    {POPULAR_TAGS.filter(
+                      (t) => !techStackTags.some((st) => st.toLowerCase() === t.toLowerCase())
+                    )
+                      .slice(0, 8)
+                      .map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => handleAddTag(t)}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-surface-raised border border-border/70 text-text-secondary hover:text-amber hover:border-amber/40 transition-colors cursor-pointer"
+                        >
+                          + {t}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Professional Links (GitHub + Resume) */}
+                <div className="space-y-4 pt-2 border-t border-border/60">
+                  <div className="space-y-1.5">
+                    <label htmlFor="mentor-github-input" className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+                      <GithubIcon className="size-3.5 text-text-muted" /> GitHub Profile URL
+                    </label>
+                    <Input
+                      id="mentor-github-input"
+                      type="url"
+                      value={githubUrl}
+                      onChange={(e) => {
+                        setGithubUrl(e.target.value);
+                        if (fieldErrors.githubUrl) setFieldErrors((p) => ({ ...p, githubUrl: undefined }));
+                      }}
+                      placeholder="https://github.com/your-username"
+                      className={fieldErrors.githubUrl ? "border-orange/60 focus-visible:ring-orange/30" : ""}
+                    />
+                    {fieldErrors.githubUrl ? (
+                      <p className="text-xs text-orange font-medium">{fieldErrors.githubUrl}</p>
+                    ) : (
+                      <p className="text-[11px] text-text-muted">
+                        Links your open-source projects and code samples to students.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="mentor-resume-input" className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+                      <FileCode className="size-3.5 text-text-muted" /> Resume / CV / Portfolio URL
+                    </label>
+                    <Input
+                      id="mentor-resume-input"
+                      type="url"
+                      value={resumeUrl}
+                      onChange={(e) => {
+                        setResumeUrl(e.target.value);
+                        if (fieldErrors.resumeUrl) setFieldErrors((p) => ({ ...p, resumeUrl: undefined }));
+                      }}
+                      placeholder="https://drive.google.com/... or https://portfolio.dev"
+                      className={fieldErrors.resumeUrl ? "border-orange/60 focus-visible:ring-orange/30" : ""}
+                    />
+                    {fieldErrors.resumeUrl ? (
+                      <p className="text-xs text-orange font-medium">{fieldErrors.resumeUrl}</p>
+                    ) : (
+                      <p className="text-[11px] text-text-muted">
+                        Direct public URL to your CV, portfolio website, or professional resume.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
                 {/* Submit Action */}
                 <div className="pt-2 flex items-center justify-between border-t border-border/60">
                   <span className="text-xs text-text-muted">
@@ -333,7 +567,7 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
                   <Button
                     type="submit"
                     disabled={updateMutation.isPending || !isDirty}
-                    className="gap-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-amber text-white hover:bg-amber-hover transition-colors shadow-xs"
+                    className="gap-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-amber text-white hover:bg-amber-hover transition-colors shadow-xs cursor-pointer"
                   >
                     {updateMutation.isPending ? (
                       <>
@@ -377,9 +611,9 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
                   Technical Tags & Domains
                 </span>
 
-                {mentor?.techStackTags && mentor.techStackTags.length > 0 ? (
+                {techStackTags.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
-                    {mentor.techStackTags.map((tag) => (
+                    {techStackTags.map((tag) => (
                       <span
                         key={tag}
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-surface-raised border border-border text-text-primary shadow-2xs hover:border-amber/30 transition-colors"
@@ -418,9 +652,9 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
                   Professional Credentials
                 </span>
 
-                {mentor?.githubUrl ? (
+                {githubUrl ? (
                   <a
-                    href={mentor.githubUrl}
+                    href={githubUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-between p-2 rounded-lg bg-surface-raised/60 border border-border hover:border-amber/40 text-text-primary transition-colors"
@@ -436,9 +670,9 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
                   </div>
                 )}
 
-                {mentor?.resumeUrl && (
+                {resumeUrl ? (
                   <a
-                    href={mentor.resumeUrl}
+                    href={resumeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-between p-2 rounded-lg bg-surface-raised/60 border border-border hover:border-amber/40 text-text-primary transition-colors"
@@ -448,12 +682,16 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
                     </span>
                     <ExternalLink className="size-3 text-text-muted" />
                   </a>
+                ) : (
+                  <div className="p-2 rounded-lg bg-surface-raised/40 border border-border/60 text-text-muted text-[11px]">
+                    No Resume / CV linked
+                  </div>
                 )}
               </div>
 
               <div className="p-3 rounded-xl bg-amber-light/40 border border-amber/20 text-[11px] text-text-secondary leading-relaxed">
-                <strong className="text-amber block font-semibold mb-0.5">Verified Credentials</strong>
-                Domain tags and experience ratings are audited during application to uphold platform quality. Contact admin support if you need to add new specializations.
+                <strong className="text-amber block font-semibold mb-0.5">Live Credential Updates</strong>
+                You can update your tech stack tags, GitHub profile, and resume anytime. All updates will immediately reflect in your public mentor profile and student directory.
               </div>
             </CardContent>
           </Card>
@@ -512,9 +750,9 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
               </p>
 
               {/* Tag preview */}
-              {mentor?.techStackTags && mentor.techStackTags.length > 0 && (
+              {techStackTags.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-1">
-                  {mentor.techStackTags.slice(0, 4).map((tag) => (
+                  {techStackTags.slice(0, 4).map((tag) => (
                     <span
                       key={tag}
                       className="px-2 py-0.5 rounded text-[10px] font-medium bg-surface border border-border text-text-muted"
@@ -522,9 +760,9 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
                       {tag}
                     </span>
                   ))}
-                  {mentor.techStackTags.length > 4 && (
+                  {techStackTags.length > 4 && (
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-medium text-text-muted">
-                      +{mentor.techStackTags.length - 4} more
+                      +{techStackTags.length - 4} more
                     </span>
                   )}
                 </div>

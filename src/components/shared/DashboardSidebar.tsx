@@ -114,6 +114,7 @@ export default function DashboardSidebar() {
     { label: "Overview", href: "/admin", icon: LayoutDashboard },
     { label: "Mentor Queue", href: "/admin/mentors", icon: ShieldCheck },
     { label: "Cohort Approvals", href: "/admin/cohorts", icon: CheckSquare },
+    { label: "Payout Requests", href: "/admin/payouts", icon: DollarSign },
     { label: "Users Directory", href: "/admin/users", icon: Users },
     { label: "Platform Settings", href: "/admin/settings", icon: Settings },
   ];

@@ -211,7 +211,7 @@ export default function AdminDashboardPage() {
                     <span className="font-semibold text-text-primary block">Minimum Cash-Out Threshold</span>
                     <span className="text-[11px] text-text-muted">Minimum mentor withdrawal limit</span>
                   </div>
-                  <span className="font-bold text-text-primary font-mono text-sm">250 Cr (৳1,000)</span>
+                  <span className="font-bold text-text-primary font-mono text-sm">50 Cr (৳200)</span>
                 </div>
               </CardContent>
             </Card>

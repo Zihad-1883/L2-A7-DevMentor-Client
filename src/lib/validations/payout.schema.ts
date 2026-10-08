@@ -5,7 +5,7 @@ export const payoutRequestSchema = z.object({
     .number({
       error: "Please enter a valid cash-out amount",
     })
-    .min(1000, "Minimum withdrawal is 1,000 BDT (250 Credits)")
+    .min(200, "Minimum withdrawal is 200 BDT (50 Credits)")
     .max(100000, "Maximum single withdrawal limit is 100,000 BDT"),
   bkashNumber: z
     .string()

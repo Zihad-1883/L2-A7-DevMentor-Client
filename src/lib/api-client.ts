@@ -86,8 +86,18 @@ async function request<T>(
 
   if (!response.ok || !responseData.success) {
     const errorData = responseData as ApiErrorResponse;
+    const detailMsg =
+      errorData.errors && errorData.errors.length > 0
+        ? errorData.errors
+            .map((e) => (e.field ? `${e.field}: ${e.message}` : e.message))
+            .join("; ")
+        : "";
+    const finalMessage = detailMsg
+      ? `${errorData.message || "Validation failed"}: ${detailMsg}`
+      : errorData.message || "An unexpected error occurred";
+
     throw new ApiError(
-      errorData.message || "An unexpected error occurred",
+      finalMessage,
       response.status,
       errorData.errors
     );

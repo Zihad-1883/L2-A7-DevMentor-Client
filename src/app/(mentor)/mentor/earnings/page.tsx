@@ -243,7 +243,7 @@ export default function MentorEarningsPage() {
               <div className="flex items-start gap-2.5">
                 <CheckCircle2 className="size-4 text-emerald shrink-0 mt-0.5" />
                 <span>
-                  <strong>Threshold &amp; Limits:</strong> The minimum single cash-out is <strong>৳1,000 BDT (250 Credits)</strong> and the maximum is <strong>৳100,000 BDT</strong> per transaction.
+                  <strong>Threshold &amp; Limits:</strong> The minimum single cash-out is <strong>৳200 BDT (50 Credits)</strong> and the maximum is <strong>৳100,000 BDT</strong> per transaction.
                 </span>
               </div>
               <div className="flex items-start gap-2.5">

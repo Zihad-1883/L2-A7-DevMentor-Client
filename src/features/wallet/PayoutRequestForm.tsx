@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { walletService } from "@/services/wallet.service";
+import { payoutService } from "@/services/payout.service";
 import { queryKeys } from "@/lib/query-keys";
 import { payoutRequestSchema } from "@/lib/validations/payout.schema";
 import { toast } from "sonner";
@@ -24,7 +24,8 @@ interface PayoutRequestFormProps {
 }
 
 const CREDIT_RATE = 4; // 1 Credit = 4 BDT
-const MIN_WITHDRAWAL_BDT = 1000;
+const MIN_WITHDRAWAL_CREDITS = 50;
+const MIN_WITHDRAWAL_BDT = 200;
 const MAX_WITHDRAWAL_BDT = 100000;
 
 export default function PayoutRequestForm({
@@ -41,7 +42,7 @@ export default function PayoutRequestForm({
   const amountNumber = parseInt(amountStr) || 0;
   const creditsNeeded = Math.ceil(amountNumber / CREDIT_RATE);
   const remainingCredits = Math.max(0, currentBalance - creditsNeeded);
-  const hasEnoughBalance = currentBalance >= 250 && amountNumber <= equivalentBDT;
+  const hasEnoughBalance = currentBalance >= MIN_WITHDRAWAL_CREDITS && amountNumber <= equivalentBDT;
 
   // Preset quick selections
   const handlePresetSelect = (bdt: number) => {
@@ -81,17 +82,20 @@ export default function PayoutRequestForm({
 
   const withdrawMutation = useMutation({
     mutationFn: async () => {
-      return await walletService.requestWithdrawal({
-        amount: amountNumber,
-        bkashNumber: bkashNumber.trim(),
+      return await payoutService.createPayoutRequest({
+        amountBdt: amountNumber,
+        method: "BKASH",
+        accountNumber: bkashNumber.trim(),
       });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.wallet.me });
       queryClient.invalidateQueries({ queryKey: ["mentor", "wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["mentor", "payouts"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "payouts"] });
       toast.success(
         data.message ||
-          `Successfully processed ৳${amountNumber.toLocaleString()} payout to bKash ${bkashNumber}!`
+          `Successfully submitted payout request of ৳${amountNumber.toLocaleString()} to bKash ${bkashNumber}!`
       );
       setAmountStr("");
       setBkashNumber("");
@@ -99,7 +103,7 @@ export default function PayoutRequestForm({
       onSuccess?.();
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Failed to process payout request. Please try again.");
+      toast.error(err.message || "Failed to submit payout request. Please try again.");
     },
   });
 
@@ -109,7 +113,7 @@ export default function PayoutRequestForm({
     withdrawMutation.mutate();
   };
 
-  const isEligible = currentBalance >= 250;
+  const isEligible = currentBalance >= MIN_WITHDRAWAL_CREDITS;
 
   return (
     <div className="rounded-3xl bg-surface border border-border p-6 sm:p-8 shadow-xs space-y-6">
@@ -150,7 +154,7 @@ export default function PayoutRequestForm({
           <div>
             <strong className="font-bold">Minimum Payout Threshold:</strong> You have{" "}
             <strong>{currentBalance} Credits (৳{equivalentBDT.toLocaleString()})</strong>. A minimum of{" "}
-            <strong>250 Credits (৳1,000 BDT)</strong> is required to request a cash-out. Earn more by
+            <strong>50 Credits (৳200 BDT)</strong> is required to request a cash-out. Earn more by
             completing code reviews, sprints, or cohort programs.
           </div>
         </div>
@@ -181,7 +185,7 @@ export default function PayoutRequestForm({
               min={MIN_WITHDRAWAL_BDT}
               max={MAX_WITHDRAWAL_BDT}
               step={100}
-              placeholder="e.g. 2000"
+              placeholder="e.g. 500"
               value={amountStr}
               onChange={(e) => {
                 setAmountStr(e.target.value);
@@ -204,7 +208,7 @@ export default function PayoutRequestForm({
           {/* Preset Buttons */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <span className="text-[11px] font-semibold text-text-muted mr-1">Quick Fill:</span>
-            {[1000, 2000, 5000].map((preset) => (
+            {[200, 500, 1000, 2000, 5000].map((preset) => (
               <button
                 key={preset}
                 type="button"

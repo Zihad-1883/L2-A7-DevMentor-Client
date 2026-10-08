@@ -364,9 +364,8 @@ export default function ExamBuilderForm({
                 }
               }}
               placeholder="e.g. Modern React & Next.js Architecture Mastery Exam"
-              className={`h-11 text-xs bg-surface-raised rounded-2xl ${
-                formErrors.title ? "border-rose-400" : "border-border"
-              }`}
+              className={`h-11 text-xs bg-surface-raised rounded-2xl ${formErrors.title ? "border-rose-400" : "border-border"
+                }`}
             />
             {formErrors.title ? (
               <p className="text-[11px] text-rose-500 flex items-center gap-1">
@@ -396,9 +395,8 @@ export default function ExamBuilderForm({
                   setFormErrors((prev) => ({ ...prev, duration: undefined }));
                 }
               }}
-              className={`h-11 text-xs font-mono font-bold bg-surface-raised rounded-2xl ${
-                formErrors.duration ? "border-rose-400 focus:border-rose-500" : "border-border"
-              }`}
+              className={`h-11 text-xs font-mono font-bold bg-surface-raised rounded-2xl ${formErrors.duration ? "border-rose-400 focus:border-rose-500" : "border-border"
+                }`}
             />
             {formErrors.duration ? (
               <p className="text-[11px] text-rose-500 flex items-center gap-1">
@@ -474,11 +472,10 @@ export default function ExamBuilderForm({
                     setFormErrors((prev) => ({ ...prev, cohort: undefined }));
                   }
                 }}
-                className={`p-2.5 rounded-2xl border text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                  accessMode === "free"
+                className={`p-2.5 rounded-2xl border text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${accessMode === "free"
                     ? "bg-amber text-white border-amber shadow-2xs"
                     : "bg-surface-raised border-border text-text-secondary hover:text-text-primary"
-                }`}
+                  }`}
               >
                 <CheckCircle2 className="size-3.5" /> Open / Public (Free)
               </button>
@@ -486,11 +483,10 @@ export default function ExamBuilderForm({
               <button
                 type="button"
                 onClick={() => setAccessMode("cohort")}
-                className={`p-2.5 rounded-2xl border text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                  accessMode === "cohort"
+                className={`p-2.5 rounded-2xl border text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${accessMode === "cohort"
                     ? "bg-amber text-white border-amber shadow-2xs"
                     : "bg-surface-raised border-border text-text-secondary hover:text-text-primary"
-                }`}
+                  }`}
               >
                 <Layers className="size-3.5" /> Cohort Exclusive
               </button>
@@ -506,9 +502,8 @@ export default function ExamBuilderForm({
                       setFormErrors((prev) => ({ ...prev, cohort: undefined }));
                     }
                   }}
-                  className={`w-full h-9 px-3 text-xs bg-surface-raised border rounded-xl text-text-primary font-medium focus:outline-none focus:ring-2 focus:ring-amber/50 cursor-pointer ${
-                    formErrors.cohort ? "border-rose-400" : "border-border"
-                  }`}
+                  className={`w-full h-9 px-3 text-xs bg-surface-raised border rounded-xl text-text-primary font-medium focus:outline-none focus:ring-2 focus:ring-amber/50 cursor-pointer ${formErrors.cohort ? "border-rose-400" : "border-border"
+                    }`}
                 >
                   <option value="">Select one of your cohort programs...</option>
                   {cohorts.map((c) => (

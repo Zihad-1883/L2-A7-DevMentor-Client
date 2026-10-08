@@ -14,14 +14,19 @@ const DEFAULT_MONTHLY_DATA: RevenueMonthlyDataPoint[] = [
   { month: "Oct", grossRevenue: 124500, platformCommission: 18675, mentorPayouts: 97000 },
 ];
 
-export default function RevenueChart() {
+interface RevenueChartProps {
+  data?: RevenueMonthlyDataPoint[];
+}
+
+export default function RevenueChart({ data }: RevenueChartProps = {}) {
   const [activeMetric, setActiveMetric] = React.useState<"all" | "commission" | "gross">("all");
   const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
 
-  const maxVal = Math.max(...DEFAULT_MONTHLY_DATA.map((d) => d.grossRevenue));
+  const chartData = data && data.length > 0 ? data : DEFAULT_MONTHLY_DATA;
+  const maxVal = Math.max(...chartData.map((d) => d.grossRevenue), 1);
 
-  const totalGross = DEFAULT_MONTHLY_DATA.reduce((acc, curr) => acc + curr.grossRevenue, 0);
-  const totalCommission = DEFAULT_MONTHLY_DATA.reduce((acc, curr) => acc + curr.platformCommission, 0);
+  const totalGross = chartData.reduce((acc, curr) => acc + curr.grossRevenue, 0);
+  const totalCommission = chartData.reduce((acc, curr) => acc + curr.platformCommission, 0);
 
   return (
     <Card className="border border-border/80 shadow-xs bg-surface overflow-hidden">
@@ -125,7 +130,7 @@ export default function RevenueChart() {
         {/* Visual Responsive Bar/Area Chart */}
         <div className="pt-4">
           <div className="h-64 flex items-end justify-between gap-3 sm:gap-6 px-2 sm:px-4 pb-4 border-b border-border/60">
-            {DEFAULT_MONTHLY_DATA.map((d, idx) => {
+            {chartData.map((d, idx) => {
               const grossPercent = (d.grossRevenue / maxVal) * 100;
               const commissionPercent = (d.platformCommission / maxVal) * 100;
               const isHovered = hoveredIndex === idx;

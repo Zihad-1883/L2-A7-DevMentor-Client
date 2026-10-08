@@ -60,6 +60,7 @@ export interface PlatformOverviewStats {
   totalRevenueBdt: number;
   platformCommissionEarnedBdt: number;
   totalCreditsCirculating: number;
+  monthlyRevenue?: RevenueMonthlyDataPoint[];
 }
 
 export interface RevenueMonthlyDataPoint {

@@ -170,7 +170,7 @@ export default function AdminDashboardPage() {
           <PlatformStatsGrid stats={stats} />
 
           {/* 4. Revenue & Platform Commission Chart */}
-          <RevenueChart />
+          <RevenueChart data={stats.monthlyRevenue} />
 
           {/* 5. Live Moderation Status & Recent Activity Stream */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

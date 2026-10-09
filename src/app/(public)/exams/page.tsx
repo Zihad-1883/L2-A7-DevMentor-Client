@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import ExamCard from "@/features/exam/ExamCard";
 import ExamFilters from "@/features/exam/ExamFilters";
 import MentorExamCalloutButton from "@/features/exam/MentorExamCalloutButton";
-import { SEED_EXAMS } from "@/features/exam/seedExams";
 import type { Exam } from "@/types/exam.types";
 
 export const metadata = {
@@ -32,12 +31,11 @@ async function getExams(): Promise<Exam[]> {
     const res = await fetch(`${backendUrl}/api/v1/exams?limit=30`, {
       next: { revalidate: 60 },
     });
-    if (!res.ok) return SEED_EXAMS;
+    if (!res.ok) return [];
     const json = await res.json();
-    const fetched: Exam[] = json?.data?.data || json?.data || [];
-    return fetched.length > 0 ? fetched : SEED_EXAMS;
+    return json?.data?.data || json?.data || [];
   } catch {
-    return SEED_EXAMS;
+    return [];
   }
 }
 

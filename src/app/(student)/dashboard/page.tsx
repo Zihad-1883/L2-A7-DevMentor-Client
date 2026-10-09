@@ -80,9 +80,9 @@ export default function StudentDashboardPage() {
   const enrolledCohorts = cohortsData?.enrollments ?? [];
   const examAttempts = attemptsData?.data ?? [];
 
-  // Filter student-specific reviews if studentId matches or fallback to open reviews
+  // Filter student's own active code reviews
   const activeCodeReviews = (codeReviewsData?.requests ?? []).filter(
-    (r: CodeReviewRequestItem) => !user?.id || r.studentId === user.id || r.status !== "COMPLETED"
+    (r: CodeReviewRequestItem) => Boolean(user?.id && r.studentId === user.id && r.status !== "COMPLETED")
   ).slice(0, 4);
 
   // Active sprints count

@@ -204,12 +204,12 @@ export default function HeroInteractiveMockup({
                 <div className="size-14 rounded-full bg-amber-light/70 text-amber flex items-center justify-center font-serif font-bold text-lg border-2 border-amber/30 shadow-inner shrink-0 group-hover:scale-105 transition-transform">
                   {initialCohort?.mentor?.name
                     ? initialCohort.mentor.name.slice(0, 2).toUpperCase()
-                    : "TZ"}
+                    : "DM"}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-serif text-lg font-bold text-text-primary truncate">
-                      {initialCohort?.mentor?.name || "Tanzid Zihad"}
+                      {initialCohort?.mentor?.name || "Verified Engineering Mentor"}
                     </h3>
                     <span className="px-2 py-0.5 rounded-full bg-amber-light text-amber text-[10px] font-bold tracking-wider uppercase border border-amber/20">
                       MENTOR
@@ -231,11 +231,11 @@ export default function HeroInteractiveMockup({
             <div className="mb-4">
               <h4 className="font-serif text-base font-bold text-text-primary leading-snug group-hover:text-amber transition-colors">
                 {initialCohort?.title ||
-                  "Advanced Backend Engineering & System Architecture"}
+                  "Production Engineering & System Architecture"}
               </h4>
               <p className="text-xs text-text-secondary leading-relaxed line-clamp-2 mt-1">
                 {initialCohort?.description ||
-                  "Learn to design scalable PostgreSQL databases, write clean Express 5 microservices, and integrate payment gateways. From zero to production-ready."}
+                  "Hands-on architectural guidance, database optimization, and scalable backend design with live code reviews and peer workshops."}
               </p>
             </div>
 
@@ -243,7 +243,7 @@ export default function HeroInteractiveMockup({
             <div className="flex flex-wrap gap-1.5 mb-5">
               {(initialCohort?.techStackTags && initialCohort.techStackTags.length > 0
                 ? initialCohort.techStackTags
-                : ["Node.js", "TypeScript", "PostgreSQL", "Prisma", "Express"]
+                : ["Node.js", "TypeScript", "PostgreSQL", "System Design"]
               ).map((tag) => (
                 <span
                   key={tag}
@@ -263,12 +263,16 @@ export default function HeroInteractiveMockup({
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-xs font-bold text-text-primary">
-                      {initialCohort?.durationWeeks || 6} Weeks Intensive
+                      {initialCohort?.durationWeeks ? `${initialCohort.durationWeeks} Weeks Intensive` : "Structured Multi-Week Program"}
                     </p>
-                    <span className="text-[10px] text-text-muted">·</span>
-                    <span className="text-xs font-bold text-amber">
-                      {initialCohort?.totalCost || 400} Credits
-                    </span>
+                    {initialCohort?.totalCost && (
+                      <>
+                        <span className="text-[10px] text-text-muted">·</span>
+                        <span className="text-xs font-bold text-amber">
+                          {initialCohort.totalCost} Credits
+                        </span>
+                      </>
+                    )}
                   </div>
                   <p className="text-[11px] text-text-muted flex items-center gap-1">
                     <Users className="size-3" />
@@ -351,11 +355,11 @@ export default function HeroInteractiveMockup({
         {/* Mentor feedback annotation */}
         <div className="flex items-start gap-3 p-3.5 rounded-xl bg-surface-raised border-l-4 border-amber group-hover:bg-amber-50/50 transition-colors">
           <div className="size-7 rounded-full bg-amber text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 shadow-xs">
-            AR
+            DM
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-text-primary">Alex Rivera</span>
+              <span className="text-xs font-bold text-text-primary">Staff Code Reviewer</span>
               <span className="px-1.5 py-0.5 rounded-full bg-amber-light text-amber text-[10px] font-bold">
                 SENIOR
               </span>

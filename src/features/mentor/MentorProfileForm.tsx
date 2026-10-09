@@ -339,7 +339,7 @@ export default function MentorProfileForm({ profile }: MentorProfileFormProps) {
                       setName(e.target.value);
                       if (fieldErrors.name) setFieldErrors((p) => ({ ...p, name: undefined }));
                     }}
-                    placeholder="e.g. Alex Rivera"
+                    placeholder="e.g. Jane Doe"
                     className={fieldErrors.name ? "border-orange/60 focus-visible:ring-orange/30" : ""}
                   />
                   {fieldErrors.name ? (

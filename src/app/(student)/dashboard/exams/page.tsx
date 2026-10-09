@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { examService } from "@/services/exam.service";
-import { SEED_EXAMS } from "@/features/exam/seedExams";
 import ExamAttemptDetailModal from "@/features/exam/ExamAttemptDetailModal";
 import type { Exam, ExamAttempt } from "@/types/exam.types";
 import { formatDate } from "@/lib/utils";
@@ -44,12 +43,9 @@ export default function StudentExamsPage() {
     staleTime: 1000 * 30,
   });
 
-  // Merge backend exams with SEED_EXAMS so mock/seed tests always remain available
+  // Live backend exams from database
   const availableExams = React.useMemo(() => {
-    const remote = examsData?.data ?? [];
-    const remoteIds = new Set(remote.map((r) => r.id));
-    const nonDuplicatedSeeds = SEED_EXAMS.filter((s) => !remoteIds.has(s.id));
-    return [...remote, ...nonDuplicatedSeeds];
+    return examsData?.data ?? [];
   }, [examsData]);
 
   const myAttempts: ExamAttempt[] = attemptsData?.data ?? [];

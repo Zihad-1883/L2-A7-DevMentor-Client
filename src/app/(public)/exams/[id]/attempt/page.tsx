@@ -8,7 +8,6 @@ import { ArrowLeft, ShieldCheck, Loader2, AlertTriangle, ShieldAlert } from "luc
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import ExamAttemptEngine from "@/features/exam/ExamAttemptEngine";
-import { SEED_EXAMS } from "@/features/exam/seedExams";
 import { examService } from "@/services/exam.service";
 import type { Exam } from "@/types/exam.types";
 
@@ -16,12 +15,7 @@ export default function ExamAttemptPage() {
   const params = useParams();
   const examId = typeof params?.id === "string" ? params.id : "";
 
-  // 1. Check local seed exams
-  const localSeedExam = React.useMemo(() => {
-    return SEED_EXAMS.find((e) => e.id === examId) || null;
-  }, [examId]);
-
-  // 2. Query server for live DB exams via authenticated endpoint
+  // Query server for live DB exams via authenticated endpoint
   const {
     data: startAttemptData,
     isLoading: isStartingAttempt,
@@ -31,18 +25,12 @@ export default function ExamAttemptPage() {
     queryFn: async () => {
       return await examService.startExamAttempt(examId);
     },
-    enabled: Boolean(examId) && !localSeedExam,
+    enabled: Boolean(examId),
     retry: 1,
     staleTime: 0,
   });
 
-  const exam: Exam | null = React.useMemo(() => {
-    if (localSeedExam) return localSeedExam;
-    if (startAttemptData?.exam) {
-      return startAttemptData.exam;
-    }
-    return null;
-  }, [localSeedExam, startAttemptData]);
+  const exam: Exam | null = startAttemptData?.exam || null;
 
   const { user } = useAuthContext();
   const isMentor = user?.role === "mentor";
@@ -72,7 +60,7 @@ export default function ExamAttemptPage() {
     );
   }
 
-  if (!localSeedExam && isStartingAttempt) {
+  if (isStartingAttempt) {
     return (
       <div className="w-full min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
         <Loader2 className="size-8 text-amber animate-spin" />

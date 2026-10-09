@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ExamAttemptEngine from "@/features/exam/ExamAttemptEngine";
-import { SEED_EXAMS } from "@/features/exam/seedExams";
 import { examService } from "@/services/exam.service";
 import type { Exam } from "@/types/exam.types";
 
@@ -22,12 +21,7 @@ export default function StudentExamAttemptPage() {
   const router = useRouter();
   const examId = typeof params?.id === "string" ? params.id : "";
 
-  // 1. Check if ID matches a local seed exam immediately
-  const localSeedExam = React.useMemo(() => {
-    return SEED_EXAMS.find((e) => e.id === examId) || null;
-  }, [examId]);
-
-  // 2. Fetch authenticated exam attempt from backend via /api/proxy/exams/:id/start
+  // Fetch authenticated exam attempt from backend via /api/proxy/exams/:id/start
   const {
     data: startAttemptData,
     isLoading: isStartingAttempt,
@@ -37,23 +31,16 @@ export default function StudentExamAttemptPage() {
     queryFn: async () => {
       return await examService.startExamAttempt(examId);
     },
-    // Don't call backend if it's already identified as a seed-only exam
-    enabled: Boolean(examId) && !localSeedExam,
+    enabled: Boolean(examId),
     retry: 1,
     staleTime: 0,
   });
 
   // Determine active exam instance
-  const exam: Exam | null = React.useMemo(() => {
-    if (localSeedExam) return localSeedExam;
-    if (startAttemptData?.exam) {
-      return startAttemptData.exam;
-    }
-    return null;
-  }, [localSeedExam, startAttemptData]);
+  const exam: Exam | null = startAttemptData?.exam || null;
 
   // Loading state
-  if (!localSeedExam && isStartingAttempt) {
+  if (isStartingAttempt) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
         <Loader2 className="size-8 text-amber animate-spin" />

@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/components/providers/AuthProvider";
-import { SEED_EXAMS } from "@/features/exam/seedExams";
 import { examService } from "@/services/exam.service";
 import type { Exam } from "@/types/exam.types";
 import { toast } from "sonner";
@@ -33,12 +32,25 @@ export default function ExamDetailPage() {
   const { user } = useAuthContext();
   const isMentor = user?.role === "mentor";
 
-  // 1. Check local seed exams
-  const localSeedExam = React.useMemo(() => {
-    return SEED_EXAMS.find((e) => e.id === examId) || null;
-  }, [examId]);
+  // Query live DB exam by ID directly from backend
+  const {
+    data: directExamData,
+    isPending: isPendingDirect,
+    isFetching: isFetchingDirect,
+  } = useQuery({
+    queryKey: ["exam", "detail", examId],
+    queryFn: async () => {
+      try {
+        return await examService.getExamById(examId);
+      } catch {
+        return null;
+      }
+    },
+    enabled: Boolean(examId),
+    staleTime: 30000,
+  });
 
-  // 2. Query mentor's created exams (shares queryKey ["mentor", "exams", "list"] from mentor hub)
+  // Query mentor's created exams (shares queryKey ["mentor", "exams", "list"] from mentor hub)
   const {
     data: mentorExamsData,
     isPending: isPendingMentorExams,
@@ -52,11 +64,11 @@ export default function ExamDetailPage() {
         return null;
       }
     },
-    enabled: Boolean(examId) && !localSeedExam,
+    enabled: Boolean(examId) && !directExamData,
     staleTime: 30000,
   });
 
-  // 3. Query student's available exams (disabled if user is mentor)
+  // Query student's available exams (disabled if user is mentor)
   const {
     data: availableExamsData,
     isPending: isPendingAvailableExams,
@@ -70,13 +82,13 @@ export default function ExamDetailPage() {
         return null;
       }
     },
-    enabled: Boolean(examId) && !localSeedExam && !isMentor,
+    enabled: Boolean(examId) && !directExamData && !isMentor,
     staleTime: 30000,
   });
 
   // Check if exam is already present synchronously in React Query cache
   const cachedExam = React.useMemo(() => {
-    if (localSeedExam) return localSeedExam;
+    if (directExamData) return directExamData;
 
     // Check mentor exams cache
     const mentorCache = queryClient.getQueryData<{ data?: Exam[] }>(["mentor", "exams", "list"]);
@@ -97,12 +109,12 @@ export default function ExamDetailPage() {
     }
 
     return null;
-  }, [localSeedExam, queryClient, examId]);
+  }, [directExamData, queryClient, examId]);
 
-  // Resolve exam from cache, seeds, mentor query, or public query
+  // Resolve exam from direct query, cache, mentor query, or public query
   const exam: Exam | null = React.useMemo(() => {
+    if (directExamData) return directExamData;
     if (cachedExam) return cachedExam;
-    if (localSeedExam) return localSeedExam;
 
     // Check mentor's query data
     if (mentorExamsData?.data) {
@@ -117,13 +129,15 @@ export default function ExamDetailPage() {
     }
 
     return null;
-  }, [cachedExam, localSeedExam, mentorExamsData, availableExamsData, examId]);
+  }, [directExamData, cachedExam, mentorExamsData, availableExamsData, examId]);
 
   // Active checking status
   const isChecking =
+    !directExamData &&
     !cachedExam &&
-    !localSeedExam &&
-    (isPendingMentorExams ||
+    (isPendingDirect ||
+      isFetchingDirect ||
+      isPendingMentorExams ||
       isFetchingMentorExams ||
       (!isMentor && (isPendingAvailableExams || isFetchingAvailableExams)));
 

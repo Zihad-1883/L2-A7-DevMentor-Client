@@ -223,63 +223,99 @@ export default function AdminDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Quick Audit & Security Highlights */}
+            {/* Live Moderation Action Status */}
             <Card className="border border-border/80 shadow-xs bg-surface">
               <CardHeader className="pb-3 border-b border-border/60">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sparkles className="size-4 text-amber" />
                     <CardTitle className="text-sm font-bold text-text-primary">
-                      Recent Moderation Audit Events
+                      Live Moderation Action Status
                     </CardTitle>
                   </div>
-                  <Link
-                    href="/admin/audit-logs"
-                    className="text-[11px] font-semibold text-amber hover:underline flex items-center gap-0.5"
-                  >
-                    View Logs <ArrowRight className="size-3" />
-                  </Link>
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-raised border border-border">
+                    Real-time
+                  </span>
                 </div>
               </CardHeader>
               <CardContent className="pt-4 space-y-3 text-xs">
-                <div className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-surface-raised/60 transition-colors">
-                  <div className="size-7 rounded-lg bg-emerald/10 text-emerald flex items-center justify-center shrink-0 border border-emerald/20 mt-0.5">
+                <Link
+                  href="/admin/mentors"
+                  className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-surface-raised/60 transition-colors group"
+                >
+                  <div className="size-7 rounded-lg bg-amber-light text-amber flex items-center justify-center shrink-0 border border-amber/20 mt-0.5">
                     <UserCheck className="size-3.5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-text-primary">Mentor Application Approved</p>
+                    <p className="font-semibold text-text-primary group-hover:text-amber transition-colors">
+                      Mentor Applications Queue
+                    </p>
                     <p className="text-[11px] text-text-muted truncate">
-                      Alex Rivera promoted to Senior Mentor
+                      {stats.pendingMentorApplications > 0
+                        ? `${stats.pendingMentorApplications} applicant${stats.pendingMentorApplications > 1 ? "s" : ""} awaiting background & profile verification`
+                        : "All mentor applicant profiles reviewed"}
                     </p>
                   </div>
-                  <span className="text-[10px] text-text-muted font-mono whitespace-nowrap">Today</span>
-                </div>
+                  <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full ${
+                    stats.pendingMentorApplications > 0
+                      ? "bg-amber text-white"
+                      : "bg-surface-raised text-text-muted border border-border"
+                  }`}>
+                    {stats.pendingMentorApplications}
+                  </span>
+                </Link>
 
-                <div className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-surface-raised/60 transition-colors">
+                <Link
+                  href="/admin/cohorts"
+                  className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-surface-raised/60 transition-colors group"
+                >
                   <div className="size-7 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0 border border-purple-500/20 mt-0.5">
                     <CheckSquare className="size-3.5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-text-primary">Cohort Program Approved</p>
+                    <p className="font-semibold text-text-primary group-hover:text-purple-500 transition-colors">
+                      Cohort Program Moderation
+                    </p>
                     <p className="text-[11px] text-text-muted truncate">
-                      Full-Stack Next.js Mastery published live
+                      {stats.pendingCohorts > 0
+                        ? `${stats.pendingCohorts} curriculum submission${stats.pendingCohorts > 1 ? "s" : ""} awaiting publishing approval`
+                        : "All submitted group cohorts moderated"}
                     </p>
                   </div>
-                  <span className="text-[10px] text-text-muted font-mono whitespace-nowrap">Yesterday</span>
-                </div>
+                  <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full ${
+                    stats.pendingCohorts > 0
+                      ? "bg-purple-500 text-white"
+                      : "bg-surface-raised text-text-muted border border-border"
+                  }`}>
+                    {stats.pendingCohorts}
+                  </span>
+                </Link>
 
-                <div className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-surface-raised/60 transition-colors">
-                  <div className="size-7 rounded-lg bg-amber-light text-amber flex items-center justify-center shrink-0 border border-amber/20 mt-0.5">
+                <Link
+                  href="/admin/payouts"
+                  className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-surface-raised/60 transition-colors group"
+                >
+                  <div className="size-7 rounded-lg bg-emerald/10 text-emerald flex items-center justify-center shrink-0 border border-emerald/20 mt-0.5">
                     <DollarSign className="size-3.5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-text-primary">bKash Cash-Out Payout</p>
+                    <p className="font-semibold text-text-primary group-hover:text-emerald transition-colors">
+                      Mentor Cash-Out Payout Queue
+                    </p>
                     <p className="text-[11px] text-text-muted truncate">
-                      ৳4,000 processed to mentor wallet
+                      {(stats.pendingPayouts ?? 0) > 0
+                        ? `${stats.pendingPayouts} withdrawal request${(stats.pendingPayouts ?? 0) > 1 ? "s" : ""} awaiting bKash disbursal`
+                        : "All mentor withdrawal cash-outs processed"}
                     </p>
                   </div>
-                  <span className="text-[10px] text-text-muted font-mono whitespace-nowrap">2 days ago</span>
-                </div>
+                  <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full ${
+                    (stats.pendingPayouts ?? 0) > 0
+                      ? "bg-emerald text-white animate-pulse"
+                      : "bg-surface-raised text-text-muted border border-border"
+                  }`}>
+                    {stats.pendingPayouts ?? 0}
+                  </span>
+                </Link>
               </CardContent>
             </Card>
           </div>

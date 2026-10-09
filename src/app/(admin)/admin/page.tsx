@@ -132,8 +132,15 @@ export default function AdminDashboardPage() {
           href="/admin/payouts"
           className="p-3.5 rounded-2xl bg-surface border border-border hover:border-emerald/40 hover:shadow-2xs transition-all group flex flex-col justify-between"
         >
-          <div className="size-8 rounded-lg bg-emerald/10 text-emerald flex items-center justify-center border border-emerald/20 group-hover:scale-105 transition-transform">
-            <DollarSign className="size-4" />
+          <div className="flex items-center justify-between">
+            <div className="size-8 rounded-lg bg-emerald/10 text-emerald flex items-center justify-center border border-emerald/20 group-hover:scale-105 transition-transform">
+              <DollarSign className="size-4" />
+            </div>
+            {stats && (stats.pendingPayouts ?? 0) > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald text-white animate-pulse">
+                {stats.pendingPayouts}
+              </span>
+            )}
           </div>
           <div className="mt-3">
             <span className="text-xs font-bold text-text-primary group-hover:text-emerald transition-colors block">

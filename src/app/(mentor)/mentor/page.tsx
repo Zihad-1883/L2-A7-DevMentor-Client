@@ -82,6 +82,13 @@ export default function MentorDashboardPage() {
   const totalCohortsCreated = summary?.totalCohortsCreated ?? 0;
   const pendingReviewsCount = codeReviewsData?.meta?.total ?? openReviews.length;
 
+  const directRequests = React.useMemo(() => {
+    if (summary?.directSprintRequests && summary.directSprintRequests.length > 0) {
+      return summary.directSprintRequests;
+    }
+    return openPoolSprints.filter((s) => s.targetMentorId === user?.id);
+  }, [summary?.directSprintRequests, openPoolSprints, user?.id]);
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-12">
       {/* 1. Welcome Banner (Consistent with Student Dashboard style) */}
@@ -115,6 +122,95 @@ export default function MentorDashboardPage() {
         {/* Ambient subtle decorative circle */}
         <div className="absolute -right-10 -bottom-10 size-40 bg-amber/10 rounded-full blur-2xl pointer-events-none" />
       </div>
+
+      {/* 1.5 Direct Sprint Requests Targeted Specifically to This Mentor */}
+      {directRequests.length > 0 && (
+        <div className="p-6 rounded-3xl bg-linear-to-r from-purple-500/10 via-purple-500/5 to-surface border-2 border-purple-500/30 shadow-xs space-y-4 relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-3 w-3 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500" />
+              </span>
+              <div>
+                <h2 className="font-serif text-lg font-bold text-text-primary flex items-center gap-2">
+                  🎯 Direct Sprint Requests ({directRequests.length})
+                </h2>
+                <p className="text-xs text-text-secondary">
+                  Students requested 1-on-1 sprint coaching specifically targeting you. These are private and invisible to all other mentors.
+                </p>
+              </div>
+            </div>
+
+            <Link href="/mentor/sprints?tab=direct">
+              <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs h-9 px-4 shrink-0 shadow-xs cursor-pointer">
+                View In Sprints Pool →
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            {directRequests.map((sprint) => (
+              <div
+                key={sprint.id}
+                className="p-5 rounded-2xl bg-surface border border-purple-500/20 hover:border-purple-500/50 transition-all flex flex-col justify-between gap-4 shadow-2xs"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+                      🎯 Targeted Exclusively to You
+                    </span>
+                    <span className="text-xs text-text-muted flex items-center gap-1">
+                      <Clock className="size-3" /> {sprint.durationDays} Days ({sprint.sessions?.length || sprint.durationDays} sessions)
+                    </span>
+                  </div>
+
+                  <h3 className="font-bold text-sm text-text-primary line-clamp-1">
+                    {sprint.title}
+                  </h3>
+
+                  <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
+                    {sprint.description}
+                  </p>
+
+                  {sprint.techStackTags && sprint.techStackTags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {sprint.techStackTags.slice(0, 3).map((tag) => (
+                        <span
+                          key={tag}
+                          className="px-2 py-0.5 rounded text-[10px] font-medium bg-surface-raised border border-border text-text-secondary"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-text-primary flex items-center gap-1.5">
+                      Student: {sprint.student?.name || "Student"}
+                    </span>
+                    <span className="text-[11px] text-text-muted">
+                      Starts {formatDate(sprint.startDate)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-amber">
+                    50 CR / session
+                  </span>
+                  <Link href={`/mentor/sprints/${sprint.id}`}>
+                    <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white text-xs h-8 px-3 font-semibold shadow-2xs cursor-pointer">
+                      Review &amp; Claim <ArrowRight className="size-3 ml-1" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 2. Key Performance Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">

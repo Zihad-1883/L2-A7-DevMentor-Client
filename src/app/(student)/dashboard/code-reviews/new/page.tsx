@@ -3,7 +3,7 @@ import { ArrowLeft, Code2, Sparkles, ShieldCheck, HelpCircle } from "lucide-reac
 import CodeReviewRequestForm from "@/features/code-review/CodeReviewRequestForm";
 
 export const metadata = {
-  title: "Request Code Review | DevMentor",
+  title: "Request Code Review",
   description:
     "Submit code snippets or GitHub pull requests for thorough inline code review, architecture feedback, and video walkthroughs from senior mentors.",
 };

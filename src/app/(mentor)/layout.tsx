@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import DashboardSidebar from "@/components/shared/DashboardSidebar";
 import DashboardHeader from "@/components/shared/DashboardHeader";
+
+export const metadata: Metadata = {
+  title: "Mentor Studio",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function MentorLayout({
   children,

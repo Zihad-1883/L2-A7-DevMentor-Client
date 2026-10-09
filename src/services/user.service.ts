@@ -58,8 +58,10 @@ export interface MentorDashboardSummary {
   summary: {
     totalCohortsCreated: number;
     totalSprintsClaimed: number;
+    totalDirectSprints?: number;
     createdCohorts: unknown[];
     claimedSprints: unknown[];
+    directSprintRequests?: import("@/types/sprint.types").SprintRequestItem[];
   };
 }
 

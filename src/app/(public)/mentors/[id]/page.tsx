@@ -20,58 +20,6 @@ import TechStackTags from "@/components/shared/TechStackTags";
 import SmartAuthButton from "@/components/shared/SmartAuthButton";
 import type { MentorProfileItem } from "@/services/mentor.service";
 
-// Predefined showcase profiles matching platform seed data
-const SHOWCASE_PROFILES: Record<string, MentorProfileItem> = {
-  cmum3uzzc000004l2ir59objm: {
-    id: "cmum3uzzc000004l2ir59objm",
-    userId: "PSIGwHz2FJCc6qEW9m14KACWyQ9yHj9m",
-    bio: "Senior Full-Stack Engineer with 5+ years building production Node.js architectures, high-performance APIs, and responsive Next.js apps. Specializes in scalable backend architecture, database optimization with PostgreSQL & Prisma, and fullstack TypeScript best practices.",
-    techStackTags: ["Node.js", "TypeScript", "React", "Next.js", "PostgreSQL", "Prisma", "Docker"],
-    experienceLevel: "SENIOR",
-    githubUrl: "https://github.com/zihad-dev",
-    approvalStatus: "APPROVED",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    user: {
-      id: "PSIGwHz2FJCc6qEW9m14KACWyQ9yHj9m",
-      name: "Alex Rivera",
-      email: "mentor@devmentor.com",
-    },
-  },
-  "mentor-elena-rostova": {
-    id: "mentor-elena-rostova",
-    userId: "user-elena-rostova",
-    bio: "Staff Frontend Architect at Vercel Alum. Deep focus on design systems, web performance, micro-frontends, and React Server Components. Passionate about helping engineers elevate their UI engineering to industry standards.",
-    techStackTags: ["React", "Next.js", "TypeScript", "TailwindCSS", "Performance", "CSS Architecture"],
-    experienceLevel: "SENIOR",
-    githubUrl: "https://github.com",
-    approvalStatus: "APPROVED",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    user: {
-      id: "user-elena-rostova",
-      name: "Elena Rostova",
-      email: "elena@devmentor.com",
-    },
-  },
-  "mentor-marcus-chen": {
-    id: "mentor-marcus-chen",
-    userId: "user-marcus-chen",
-    bio: "Distributed systems engineer building microservices with Go, Kafka, and Kubernetes. Passionate about concurrent patterns, low-latency architectures, and rigorous testing for high-throughput backend services.",
-    techStackTags: ["Go", "Kubernetes", "Kafka", "PostgreSQL", "FastAPI", "gRPC", "Docker"],
-    experienceLevel: "MID",
-    githubUrl: "https://github.com",
-    approvalStatus: "APPROVED",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    user: {
-      id: "user-marcus-chen",
-      name: "Marcus Chen",
-      email: "marcus@devmentor.com",
-    },
-  },
-};
-
 async function getMentor(id: string): Promise<MentorProfileItem | null> {
   const backendUrl =
     process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
@@ -86,11 +34,10 @@ async function getMentor(id: string): Promise<MentorProfileItem | null> {
       const json = await res.json();
       if (json?.data) return json.data;
     }
+    return null;
   } catch {
-    // continue to fallback check
+    return null;
   }
-
-  return SHOWCASE_PROFILES[id] || null;
 }
 
 export default async function MentorDetailPage({

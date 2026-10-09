@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import DashboardSidebar from "@/components/shared/DashboardSidebar";
 import DashboardHeader from "@/components/shared/DashboardHeader";
+
+export const metadata: Metadata = {
+  title: "Student Dashboard",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function StudentLayout({
   children,

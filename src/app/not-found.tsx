@@ -14,7 +14,7 @@ export default function NotFoundPage() {
             Page Not Found
           </h1>
           <p className="text-sm text-text-secondary leading-relaxed">
-            The resource or examination you requested could not be found or may have been archived.
+            The page, session, or mentor profile you requested could not be found or may have moved.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -23,9 +23,9 @@ export default function NotFoundPage() {
               <ArrowLeft className="size-3.5 mr-1.5" /> Back to Dashboard
             </Button>
           </Link>
-          <Link href="/exams" className="w-full sm:w-auto">
+          <Link href="/mentors" className="w-full sm:w-auto">
             <Button className="w-full bg-amber text-white hover:bg-amber-hover text-xs">
-              <GraduationCap className="size-3.5 mr-1.5" /> Browse Exams
+              <GraduationCap className="size-3.5 mr-1.5" /> Browse Mentors
             </Button>
           </Link>
         </div>

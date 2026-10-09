@@ -160,8 +160,8 @@ export default function MentorSprintDetailPage() {
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={sprint.status} />
               {sprint.targetMentorId && (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                  🎯 Direct Student Request
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+                  🎯 Direct Request • Targeted Exclusively to You
                 </span>
               )}
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-light text-amber border border-amber/20">
@@ -191,9 +191,13 @@ export default function MentorSprintDetailPage() {
               <Button
                 onClick={() => setIsClaimModalOpen(true)}
                 disabled={claimMutation.isPending}
-                className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-10 px-5 shadow-2xs gap-1.5 cursor-pointer"
+                className={`font-semibold text-xs h-10 px-5 shadow-2xs gap-1.5 cursor-pointer text-white ${sprint.targetMentorId
+                  ? "bg-purple-600 hover:bg-purple-700"
+                  : "bg-amber hover:bg-amber-hover"
+                  }`}
               >
-                <Sparkles className="size-4" /> Claim Sprint Request
+                <Sparkles className="size-4" />{" "}
+                {sprint.targetMentorId ? "Accept & Claim Direct Sprint" : "Claim Sprint Request"}
               </Button>
             ) : isClaimedByMe ? (
               <Button

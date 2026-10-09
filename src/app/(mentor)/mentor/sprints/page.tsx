@@ -26,6 +26,8 @@ import StatusBadge from "@/components/shared/StatusBadge";
 import EmptyState from "@/components/shared/EmptyState";
 import { formatDate } from "@/lib/utils";
 
+import { useSearchParams } from "next/navigation";
+
 const TECH_STACK_FILTERS = [
   "All",
   "React",
@@ -41,7 +43,12 @@ const TECH_STACK_FILTERS = [
 ];
 
 export default function MentorSprintPoolPage() {
-  const [activeTab, setActiveTab] = React.useState<"claimed" | "pool">("claimed");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+
+  const [activeTab, setActiveTab] = React.useState<"direct" | "pool" | "claimed">(
+    tabParam === "direct" ? "direct" : "claimed"
+  );
   const [selectedTag, setSelectedTag] = React.useState<string>("All");
   const [searchQuery, setSearchQuery] = React.useState<string>("");
 
@@ -72,8 +79,21 @@ export default function MentorSprintPoolPage() {
   const openPoolSprints: SprintRequestItem[] = poolData?.sprints || [];
   const myClaimedSprints: SprintRequestItem[] = mySprintsData || [];
 
+  const directSprints = React.useMemo(
+    () => openPoolSprints.filter((s) => s.targetMentorId),
+    [openPoolSprints]
+  );
+  const broadcastPoolSprints = React.useMemo(
+    () => openPoolSprints.filter((s) => !s.targetMentorId),
+    [openPoolSprints]
+  );
+
   const rawSprints: SprintRequestItem[] =
-    activeTab === "claimed" ? myClaimedSprints : openPoolSprints;
+    activeTab === "claimed"
+      ? myClaimedSprints
+      : activeTab === "direct"
+      ? directSprints
+      : broadcastPoolSprints;
 
   const isLoading = activeTab === "claimed" ? isMySprintsLoading : isPoolLoading;
   const error = activeTab === "claimed" ? mySprintsError : poolError;
@@ -113,7 +133,7 @@ export default function MentorSprintPoolPage() {
             <Sparkles className="size-3.5" /> Sprint Matching Pool
           </div>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-text-primary tracking-tight">
-            Open Student Sprints
+            Student Sprint Requests
           </h1>
           <p className="text-sm text-text-secondary max-w-xl leading-relaxed">
             Browse real 1-on-1 sprint requests submitted by students. Filter by your core technologies and claim sprints you would love to mentor.
@@ -122,7 +142,7 @@ export default function MentorSprintPoolPage() {
 
         <div className="flex items-center gap-3 z-10 shrink-0">
           <Link href="/mentor">
-            <Button size="sm" variant="outline" className="border-border text-xs gap-1.5 bg-surface hover:bg-surface-raised">
+            <Button size="sm" variant="outline" className="border-border text-xs gap-1.5 bg-surface hover:bg-surface-raised cursor-pointer">
               Back to Dashboard
             </Button>
           </Link>
@@ -133,27 +153,56 @@ export default function MentorSprintPoolPage() {
       </div>
 
       {/* 2. Primary Tab Switcher */}
-      <div className="flex border-b border-border/80 gap-6">
+      <div className="flex border-b border-border/80 gap-3 sm:gap-6 overflow-x-auto pb-0.5">
         <button
           type="button"
-          onClick={() => setActiveTab("claimed")}
-          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer ${activeTab === "claimed"
-            ? "text-amber border-b-2 border-amber"
-            : "text-text-muted hover:text-text-primary"
-            }`}
+          onClick={() => setActiveTab("direct")}
+          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 shrink-0 ${
+            activeTab === "direct"
+              ? "text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 font-bold"
+              : "text-text-muted hover:text-text-primary"
+          }`}
         >
-          My Claimed Sprints ({myClaimedSprints.length})
+          <span>🎯 Direct to You</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+              directSprints.length > 0
+                ? "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-800"
+                : "bg-surface-raised text-text-muted border border-border"
+            }`}
+          >
+            {directSprints.length}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("pool")}
-          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer ${activeTab === "pool"
-            ? "text-amber border-b-2 border-amber"
-            : "text-text-muted hover:text-text-primary"
-            }`}
+          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 shrink-0 ${
+            activeTab === "pool"
+              ? "text-amber border-b-2 border-amber font-bold"
+              : "text-text-muted hover:text-text-primary"
+          }`}
         >
-          Open Sprint Pool ({openPoolSprints.length})
+          <span>🌐 Open Broadcast Pool</span>
+          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-surface-raised text-text-muted border border-border">
+            {broadcastPoolSprints.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("claimed")}
+          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 shrink-0 ${
+            activeTab === "claimed"
+              ? "text-emerald border-b-2 border-emerald font-bold"
+              : "text-text-muted hover:text-text-primary"
+          }`}
+        >
+          <span>✅ My Claimed Sprints</span>
+          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-surface-raised text-text-muted border border-border">
+            {myClaimedSprints.length}
+          </span>
         </button>
       </div>
 
@@ -237,10 +286,20 @@ export default function MentorSprintPoolPage() {
         </div>
       ) : filteredSprints.length === 0 ? (
         <EmptyState
-          title="No open sprints found"
+          title={
+            activeTab === "direct"
+              ? "No direct sprint requests pending"
+              : activeTab === "claimed"
+              ? "No claimed sprints yet"
+              : "No open sprints found"
+          }
           description={
             searchQuery || selectedTag !== "All"
               ? "No student sprint requests match your active filters. Try picking another tag or clearing your search."
+              : activeTab === "direct"
+              ? "You currently have no pending direct requests. When students select you for 1-on-1 sprint coaching, their private requests will appear here."
+              : activeTab === "claimed"
+              ? "You haven't claimed any student sprints yet. Check Direct requests or the Open Broadcast Pool to begin mentoring!"
               : "There are currently no unclaimed sprint requests in the pool. Check back soon!"
           }
           icon={Code2}
@@ -272,8 +331,8 @@ export default function MentorSprintPoolPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <StatusBadge status={sprint.status} />
                       {sprint.targetMentorId && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                          🎯 Direct Request For You
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+                          🎯 Direct Request • Only Visible To You
                         </span>
                       )}
                     </div>
@@ -331,15 +390,25 @@ export default function MentorSprintPoolPage() {
                   <span className="text-xs text-text-muted">
                     {activeTab === "claimed"
                       ? "Claimed Mentorship Sprint"
+                      : sprint.targetMentorId
+                      ? "Private Direct Request"
                       : "Unclaimed Student Request"}
                   </span>
 
                   <Link href={`/mentor/sprints/${sprint.id}`}>
                     <Button
                       size="sm"
-                      className="bg-amber text-white hover:bg-amber-hover font-semibold text-xs h-9 px-4 shadow-2xs gap-1.5 cursor-pointer"
+                      className={`font-semibold text-xs h-9 px-4 shadow-2xs gap-1.5 cursor-pointer text-white ${
+                        sprint.targetMentorId && sprint.status === "PENDING_CLAIM"
+                          ? "bg-purple-600 hover:bg-purple-700"
+                          : "bg-amber hover:bg-amber-hover"
+                      }`}
                     >
-                      {activeTab === "claimed" ? "Manage Sprint" : "View Details & Claim"}{" "}
+                      {activeTab === "claimed"
+                        ? "Manage Sprint"
+                        : sprint.targetMentorId
+                        ? "Review & Accept"
+                        : "View Details & Claim"}{" "}
                       <ArrowRight className="size-3.5" />
                     </Button>
                   </Link>

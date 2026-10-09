@@ -14,93 +14,10 @@ import { Button } from "@/components/ui/button";
 import type { MentorProfileItem } from "@/services/mentor.service";
 
 export const metadata = {
-  title: "Find a Mentor | DevMentor",
+  title: "Find a Mentor",
   description:
     "Browse verified senior engineers and technical leaders for 1-on-1 mentorship sprints, code reviews, and career guidance.",
 };
-
-const FALLBACK_MENTORS: MentorProfileItem[] = [
-  {
-    id: "cmum3uzzc000004l2ir59objm",
-    userId: "PSIGwHz2FJCc6qEW9m14KACWyQ9yHj9m",
-    bio: "Senior full-stack engineer with 5+ years building production Node.js architectures, high-performance APIs, and responsive Next.js apps.",
-    techStackTags: ["Node.js", "TypeScript", "React", "PostgreSQL", "Prisma"],
-    experienceLevel: "SENIOR",
-    githubUrl: "https://github.com/zihad-dev",
-    approvalStatus: "APPROVED",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    user: {
-      id: "PSIGwHz2FJCc6qEW9m14KACWyQ9yHj9m",
-      name: "Alex Rivera",
-      email: "mentor@devmentor.com",
-    },
-  },
-  {
-    id: "mentor-elena-rostova",
-    userId: "user-elena-rostova",
-    bio: "Staff Frontend Architect at Vercel Alum. Deep focus on design systems, web performance, micro-frontends, and React Server Components.",
-    techStackTags: ["React", "Next.js", "TypeScript", "TailwindCSS", "Performance"],
-    experienceLevel: "SENIOR",
-    githubUrl: "https://github.com",
-    approvalStatus: "APPROVED",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    user: {
-      id: "user-elena-rostova",
-      name: "Elena Rostova",
-      email: "elena@devmentor.com",
-    },
-  },
-  {
-    id: "mentor-marcus-chen",
-    userId: "user-marcus-chen",
-    bio: "Distributed systems engineer building microservices with Go, Kafka, and Kubernetes. Passionate about concurrent patterns and backend design.",
-    techStackTags: ["Go", "Kubernetes", "Kafka", "PostgreSQL", "FastAPI"],
-    experienceLevel: "MID",
-    githubUrl: "https://github.com",
-    approvalStatus: "APPROVED",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    user: {
-      id: "user-marcus-chen",
-      name: "Marcus Chen",
-      email: "marcus@devmentor.com",
-    },
-  },
-  {
-    id: "mentor-priya-patel",
-    userId: "user-priya-patel",
-    bio: "Cloud Architect and DevOps Lead. Specializing in AWS infrastructure, Terraform, container orchestration, and continuous deployment pipelines.",
-    techStackTags: ["AWS", "Docker", "Kubernetes", "Terraform", "CI/CD", "Node.js"],
-    experienceLevel: "SENIOR",
-    githubUrl: "https://github.com",
-    approvalStatus: "APPROVED",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    user: {
-      id: "user-priya-patel",
-      name: "Priya Patel",
-      email: "priya@devmentor.com",
-    },
-  },
-  {
-    id: "mentor-david-kim",
-    userId: "user-david-kim",
-    bio: "Mobile engineering lead with deep experience in React Native and iOS development. Mentoring on mobile architecture and offline-first syncing.",
-    techStackTags: ["React Native", "TypeScript", "iOS", "GraphQL", "Mobile"],
-    experienceLevel: "SENIOR",
-    githubUrl: "https://github.com",
-    approvalStatus: "APPROVED",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    user: {
-      id: "user-david-kim",
-      name: "David Kim",
-      email: "david@devmentor.com",
-    },
-  },
-];
 
 async function getMentors(searchParams: {
   search?: string;
@@ -117,28 +34,16 @@ async function getMentors(searchParams: {
     if (searchParams.tag) params.set("tag", searchParams.tag);
     if (searchParams.experienceLevel) params.set("experienceLevel", searchParams.experienceLevel);
     if (searchParams.search) params.set("search", searchParams.search);
-    params.set("limit", "30");
+    params.set("limit", "50");
 
     const res = await fetch(`${backendUrl}/api/v1/mentors?${params.toString()}`, {
       next: { revalidate: 60 },
     });
 
-    let list = FALLBACK_MENTORS;
-    if (res.ok) {
-      const json = await res.json();
-      const fetched = json?.data?.mentors as MentorProfileItem[] | undefined;
-      if (fetched && fetched.length > 0) {
-        list = fetched;
-        // merge fallbacks if fetched list is small
-        for (const fb of FALLBACK_MENTORS) {
-          if (!list.some((m) => m.id === fb.id || m.userId === fb.userId)) {
-            list.push(fb);
-          }
-        }
-      }
-    }
+    if (!res.ok) return [];
+    const json = await res.json();
+    const list = (json?.data?.mentors as MentorProfileItem[] | undefined) || [];
 
-    // Apply in-memory search/tag filter to ensure exact match even on static fallbacks
     return list.filter((m) => {
       if (searchParams.experienceLevel && m.experienceLevel !== searchParams.experienceLevel) {
         return false;
@@ -159,7 +64,7 @@ async function getMentors(searchParams: {
       return true;
     });
   } catch {
-    return FALLBACK_MENTORS;
+    return [];
   }
 }
 

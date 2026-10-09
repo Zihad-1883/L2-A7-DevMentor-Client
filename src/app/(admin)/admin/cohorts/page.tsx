@@ -191,7 +191,7 @@ export default function AdminCohortsPage() {
           </h3>
           <p className="text-xs text-text-secondary max-w-md mx-auto">
             {tab === "PENDING"
-              ? "Pending cohort submissions will appear here once the admin listing API is available."
+              ? "All submitted cohorts have been reviewed. New mentor submissions will appear here automatically."
               : "No cohorts matched your filter or search keywords."}
           </p>
         </div>

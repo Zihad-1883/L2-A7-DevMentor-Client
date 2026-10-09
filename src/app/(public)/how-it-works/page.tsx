@@ -21,7 +21,7 @@ import SmartAuthButton from "@/components/shared/SmartAuthButton";
 import { MotionFadeIn, MotionStagger } from "@/components/shared/MotionWrappers";
 
 export const metadata = {
-  title: "How It Works | DevMentor",
+  title: "How It Works",
   description:
     "Explore how DevMentor accelerates software engineers through 1-on-1 Sprints, Mentor-Led Group Cohorts, Async Code Reviews, and Practice Exams.",
 };

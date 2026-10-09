@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Sparkles,
@@ -21,57 +22,16 @@ import HeroInteractiveMockup from "@/features/landing/HeroInteractiveMockup";
 import { MotionFadeIn, MotionStagger } from "@/components/shared/MotionWrappers";
 import type { MentorProfileItem } from "@/services/mentor.service";
 
-// Fallback showcase mentors matching platform personas
-const FALLBACK_MENTORS: MentorProfileItem[] = [
-  {
-    id: "cmum3uzzc000004l2ir59objm",
-    userId: "PSIGwHz2FJCc6qEW9m14KACWyQ9yHj9m",
-    bio: "Senior full-stack engineer with 5+ years building production Node.js architectures and responsive Next.js apps.",
-    techStackTags: ["Node.js", "TypeScript", "React", "PostgreSQL", "Prisma"],
-    experienceLevel: "SENIOR",
-    githubUrl: "https://github.com/zihad-dev",
-    approvalStatus: "APPROVED",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    user: {
-      id: "PSIGwHz2FJCc6qEW9m14KACWyQ9yHj9m",
-      name: "Alex Rivera",
-      email: "mentor@devmentor.com",
-    },
+export const metadata: Metadata = {
+  title: "DevMentor — Credit-Based Mentorship & Code Review Marketplace",
+  description:
+    "Accelerate your engineering growth with 1-on-1 sprint mentorship, structured multi-week cohorts, and async production-grade code reviews.",
+  openGraph: {
+    title: "DevMentor — Credit-Based Mentorship & Code Review Marketplace",
+    description:
+      "Accelerate your engineering growth with 1-on-1 sprint mentorship, structured multi-week cohorts, and async production-grade code reviews.",
   },
-  {
-    id: "mentor-elena-rostova",
-    userId: "user-elena-rostova",
-    bio: "Staff Frontend Architect at Vercel Alum. Deep focus on design systems, web performance, and React Server Components.",
-    techStackTags: ["React", "Next.js", "TypeScript", "TailwindCSS", "Performance"],
-    experienceLevel: "SENIOR",
-    githubUrl: "https://github.com",
-    approvalStatus: "APPROVED",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    user: {
-      id: "user-elena-rostova",
-      name: "Elena Rostova",
-      email: "elena@devmentor.com",
-    },
-  },
-  {
-    id: "mentor-marcus-chen",
-    userId: "user-marcus-chen",
-    bio: "Distributed systems engineer building microservices with Go, Kafka, and Kubernetes. Mentor for backend and system design.",
-    techStackTags: ["Go", "Kubernetes", "Kafka", "PostgreSQL", "FastAPI"],
-    experienceLevel: "MID",
-    githubUrl: "https://github.com",
-    approvalStatus: "APPROVED",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    user: {
-      id: "user-marcus-chen",
-      name: "Marcus Chen",
-      email: "marcus@devmentor.com",
-    },
-  },
-];
+};
 
 async function getFeaturedMentors(): Promise<MentorProfileItem[]> {
   try {
@@ -84,22 +44,12 @@ async function getFeaturedMentors(): Promise<MentorProfileItem[]> {
       next: { revalidate: 60 },
     });
 
-    if (!res.ok) return FALLBACK_MENTORS;
+    if (!res.ok) return [];
     const json = await res.json();
-    const fetched = json?.data?.mentors as MentorProfileItem[] | undefined;
-
-    if (fetched && fetched.length > 0) {
-      const combined = [...fetched];
-      for (const fallback of FALLBACK_MENTORS) {
-        if (!combined.some((m) => m.id === fallback.id || m.userId === fallback.userId)) {
-          combined.push(fallback);
-        }
-      }
-      return combined.slice(0, 3);
-    }
-    return FALLBACK_MENTORS;
+    const fetched = (json?.data?.mentors as MentorProfileItem[] | undefined) || [];
+    return fetched.slice(0, 3);
   } catch {
-    return FALLBACK_MENTORS;
+    return [];
   }
 }
 
@@ -455,11 +405,22 @@ export default async function HomePage() {
             </div>
           </MotionFadeIn>
 
-          <MotionStagger staggerDelay={0.15} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredMentors.map((mentor) => (
-              <MentorCard key={mentor.id} mentor={mentor} />
-            ))}
-          </MotionStagger>
+          {featuredMentors.length > 0 ? (
+            <MotionStagger staggerDelay={0.15} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredMentors.map((mentor) => (
+                <MentorCard key={mentor.id} mentor={mentor} />
+              ))}
+            </MotionStagger>
+          ) : (
+            <div className="text-center py-12 px-6 rounded-2xl bg-surface border border-border">
+              <p className="text-sm text-text-secondary">No approved mentors listed yet. Be the first to join as a verified instructor!</p>
+              <Link href="/apply-mentor" className="inline-block mt-4">
+                <Button size="sm" className="bg-amber text-white hover:bg-amber-hover text-xs">
+                  Apply as Mentor
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 

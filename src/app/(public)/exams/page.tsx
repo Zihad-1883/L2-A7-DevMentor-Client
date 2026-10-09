@@ -17,7 +17,7 @@ import { SEED_EXAMS } from "@/features/exam/seedExams";
 import type { Exam } from "@/types/exam.types";
 
 export const metadata = {
-  title: "MCQ Practice Exams & Skill Tests | DevMentor",
+  title: "MCQ Practice Exams & Skill Tests",
   description:
     "Test your engineering knowledge with curated, timed multiple-choice practice exams in Next.js, TypeScript, PostgreSQL, and System Architecture.",
 };

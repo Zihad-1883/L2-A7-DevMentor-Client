@@ -57,6 +57,7 @@ export interface PlatformOverviewStats {
   pendingMentorApplications: number;
   totalCohorts: number;
   pendingCohorts: number;
+  pendingPayouts?: number;
   totalRevenueBdt: number;
   platformCommissionEarnedBdt: number;
   totalCreditsCirculating: number;

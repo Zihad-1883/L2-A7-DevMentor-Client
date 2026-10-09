@@ -11,7 +11,7 @@ import {
 import MentorApplicationForm from "@/features/mentor/MentorApplicationForm";
 
 export const metadata = {
-  title: "Apply to Become a Mentor | DevMentor",
+  title: "Apply to Become a Mentor",
   description:
     "Join DevMentor as an instructor. Lead 1-on-1 sprint coaching, host group cohorts, conduct code reviews, and earn withdrawable credits.",
 };

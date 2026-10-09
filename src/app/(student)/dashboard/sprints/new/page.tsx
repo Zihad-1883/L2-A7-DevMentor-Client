@@ -3,7 +3,7 @@ import { ArrowLeft, Rocket, Sparkles, ShieldCheck, HelpCircle } from "lucide-rea
 import SprintRequestForm from "@/features/sprint/SprintRequestForm";
 
 export const metadata = {
-  title: "Book 1-on-1 Mentorship Sprint | DevMentor",
+  title: "Book 1-on-1 Mentorship Sprint",
   description:
     "Request custom 1-on-1 technical sprints with verified senior engineering mentors. Set problem scopes, pick session cadences, and solve engineering challenges faster.",
 };

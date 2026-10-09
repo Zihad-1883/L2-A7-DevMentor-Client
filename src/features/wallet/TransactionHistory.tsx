@@ -8,17 +8,15 @@ import {
   Coins,
   History,
   ShieldCheck,
-  CreditCard,
-  FileText,
 } from "lucide-react";
 import { useWallet } from "@/hooks/useWallet";
+import DataTable, { type ColumnDef } from "@/components/shared/DataTable";
 import type { WalletTransaction } from "@/types/wallet.types";
 
 export default function TransactionHistory() {
   const { transactions, isLoading } = useWallet();
 
   const getTransactionBadge = (type: string, amount: number) => {
-    const isCredit = amount > 0;
     switch (type) {
       case "TOP_UP":
         return {
@@ -61,9 +59,101 @@ export default function TransactionHistory() {
     }
   };
 
+  const columns: ColumnDef<WalletTransaction>[] = [
+    {
+      id: "event",
+      header: "Transaction",
+      cell: (tx) => {
+        const badge = getTransactionBadge(tx.type, tx.amount);
+        const Icon = badge.icon;
+        return (
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className={`size-9 rounded-xl border flex items-center justify-center shrink-0 ${badge.bg}`}
+            >
+              <Icon className="size-4" />
+            </div>
+            <div className="min-w-0 space-y-0.5">
+              <div className="font-semibold text-text-primary text-xs sm:text-sm truncate">
+                {tx.description || badge.label}
+              </div>
+              {tx.referenceId && (
+                <div className="font-mono text-[10px] text-text-muted truncate max-w-[200px]">
+                  Ref: {tx.referenceId}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "type",
+      header: "Category",
+      cell: (tx) => {
+        const badge = getTransactionBadge(tx.type, tx.amount);
+        return (
+          <span
+            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${badge.bg}`}
+          >
+            {badge.label}
+          </span>
+        );
+      },
+    },
+    {
+      id: "date",
+      header: "Timestamp",
+      cell: (tx) => {
+        const txDate = new Date(tx.createdAt);
+        return (
+          <div className="text-xs text-text-secondary whitespace-nowrap">
+            <div>
+              {txDate.toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </div>
+            <div className="text-[10px] text-text-muted">
+              {txDate.toLocaleTimeString(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "amount",
+      header: "Impact",
+      align: "right",
+      cell: (tx) => {
+        const isPositive = tx.amount > 0;
+        return (
+          <div className="text-right">
+            <span
+              className={`font-serif text-sm sm:text-base font-bold ${
+                isPositive ? "text-emerald" : "text-text-primary"
+              }`}
+            >
+              {isPositive ? `+${tx.amount}` : tx.amount} Credits
+            </span>
+            <span className="text-[10px] text-text-muted block">
+              {isPositive
+                ? `+৳${(tx.amount * 4).toLocaleString()} BDT`
+                : `৳${Math.abs(tx.amount * 4).toLocaleString()} BDT`}
+            </span>
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="p-6 sm:p-8 rounded-3xl bg-surface border border-border space-y-6 shadow-xs">
-      <div className="flex items-center justify-between pb-4 border-b border-border">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border">
         <div>
           <h3 className="font-serif text-lg font-bold text-text-primary flex items-center gap-2">
             <History className="size-4 text-amber" /> Credit Transaction History
@@ -72,105 +162,27 @@ export default function TransactionHistory() {
             Audit log of all deposits, escrow locks, and sprint disbursements
           </p>
         </div>
-        <span className="text-xs text-text-muted">
-          Showing latest {transactions.length} events
+        <span className="text-xs font-semibold text-text-muted">
+          {transactions.length} total events
         </span>
       </div>
 
-      {isLoading ? (
-        <div className="space-y-3 animate-pulse">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 rounded-2xl bg-surface-raised border border-border" />
-          ))}
-        </div>
-      ) : transactions.length === 0 ? (
-        <div className="py-12 text-center space-y-2">
-          <Coins className="size-8 text-text-muted mx-auto stroke-1" />
-          <h4 className="font-serif text-base font-bold text-text-primary">
-            No transactions yet
-          </h4>
-          <p className="text-xs text-text-secondary max-w-sm mx-auto">
-            Your credit deposit and booking transaction records will appear here once you top up your DevWallet.
-          </p>
-        </div>
-      ) : (
-        <div className="divide-y divide-border/60">
-          {transactions.map((tx) => {
-            const isPositive = tx.amount > 0;
-            const badge = getTransactionBadge(tx.type, tx.amount);
-            const Icon = badge.icon;
-            const txDate = new Date(tx.createdAt);
-
-            return (
-              <div
-                key={tx.id}
-                className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-raised/40 transition-colors px-2 rounded-xl"
-              >
-                <div className="flex items-start gap-3.5">
-                  <div
-                    className={`size-10 rounded-2xl border flex items-center justify-center shrink-0 ${badge.bg}`}
-                  >
-                    <Icon className="size-4" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-text-primary">
-                        {tx.description}
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${badge.bg}`}
-                      >
-                        {badge.label}
-                      </span>
-                    </div>
-
-                    <div className="text-[11px] text-text-muted flex items-center gap-3">
-                      <span>
-                        {txDate.toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </span>
-                      <span>•</span>
-                      <span>
-                        {txDate.toLocaleTimeString(undefined, {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                      {tx.referenceId && (
-                        <>
-                          <span>•</span>
-                          <span className="font-mono text-[10px] truncate max-w-[120px]">
-                            Ref: {tx.referenceId}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-right self-end sm:self-center shrink-0">
-                  <span
-                    className={`font-serif text-base font-bold ${
-                      isPositive ? "text-emerald" : "text-text-primary"
-                    }`}
-                  >
-                    {isPositive ? `+${tx.amount}` : tx.amount} Credits
-                  </span>
-                  <span className="text-[11px] text-text-muted block">
-                    {isPositive
-                      ? `+৳${(tx.amount * 4).toLocaleString()} BDT`
-                      : `৳${Math.abs(tx.amount * 4).toLocaleString()} BDT`}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <DataTable
+        data={transactions}
+        columns={columns}
+        keyExtractor={(tx) => tx.id}
+        isLoading={isLoading}
+        pageSize={8}
+        searchPlaceholder="Filter transactions by description or reference..."
+        searchFilter={(tx, q) =>
+          tx.description.toLowerCase().includes(q) ||
+          tx.type.toLowerCase().includes(q) ||
+          (tx.referenceId ? tx.referenceId.toLowerCase().includes(q) : false)
+        }
+        emptyTitle="No transactions yet"
+        emptyDescription="Your credit deposit and booking transaction records will appear here once you top up your DevWallet."
+        emptyIcon={<Coins className="size-6 stroke-1 text-text-muted" />}
+      />
     </div>
   );
 }

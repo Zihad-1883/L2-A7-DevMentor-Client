@@ -145,7 +145,7 @@ export default function DashboardSidebar() {
       {isSidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-xs lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs lg:hidden animate-in fade-in duration-200"
         />
       )}
 

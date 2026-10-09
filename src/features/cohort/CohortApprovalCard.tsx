@@ -8,6 +8,7 @@ import { queryKeys } from "@/lib/query-keys";
 import type { CohortApprovalStatus, CohortItem } from "@/types/cohort.types";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import ConfirmModal from "@/components/shared/ConfirmModal";
 import {
   Check,
   X,
@@ -40,6 +41,7 @@ export default function CohortApprovalCard({
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [modalAction, setModalAction] = React.useState<"APPROVED" | "REJECTED" | null>(null);
 
   const mutation = useMutation({
     mutationFn: (next: "APPROVED" | "REJECTED") =>
@@ -180,14 +182,10 @@ export default function CohortApprovalCard({
           <button
             type="button"
             disabled={mutation.isPending}
-            onClick={() => run("REJECTED")}
+            onClick={() => setModalAction("REJECTED")}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-orange/30 text-orange hover:bg-orange/10 transition-colors cursor-pointer disabled:opacity-50"
           >
-            {mutation.isPending && mutation.variables === "REJECTED" ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <X className="size-3.5" />
-            )}
+            <X className="size-3.5" />
             {isApproved ? "Revoke Approval" : "Reject"}
           </button>
         )}
@@ -195,18 +193,48 @@ export default function CohortApprovalCard({
           <button
             type="button"
             disabled={mutation.isPending}
-            onClick={() => run("APPROVED")}
+            onClick={() => setModalAction("APPROVED")}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
           >
-            {mutation.isPending && mutation.variables === "APPROVED" ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Check className="size-3.5" />
-            )}
+            <Check className="size-3.5" />
             Approve
           </button>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={Boolean(modalAction)}
+        title={
+          modalAction === "APPROVED"
+            ? "Approve Cohort Submission?"
+            : isApproved
+            ? "Revoke Cohort Approval?"
+            : "Reject Cohort Submission?"
+        }
+        description={
+          modalAction === "APPROVED"
+            ? `Are you sure you want to approve "${cohort.title}"? The mentor will be able to publish it to the public directory.`
+            : `Are you sure you want to ${
+                isApproved ? "revoke approval for" : "reject"
+              } "${cohort.title}"? It will not appear in the public directory.`
+        }
+        confirmLabel={
+          modalAction === "APPROVED"
+            ? "Yes, Approve Cohort"
+            : isApproved
+            ? "Yes, Revoke Approval"
+            : "Yes, Reject"
+        }
+        variant={modalAction === "APPROVED" ? "success" : "danger"}
+        isLoading={mutation.isPending}
+        onConfirm={() => {
+          if (modalAction) {
+            run(modalAction);
+            setModalAction(null);
+          }
+        }}
+        onClose={() => setModalAction(null)}
+      />
     </div>
   );
 }

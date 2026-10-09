@@ -6,6 +6,7 @@ import { adminService } from "@/services/admin.service";
 import { queryKeys } from "@/lib/query-keys";
 import UserManagementTable from "@/features/admin/UserManagementTable";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Users,
   Search,
@@ -176,27 +177,36 @@ export default function AdminUsersPage() {
         <div className={`space-y-4 transition-opacity ${isFetching ? "opacity-70" : ""}`}>
           <UserManagementTable users={users} />
 
-          <div className="flex items-center justify-between text-xs text-text-secondary">
-            <span>
-              Page {meta?.page ?? page} of {totalPages}
-            </span>
+          <div className="p-3.5 rounded-2xl bg-surface border border-border/70 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-text-secondary shadow-2xs">
+            <div>
+              Showing page <span className="font-semibold text-text-primary">{meta?.page ?? page}</span> of{" "}
+              <span className="font-semibold text-text-primary">{totalPages}</span> (
+              <span className="font-semibold text-text-primary">{meta?.total ?? users.length}</span> total users)
+            </div>
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1 || isFetching}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold bg-surface border border-border hover:border-amber/40 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="h-8 px-3 rounded-xl border-border text-xs gap-1 cursor-pointer disabled:opacity-40"
               >
                 <ChevronLeft className="size-3.5" /> Prev
-              </button>
-              <button
+              </Button>
+              <div className="px-2 font-mono text-[11px] font-semibold text-text-primary">
+                {page} / {totalPages}
+              </div>
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages || isFetching}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold bg-surface border border-border hover:border-amber/40 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="h-8 px-3 rounded-xl border-border text-xs gap-1 cursor-pointer disabled:opacity-40"
               >
                 Next <ChevronRight className="size-3.5" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ConfirmModal from "@/components/shared/ConfirmModal";
+import Modal from "@/components/shared/Modal";
 import { payoutService } from "@/services/payout.service";
 import type { PayoutRequest } from "@/types/payout.types";
 import { formatDate } from "@/lib/utils";
@@ -214,74 +215,64 @@ export default function PayoutApprovalCard({
       )}
 
       {/* 6. Reject & Refund Modal */}
-      {showRejectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-surface border border-border shadow-2xl space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-2xl bg-rose-light text-rose flex items-center justify-center shrink-0">
-                <AlertTriangle className="size-5" />
-              </div>
-              <div>
-                <h3 className="font-serif text-lg font-bold text-text-primary">
-                  Decline Payout Request
-                </h3>
-                <p className="text-xs text-text-secondary">
-                  The {payout.amountCredits} credits held in escrow will be immediately returned to the mentor&apos;s wallet.
-                </p>
-              </div>
-            </div>
+      <Modal
+        isOpen={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        title="Decline Payout Request"
+        description={`The ${payout.amountCredits} credits held in escrow will be immediately returned to the mentor's wallet.`}
+        icon={<AlertTriangle className="size-5" />}
+        iconBadgeClassName="bg-rose-light text-rose border-rose/20"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowRejectModal(false)}
+              disabled={processMutation.isPending}
+              className="text-xs border-border h-9 px-4 rounded-xl"
+            >
+              Cancel
+            </Button>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-text-primary">
-                Rejection Reason (Visible to Mentor)
-              </label>
-              <textarea
-                rows={3}
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="e.g. Invalid bKash account number, account unverified, or incorrect payment details..."
-                className="w-full p-3 rounded-2xl bg-surface-raised border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-rose/40 resize-y"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowRejectModal(false)}
-                disabled={processMutation.isPending}
-                className="text-xs border-border"
-              >
-                Cancel
-              </Button>
-
-              <Button
-                type="button"
-                size="sm"
-                onClick={() =>
-                  processMutation.mutate({
-                    status: "REJECTED",
-                    rejectionReason: rejectionReason.trim(),
-                  })
-                }
-                disabled={processMutation.isPending}
-                className="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs gap-1.5 cursor-pointer shadow-2xs"
-              >
-                {processMutation.isPending ? (
-                  <>
-                    <Loader2 className="size-3.5 animate-spin" /> Processing...
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="size-3.5" /> Decline &amp; Refund
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() =>
+                processMutation.mutate({
+                  status: "REJECTED",
+                  rejectionReason: rejectionReason.trim(),
+                })
+              }
+              disabled={processMutation.isPending}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs h-9 px-4 rounded-xl gap-1.5 cursor-pointer shadow-2xs"
+            >
+              {processMutation.isPending ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" /> Processing...
+                </>
+              ) : (
+                <>
+                  <XCircle className="size-3.5" /> Decline &amp; Refund
+                </>
+              )}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-2 pt-1">
+          <label className="text-xs font-bold text-text-primary">
+            Rejection Reason (Visible to Mentor)
+          </label>
+          <textarea
+            rows={3}
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            placeholder="e.g. Invalid bKash account number, account unverified, or incorrect payment details..."
+            className="w-full p-3.5 rounded-2xl bg-surface-raised border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-rose/40 resize-y"
+          />
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

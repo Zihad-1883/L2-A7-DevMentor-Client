@@ -32,10 +32,7 @@ function getServerSnapshot(): number {
   return 0;
 }
 
-/**
- * Custom hook to safely subscribe to the current time via useSyncExternalStore.
- * Avoids React Compiler impure function errors (e.g., Date.now in render).
- */
+// Safe external store subscription to prevent React Compiler render purity warnings
 export function useCurrentTime(): number {
   return React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

@@ -101,9 +101,7 @@ export const examService = {
     return await apiClient.post<Exam>("/exams", payload);
   },
 
-  // Add questions to an existing exam (mentor only)
-  // Sends questions sequentially in single-item batches to prevent Prisma interactive transaction
-  // timeout (5000ms limit on serverless environments)
+  // Add questions to an existing exam sequentially
   addQuestionsToExam: async (
     examId: string,
     questions: import("@/types/exam.types").CreateQuestionInput[]

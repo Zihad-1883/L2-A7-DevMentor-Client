@@ -8,10 +8,7 @@ const ROLE_DEFAULT_ROUTES: Record<UserRole, string> = {
   admin: "/admin",
 };
 
-/**
- * Validates session against the Better Auth backend endpoint
- * by forwarding incoming request cookie headers.
- */
+// Validate session against Better Auth backend endpoint
 async function fetchSession(req: NextRequest): Promise<UserSession | null> {
   const cookieHeader = req.headers.get("cookie") || "";
   let forwardedCookie = cookieHeader;

@@ -6,9 +6,7 @@ const BACKEND_BASE_URL = RAW_API_URL.endsWith("/api/v1")
   ? RAW_API_URL
   : `${RAW_API_URL.replace(/\/+$/, "")}/api/v1`;
 
-// When running in the browser, route through the local Next.js proxy (/api/proxy)
-// so that HTTP cookies (better-auth session tokens) are automatically attached by the browser.
-// On the server side (SSR / Server Components), call the backend directly.
+// Browser requests route via /api/proxy to forward cookies; server calls backend directly
 const BASE_URL =
   typeof window !== "undefined"
     ? "/api/proxy"

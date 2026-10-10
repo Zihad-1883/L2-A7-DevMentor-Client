@@ -26,7 +26,6 @@ import {
 
 interface CohortApprovalCardProps {
   cohort: CohortItem;
-  /** Effective approval status (may be overridden after a moderation action). */
   status: CohortApprovalStatus;
   onActionComplete?: (cohortId: string, status: "APPROVED" | "REJECTED") => void;
 }

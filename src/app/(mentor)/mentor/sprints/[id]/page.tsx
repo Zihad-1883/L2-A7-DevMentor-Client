@@ -54,8 +54,7 @@ export default function MentorSprintDetailPage() {
       try {
         return await sprintService.getSprintById(sprintId);
       } catch (err: unknown) {
-        // If backend throws 403 ("You cannot access this sprint details") because it is unclaimed,
-        // fetch it from the mentor open-pool or my-sprints
+        // Fallback to open pool if unclaimed sprint returns 403
         const is403 =
           (err as { status?: number })?.status === 403 ||
           (err as { response?: { status?: number } })?.response?.status === 403 ||

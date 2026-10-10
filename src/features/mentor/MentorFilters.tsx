@@ -43,8 +43,7 @@ export default function MentorFilters({ totalCount }: MentorFiltersProps) {
   const [prevSearch, setPrevSearch] = React.useState(currentSearch);
   const debouncedSearch = useDebounce(localSearch, 300);
 
-  // If the URL search param changes externally (e.g. Reset Filters or browser Back/Forward),
-  // adjust local state during render rather than in an effect to avoid cascading re-renders.
+  // Sync external URL search param changes during render
   if (prevSearch !== currentSearch) {
     setPrevSearch(currentSearch);
     setLocalSearch(currentSearch);

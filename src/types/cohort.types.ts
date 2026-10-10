@@ -1,4 +1,3 @@
-// Group cohort program TypeScript interfaces
 
 export type CohortStatus = "DRAFT" | "PUBLISHED" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
 export type CohortApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "PENDING_APPROVAL";

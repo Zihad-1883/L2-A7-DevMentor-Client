@@ -1,4 +1,3 @@
-// MCQ exam & question TypeScript interfaces
 
 export type ExamStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 

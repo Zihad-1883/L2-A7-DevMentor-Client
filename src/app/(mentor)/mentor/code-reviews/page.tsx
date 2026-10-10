@@ -54,20 +54,15 @@ export default function MentorCodeReviewsPage() {
   const { user } = useAuthContext();
   const now = useCurrentTime();
 
-  // Active Tab: "pool" (Available open requests) vs "in_progress" (Current mentor's locked / claimed reviews)
   const [activeTab, setActiveTab] = React.useState<"pool" | "in_progress">("pool");
-
-  // Search & Filters
   const [searchQuery, setSearchQuery] = React.useState("");
   const [tierFilter, setTierFilter] = React.useState<"ALL" | CodeReviewTier>("ALL");
   const [languageFilter, setLanguageFilter] = React.useState("ALL");
 
-  // Inspection Drawer / Modal State
   const [inspectedRequest, setInspectedRequest] =
     React.useState<CodeReviewRequestItem | null>(null);
   const [isCopied, setIsCopied] = React.useState(false);
 
-  // Check if currently inspected request is preview locked by another mentor
   const isInspectedLockedByOther = Boolean(
     inspectedRequest &&
     inspectedRequest.status === "PREVIEW_LOCKED" &&
@@ -112,12 +107,9 @@ export default function MentorCodeReviewsPage() {
   }, [user?.id, data, now]);
 
   // 3. Filter Available Requests Pool:
-  // Must ONLY show requests not locked by others. If locked by another mentor, do not show anything!
-  // If preview lock is expired, it returns to the pool and is available to any mentor.
   const availableRequests: CodeReviewRequestItem[] = React.useMemo(() => {
     const list = Array.isArray(rawRequests) ? rawRequests : [];
     return list.filter((r) => {
-      // Exclude claimed, delivered, completed, or cancelled requests
       if (
         r.status === "CLAIMED" ||
         r.status === "DELIVERED" ||
@@ -127,28 +119,21 @@ export default function MentorCodeReviewsPage() {
         return false;
       }
 
-      // Check preview locks
       if (r.status === "PREVIEW_LOCKED") {
         const isExpired =
           r.previewExpiresAt == null ||
           new Date(r.previewExpiresAt).getTime() <= now;
 
-        // If lock has expired, it is open for any mentor to claim or preview!
         if (isExpired) {
           return true;
         }
 
-        // Active lock: if locked by another mentor, DO NOT SHOW ANYTHING.
-        // If locked by current mentor, it is accessible under "My In-Progress Reviews".
         return false;
       }
 
-      // Status is OPEN: available!
       return true;
     });
   }, [rawRequests, now]);
-
-  // Pool Metrics
   const totalOpenCount = availableRequests.length;
   const quickCount = availableRequests.filter((r) => r.tier === "QUICK").length;
   const deepCount = availableRequests.filter((r) => r.tier === "DEEP").length;
@@ -157,7 +142,6 @@ export default function MentorCodeReviewsPage() {
     0
   );
 
-  // Mutation: Acquire 10-Minute Preview Lock from Modal & Immediately Navigate to Details Page
   const previewLockMutation = useMutation({
     mutationFn: (requestId: string) =>
       codeReviewService.previewLock(requestId, user?.id),
@@ -333,14 +317,9 @@ export default function MentorCodeReviewsPage() {
         </button>
       </div>
 
-      {/* ========================================================================= */}
-      {/* VIEW A: AVAILABLE REQUESTS POOL */}
-      {/* ========================================================================= */}
       {activeTab === "pool" && (
         <div className="space-y-6">
-          {/* Search & Filter Bar */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 rounded-2xl bg-surface border border-border shadow-xs">
-            {/* Search Input */}
             <div className="relative flex-1 max-w-md">
               <Search className="size-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <Input
@@ -352,7 +331,6 @@ export default function MentorCodeReviewsPage() {
               />
             </div>
 
-            {/* Tier Filter Pills */}
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted mr-1 flex items-center gap-1">
                 <Filter className="size-3" /> Tier:
@@ -392,7 +370,6 @@ export default function MentorCodeReviewsPage() {
               </button>
             </div>
 
-            {/* Language Filter */}
             <div className="flex items-center gap-2">
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted shrink-0">
                 Language:
@@ -411,7 +388,6 @@ export default function MentorCodeReviewsPage() {
             </div>
           </div>
 
-          {/* Code Review Requests Grid */}
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {[1, 2, 3, 4].map((i) => (
@@ -488,9 +464,6 @@ export default function MentorCodeReviewsPage() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* VIEW B: MY IN-PROGRESS REVIEWS */}
-      {/* ========================================================================= */}
       {activeTab === "in_progress" && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -521,14 +494,12 @@ export default function MentorCodeReviewsPage() {
                 const reward = item.creditReward || (isQuick ? 10 : 50);
                 const bdt = reward * 4;
 
-                // Preview lock countdown
                 const previewSecsLeft = item.previewExpiresAt
                   ? Math.max(0, Math.floor((new Date(item.previewExpiresAt).getTime() - now) / 1000))
                   : 0;
                 const previewMins = Math.floor(previewSecsLeft / 60);
                 const previewSecs = previewSecsLeft % 60;
 
-                // Delivery SLA countdown
                 const slaSecsLeft = item.deliveryDeadline
                   ? Math.max(0, Math.floor((new Date(item.deliveryDeadline).getTime() - now) / 1000))
                   : 0;
@@ -541,7 +512,6 @@ export default function MentorCodeReviewsPage() {
                     className="flex flex-col justify-between p-6 rounded-3xl bg-surface border border-border shadow-xs hover:border-amber/40 transition-all space-y-5"
                   >
                     <div className="space-y-4">
-                      {/* Status & Tier Header */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-2">
                           <span
@@ -589,7 +559,6 @@ export default function MentorCodeReviewsPage() {
                         </div>
                       </div>
 
-                      {/* Title & Description */}
                       <div className="space-y-1">
                         <h3 className="font-serif text-lg font-bold text-text-primary line-clamp-1">
                           {item.title}
@@ -599,7 +568,6 @@ export default function MentorCodeReviewsPage() {
                         </p>
                       </div>
 
-                      {/* Active Countdown Info Box */}
                       {item.status === "PREVIEW_LOCKED" && (
                         <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber/30 text-amber-950 dark:text-amber-200 space-y-1">
                           <div className="flex items-center justify-between text-xs font-bold">
@@ -637,7 +605,6 @@ export default function MentorCodeReviewsPage() {
                       )}
                     </div>
 
-                    {/* Bottom Action Button */}
                     <div className="pt-4 border-t border-border/70 flex items-center justify-between">
                       <span className="text-xs text-text-muted">
                         Student: <strong>{item.student?.name || "Student"}</strong>
@@ -674,10 +641,6 @@ export default function MentorCodeReviewsPage() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* 4. MODAL: Code Snippet Quick Inspector & Preview Lock */}
-      {/* (NO CLAIM FROM MODAL - ONLY LOCK PREVIEW & ROUTE TO DETAILS PAGE) */}
-      {/* ========================================================================= */}
       {inspectedRequest && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div
@@ -685,7 +648,6 @@ export default function MentorCodeReviewsPage() {
             role="dialog"
             aria-modal="true"
           >
-            {/* Header */}
             <div className="flex items-start justify-between gap-4 pb-3 border-b border-border/60">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -732,7 +694,6 @@ export default function MentorCodeReviewsPage() {
               </Button>
             </div>
 
-            {/* Student Problem Statement */}
             <div className="space-y-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Student Request &amp; Question:
@@ -742,7 +703,6 @@ export default function MentorCodeReviewsPage() {
               </div>
             </div>
 
-            {/* Target Files / Repo Context */}
             {inspectedRequest.githubRepoUrl && (
               <div className="p-3 rounded-2xl bg-surface-raised border border-border flex items-center justify-between text-xs">
                 <span className="text-text-muted">
@@ -762,7 +722,6 @@ export default function MentorCodeReviewsPage() {
               </div>
             )}
 
-            {/* Code Snippet Viewer */}
             {inspectedRequest.codeSnippet && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
@@ -772,7 +731,6 @@ export default function MentorCodeReviewsPage() {
                 </div>
 
                 <div className="rounded-2xl bg-[#141416] border border-neutral-800 overflow-hidden shadow-sm">
-                  {/* Title Bar */}
                   <div className="flex items-center justify-between px-3.5 py-2 bg-[#1b1b1f] border-b border-neutral-800">
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1">
@@ -811,7 +769,6 @@ export default function MentorCodeReviewsPage() {
                     </div>
                   </div>
 
-                  {/* Code Body with High-Contrast Text */}
                   <div className="p-4 font-mono text-xs text-[#f4f4f5] overflow-auto max-h-80 leading-relaxed bg-[#141416]">
                     <pre className="font-mono leading-relaxed selection:bg-amber-600/40 selection:text-white">
                       <code>{inspectedRequest.codeSnippet}</code>
@@ -821,7 +778,6 @@ export default function MentorCodeReviewsPage() {
               </div>
             )}
 
-            {/* Warning if preview locked by another mentor */}
             {isInspectedLockedByOther && (
               <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber/30 text-amber-950 dark:text-amber-200 flex items-start gap-3">
                 <div className="size-8 rounded-xl bg-amber/20 text-amber flex items-center justify-center shrink-0 mt-0.5">
@@ -838,7 +794,6 @@ export default function MentorCodeReviewsPage() {
               </div>
             )}
 
-            {/* Action Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-border/60">
               <div className="text-xs text-text-muted flex items-center gap-1.5">
                 <Clock className="size-3.5 text-amber" />

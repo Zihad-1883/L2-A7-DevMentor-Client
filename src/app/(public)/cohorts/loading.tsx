@@ -1,19 +1,19 @@
-export default function MentorsLoading() {
+export default function CohortsLoading() {
   return (
     <div className="w-full min-h-screen bg-background py-10 sm:py-16 animate-in fade-in duration-200">
       <div className="max-w-7xl mx-auto px-6 lg:px-12 space-y-10">
-        {/* Page Header Skeleton */}
+        {/* Header */}
         <div className="max-w-3xl space-y-3">
           <div className="h-5 w-32 rounded-full bg-amber/15 animate-pulse" />
-          <div className="h-10 w-72 rounded-xl bg-surface-raised animate-pulse" />
+          <div className="h-10 w-80 rounded-xl bg-surface-raised animate-pulse" />
           <div className="h-4 w-96 rounded bg-surface-raised/70 animate-pulse" />
         </div>
 
-        {/* Search & Filter Bar Skeleton */}
+        {/* Filter bar */}
         <div className="p-4 rounded-2xl bg-surface border border-border shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="h-10 w-full sm:w-80 rounded-xl bg-surface-raised animate-pulse" />
           <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-            {[1, 2, 3, 4, 5].map((i) => (
+            {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
                 className="h-8 w-20 rounded-lg bg-surface-raised animate-pulse"
@@ -22,7 +22,7 @@ export default function MentorsLoading() {
           </div>
         </div>
 
-        {/* Mentors Grid Skeleton (6 Cards) */}
+        {/* Cohort Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
@@ -30,39 +30,28 @@ export default function MentorsLoading() {
               className="p-6 rounded-3xl bg-surface border border-border shadow-xs space-y-5 flex flex-col justify-between"
             >
               <div className="space-y-4">
-                {/* Mentor Card Header */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="size-14 rounded-2xl bg-amber/15 shrink-0 animate-pulse" />
-                    <div className="space-y-1.5">
-                      <div className="h-4 w-28 rounded bg-surface-raised animate-pulse" />
-                      <div className="h-3 w-36 rounded bg-surface-raised/60 animate-pulse" />
-                    </div>
-                  </div>
-                  <div className="h-5 w-16 rounded-full bg-surface-raised animate-pulse" />
+                <div className="flex items-center justify-between">
+                  <div className="size-12 rounded-2xl bg-amber/15 animate-pulse" />
+                  <div className="h-5 w-24 rounded-full bg-surface-raised animate-pulse" />
                 </div>
-
-                {/* Bio */}
-                <div className="space-y-2 pt-1">
+                <div className="space-y-2">
+                  <div className="h-5 w-48 rounded bg-surface-raised animate-pulse" />
                   <div className="h-3.5 w-full rounded bg-surface-raised/80 animate-pulse" />
-                  <div className="h-3.5 w-4/5 rounded bg-surface-raised/60 animate-pulse" />
+                  <div className="h-3.5 w-3/4 rounded bg-surface-raised/60 animate-pulse" />
                 </div>
-
-                {/* Tag Pills */}
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {[1, 2, 3, 4].map((tag) => (
+                  {[1, 2, 3].map((t) => (
                     <div
-                      key={tag}
+                      key={t}
                       className="h-6 w-16 rounded-md bg-surface-raised animate-pulse"
                     />
                   ))}
                 </div>
               </div>
 
-              {/* Bottom Card Footer */}
               <div className="pt-4 border-t border-border/70 flex items-center justify-between">
-                <div className="h-4 w-20 rounded bg-surface-raised animate-pulse" />
-                <div className="h-8 w-24 rounded-lg bg-amber/20 animate-pulse" />
+                <div className="h-5 w-20 rounded bg-surface-raised animate-pulse" />
+                <div className="h-9 w-28 rounded-xl bg-amber/20 animate-pulse" />
               </div>
             </div>
           ))}

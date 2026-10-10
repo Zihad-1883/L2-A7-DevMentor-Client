@@ -67,10 +67,8 @@ export default function MentorCodeReviewDetailPage() {
   const [isCopiedOriginal, setIsCopiedOriginal] = React.useState(false);
   const [isCopiedRefactored, setIsCopiedRefactored] = React.useState(false);
 
-  // Read cached copy if present
   const cachedReview = React.useMemo(() => (id ? codeReviewCache.get(id) : null), [id]);
 
-  // 1. Fetch Code Review Request
   const {
     data: request,
     isLoading,
@@ -93,7 +91,6 @@ export default function MentorCodeReviewDetailPage() {
     initialData: () => codeReviewCache.get(id) || undefined,
   });
 
-  // 2. 10-Minute Preview Lock Countdown Hook
   const {
     formattedTime: previewTimeLeft,
     isExpired: isPreviewExpired,
@@ -294,7 +291,6 @@ export default function MentorCodeReviewDetailPage() {
       <div className="p-6 sm:p-8 rounded-3xl bg-surface border border-border shadow-xs space-y-6 relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-3 max-w-2xl">
-            {/* Status & Tier Badges */}
             <div className="flex items-center gap-2 flex-wrap">
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${isQuick
@@ -347,7 +343,6 @@ export default function MentorCodeReviewDetailPage() {
               </span>
             </div>
 
-            {/* Title & Author */}
             <h1 className="text-xl sm:text-2xl font-bold font-serif text-text-primary">
               {request.title}
             </h1>
@@ -377,7 +372,6 @@ export default function MentorCodeReviewDetailPage() {
             </div>
           </div>
 
-          {/* Bounty Reward Box */}
           <div className="p-5 rounded-2xl bg-surface-raised border border-border/80 flex lg:flex-col items-center justify-between gap-3 text-right lg:min-w-[180px]">
             <div className="text-left lg:text-right">
               <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">
@@ -394,7 +388,7 @@ export default function MentorCodeReviewDetailPage() {
           </div>
         </div>
 
-        {/* 3. Expired Preview Lock Alert Banner (if lock expired) */}
+        {/* 3. Expired Preview Lock Alert Banner */}
         {isLockExpired && (
           <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber/30 text-amber-950 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -418,7 +412,7 @@ export default function MentorCodeReviewDetailPage() {
           </div>
         )}
 
-        {/* 4. 10-Minute Preview Lock Countdown Banner (if currently preview locked and not expired) */}
+        {/* 4. 10-Minute Preview Lock Countdown Banner */}
         {isPreviewLocked && (
           <div
             className={`p-4 rounded-2xl border transition-all ${isLockedByMe
@@ -460,7 +454,6 @@ export default function MentorCodeReviewDetailPage() {
                 </div>
               </div>
 
-              {/* Progress & Quick Claim Action */}
               {isLockedByMe && (
                 <div className="flex items-center gap-3 self-end sm:self-center">
                   <ClaimReviewButton
@@ -472,7 +465,6 @@ export default function MentorCodeReviewDetailPage() {
               )}
             </div>
 
-            {/* Visual countdown progress line */}
             {isLockedByMe && (
               <div className="w-full bg-border/50 h-1.5 rounded-full mt-3 overflow-hidden">
                 <div
@@ -485,7 +477,7 @@ export default function MentorCodeReviewDetailPage() {
           </div>
         )}
 
-        {/* 5. Active Delivery SLA Target Banner (if claimed) */}
+        {/* 5. Active Delivery SLA Target Banner */}
         {request.status === "CLAIMED" && (
           <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-indigo-950">
             <div className="flex items-center gap-3">
@@ -515,11 +507,8 @@ export default function MentorCodeReviewDetailPage() {
         )}
       </div>
 
-      {/* 3. Main Workspace: Code Inspector & Delivery Workflow */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Student Request & Code Snippet (Cols 1-7) */}
         <div className="lg:col-span-7 space-y-6">
-          {/* Student Description */}
           <div className="p-6 rounded-3xl bg-surface border border-border space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
               Student Problem Description
@@ -529,7 +518,6 @@ export default function MentorCodeReviewDetailPage() {
             </div>
           </div>
 
-          {/* GitHub Repository Info (if present) */}
           {request.githubRepoUrl && (
             <div className="p-5 rounded-3xl bg-surface border border-border space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
@@ -568,7 +556,6 @@ export default function MentorCodeReviewDetailPage() {
             </div>
           )}
 
-          {/* Attached Git Diff Patch / File (if present) */}
           {request.attachmentUrl && (
             <div className="p-5 rounded-3xl bg-surface border border-border space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
@@ -598,7 +585,6 @@ export default function MentorCodeReviewDetailPage() {
             </div>
           )}
 
-          {/* Submitted Code Snippet Viewer (High-Contrast Dark IDE Theme) */}
           {request.codeSnippet && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -608,7 +594,6 @@ export default function MentorCodeReviewDetailPage() {
               </div>
 
               <div className="rounded-2xl bg-[#141416] border border-neutral-800 overflow-hidden shadow-sm">
-                {/* IDE Window Titlebar */}
                 <div className="flex items-center justify-between px-4 py-2.5 bg-[#1b1b1f] border-b border-neutral-800">
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5">
@@ -647,7 +632,6 @@ export default function MentorCodeReviewDetailPage() {
                   </div>
                 </div>
 
-                {/* Code Body with High-Contrast Text */}
                 <div className="p-4 font-mono text-xs text-[#f4f4f5] overflow-auto max-h-[500px] leading-relaxed bg-[#141416]">
                   <pre className="font-mono leading-relaxed selection:bg-amber-600/40 selection:text-white">
                     <code>{request.codeSnippet}</code>
@@ -658,17 +642,14 @@ export default function MentorCodeReviewDetailPage() {
           )}
         </div>
 
-        {/* Right Column: Claim Actions & Deliver Feedback Form (Cols 8-12) */}
         <div className="lg:col-span-5 space-y-6">
-          {/* STATE A: REQUEST IS OPEN OR PREVIEW LOCK EXPIRED */}
           {(request.status === "OPEN" || isLockExpired) && (
             <div className="p-6 rounded-3xl bg-surface border border-border shadow-xs space-y-6">
               <div className="space-y-2">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                  isLockExpired
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${isLockExpired
                     ? "bg-emerald-50 text-emerald border border-emerald-200"
                     : "bg-amber-light text-amber"
-                }`}>
+                  }`}>
                   <Sparkles className="size-3.5" />
                   {isLockExpired ? "Lock Expired — Open For Claim" : "Claim Workspace"}
                 </span>
@@ -713,7 +694,6 @@ export default function MentorCodeReviewDetailPage() {
             </div>
           )}
 
-          {/* STATE B: PREVIEW LOCKED AND ACTIVE (Held by current mentor) */}
           {request.status === "PREVIEW_LOCKED" && !isLockExpired && isLockedByMe && (
             <div className="p-6 rounded-3xl bg-surface border border-border shadow-xs space-y-6">
               <div className="space-y-2">
@@ -753,7 +733,6 @@ export default function MentorCodeReviewDetailPage() {
             </div>
           )}
 
-          {/* STATE C: CLAIMED BY ME (In Progress Delivery Workspace) */}
           {request.status === "CLAIMED" && (
             <div className="p-6 rounded-3xl bg-surface border border-border shadow-xs space-y-6">
               <div className="space-y-1.5 border-b border-border/80 pb-4">
@@ -768,7 +747,6 @@ export default function MentorCodeReviewDetailPage() {
                 </p>
               </div>
 
-              {/* Delivery Submission Form */}
               <DeliverReviewForm
                 request={request}
                 onSuccess={() => refetch()}
@@ -776,7 +754,6 @@ export default function MentorCodeReviewDetailPage() {
             </div>
           )}
 
-          {/* STATE D: DELIVERED OR COMPLETED */}
           {(request.status === "DELIVERED" || request.status === "COMPLETED") && (
             <div className="p-6 rounded-3xl bg-surface border border-border shadow-xs space-y-6">
               <div className="space-y-2">
@@ -806,7 +783,6 @@ export default function MentorCodeReviewDetailPage() {
                 </p>
               </div>
 
-              {/* Delivered feedback details if available */}
               {request.submission && (
                 <div className="space-y-4 pt-2">
                   <div className="space-y-1">
@@ -855,7 +831,6 @@ export default function MentorCodeReviewDetailPage() {
                     </div>
                   )}
 
-                  {/* External links */}
                   <div className="flex flex-wrap gap-2 pt-1">
                     {request.submission.videoUrl && (
                       <a

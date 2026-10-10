@@ -41,7 +41,7 @@ async function getFeaturedMentors(): Promise<MentorProfileItem[]> {
       "https://dev-mentor-server.vercel.app";
 
     const res = await fetch(`${backendUrl}/api/v1/mentors?limit=6`, {
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
 
     if (!res.ok) return [];
@@ -60,15 +60,24 @@ async function getHeroData() {
     "https://dev-mentor-server.vercel.app";
 
   try {
-    const res = await fetch(`${backendUrl}/api/v1/cohorts?limit=1`, {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) return { cohort: null };
-    const json = await res.json();
-    const cohort = json?.data?.cohorts?.[0] || null;
-    return { cohort };
+    const [cohortRes, sprintRes] = await Promise.all([
+      fetch(`${backendUrl}/api/v1/cohorts?limit=1`, {
+        cache: "no-store",
+      }).catch(() => null),
+      fetch(`${backendUrl}/api/v1/sprints/open-pool?limit=1`, {
+        cache: "no-store",
+      }).catch(() => null),
+    ]);
+
+    const cohortJson = cohortRes?.ok ? await cohortRes.json() : null;
+    const sprintJson = sprintRes?.ok ? await sprintRes.json() : null;
+
+    const cohort = cohortJson?.data?.cohorts?.[0] || null;
+    const sprint = sprintJson?.data?.sprints?.[0] || null;
+
+    return { cohort, sprint };
   } catch {
-    return { cohort: null };
+    return { cohort: null, sprint: null };
   }
 }
 
@@ -171,7 +180,10 @@ export default async function HomePage() {
           </div>
 
           <div className="lg:col-span-6 w-full">
-            <HeroInteractiveMockup initialCohort={heroData.cohort} />
+            <HeroInteractiveMockup
+              initialCohort={heroData.cohort}
+              initialSprint={heroData.sprint}
+            />
           </div>
         </div>
       </section>

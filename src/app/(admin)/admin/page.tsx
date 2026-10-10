@@ -35,12 +35,11 @@ export default function AdminDashboardPage() {
   } = useQuery({
     queryKey: queryKeys.admin.stats,
     queryFn: () => adminService.getPlatformStats(),
-    staleTime: 1000 * 60 * 3, // 3 minutes
+    staleTime: 1000 * 60 * 3,
   });
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-12">
-      {/* 1. Header & Welcome Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/80">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-terracotta-light text-terracotta border border-terracotta/20 mb-2">
@@ -67,7 +66,6 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* 2. Quick Action Moderation Shortcuts */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <Link
           href="/admin/mentors"
@@ -173,15 +171,9 @@ export default function AdminDashboardPage() {
         </div>
       ) : (
         <>
-          {/* 3. Platform Statistics Grid */}
           <PlatformStatsGrid stats={stats} />
-
-          {/* 4. Revenue & Platform Commission Chart */}
           <RevenueChart data={stats.monthlyRevenue} />
-
-          {/* 5. Live Moderation Status & Recent Activity Stream */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* System Health & Commission Metrics */}
             <Card className="border border-border/80 shadow-xs bg-surface">
               <CardHeader className="pb-3 border-b border-border/60">
                 <div className="flex items-center justify-between">
@@ -222,8 +214,6 @@ export default function AdminDashboardPage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Live Moderation Action Status */}
             <Card className="border border-border/80 shadow-xs bg-surface">
               <CardHeader className="pb-3 border-b border-border/60">
                 <div className="flex items-center justify-between">
@@ -256,11 +246,10 @@ export default function AdminDashboardPage() {
                         : "All mentor applicant profiles reviewed"}
                     </p>
                   </div>
-                  <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full ${
-                    stats.pendingMentorApplications > 0
+                  <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full ${stats.pendingMentorApplications > 0
                       ? "bg-amber text-white"
                       : "bg-surface-raised text-text-muted border border-border"
-                  }`}>
+                    }`}>
                     {stats.pendingMentorApplications}
                   </span>
                 </Link>
@@ -282,11 +271,10 @@ export default function AdminDashboardPage() {
                         : "All submitted group cohorts moderated"}
                     </p>
                   </div>
-                  <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full ${
-                    stats.pendingCohorts > 0
+                  <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full ${stats.pendingCohorts > 0
                       ? "bg-purple-500 text-white"
                       : "bg-surface-raised text-text-muted border border-border"
-                  }`}>
+                    }`}>
                     {stats.pendingCohorts}
                   </span>
                 </Link>
@@ -308,11 +296,10 @@ export default function AdminDashboardPage() {
                         : "All mentor withdrawal cash-outs processed"}
                     </p>
                   </div>
-                  <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full ${
-                    (stats.pendingPayouts ?? 0) > 0
+                  <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full ${(stats.pendingPayouts ?? 0) > 0
                       ? "bg-emerald text-white animate-pulse"
                       : "bg-surface-raised text-text-muted border border-border"
-                  }`}>
+                    }`}>
                     {stats.pendingPayouts ?? 0}
                   </span>
                 </Link>

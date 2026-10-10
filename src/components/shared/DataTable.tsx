@@ -61,21 +61,17 @@ export default function DataTable<T>({
     return data.filter((item) => searchFilter(item, q));
   }, [data, searchFilter, searchQuery]);
 
-  // Reset page when filter changes
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
-
-  // Pagination calculation
+  // Pagination calculation with derived safeCurrentPage (no cascading effect setState needed)
   const totalItems = filteredData.length;
   const effectivePageSize = pageSize || totalItems || 1;
   const totalPages = Math.max(1, Math.ceil(totalItems / effectivePageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
 
   const paginatedData = React.useMemo(() => {
     if (!pageSize) return filteredData;
-    const start = (currentPage - 1) * pageSize;
+    const start = (safeCurrentPage - 1) * pageSize;
     return filteredData.slice(start, start + pageSize);
-  }, [filteredData, currentPage, pageSize]);
+  }, [filteredData, safeCurrentPage, pageSize]);
 
   const alignClasses = {
     left: "text-left",
@@ -94,7 +90,10 @@ export default function DataTable<T>({
               <Input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
                 placeholder={searchPlaceholder || "Search entries..."}
                 className="pl-9 text-xs rounded-xl bg-surface border-border"
               />
@@ -160,9 +159,12 @@ export default function DataTable<T>({
               ) : (
                 // Data Rows
                 paginatedData.map((item, rowIndex) => {
+                  const itemRecord = item as Record<string, unknown>;
                   const key = keyExtractor
                     ? keyExtractor(item, rowIndex)
-                    : (item as any)?.id || rowIndex;
+                    : typeof itemRecord?.id === "string" || typeof itemRecord?.id === "number"
+                    ? String(itemRecord.id)
+                    : rowIndex;
 
                   return (
                     <tr
@@ -209,11 +211,11 @@ export default function DataTable<T>({
             <div>
               Showing{" "}
               <span className="font-semibold text-text-primary">
-                {(currentPage - 1) * pageSize + 1}
+                {(safeCurrentPage - 1) * pageSize + 1}
               </span>{" "}
               to{" "}
               <span className="font-semibold text-text-primary">
-                {Math.min(currentPage * pageSize, totalItems)}
+                {Math.min(safeCurrentPage * pageSize, totalItems)}
               </span>{" "}
               of <span className="font-semibold text-text-primary">{totalItems}</span> entries
             </div>
@@ -224,7 +226,7 @@ export default function DataTable<T>({
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage <= 1}
+                disabled={safeCurrentPage <= 1}
                 className="h-8 px-2.5 rounded-lg border-border text-xs gap-1 cursor-pointer disabled:opacity-40"
               >
                 <ChevronLeft className="size-3.5" />
@@ -232,7 +234,7 @@ export default function DataTable<T>({
               </Button>
 
               <div className="px-2 font-mono text-[11px] font-semibold text-text-primary">
-                {currentPage} / {totalPages}
+                {safeCurrentPage} / {totalPages}
               </div>
 
               <Button
@@ -240,7 +242,7 @@ export default function DataTable<T>({
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
+                disabled={safeCurrentPage >= totalPages}
                 className="h-8 px-2.5 rounded-lg border-border text-xs gap-1 cursor-pointer disabled:opacity-40"
               >
                 Next

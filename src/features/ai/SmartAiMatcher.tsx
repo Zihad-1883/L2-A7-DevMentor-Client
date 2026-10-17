@@ -59,7 +59,7 @@ export default function SmartAiMatcher() {
           : undefined;
       setError(
         message ||
-          "Could not analyze matches at the moment. Please try again."
+        "Could not analyze matches at the moment. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -77,7 +77,7 @@ export default function SmartAiMatcher() {
           <div>
             <div className="inline-flex items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider text-amber">
-                Feature 2 · AI Smart Discovery
+                AI Smart Discovery
               </span>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 Live DB Matching
@@ -143,11 +143,10 @@ export default function SmartAiMatcher() {
                     key={level}
                     type="button"
                     onClick={() => setPreferredLevel(level)}
-                    className={`text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                      preferredLevel === level
+                    className={`text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${preferredLevel === level
                         ? "bg-amber text-white shadow-xs font-semibold"
                         : "text-text-secondary hover:text-text-primary"
-                    }`}
+                      }`}
                   >
                     {level}
                   </button>

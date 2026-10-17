@@ -52,3 +52,31 @@ export interface MatchResultResponse {
   providerUsed: AiProvider;
 }
 
+// 3. AI Code Review Pre-Scan Types
+export interface CodeIssueFinding {
+  severity: "critical" | "warning" | "suggestion";
+  title: string;
+  description: string;
+  lineRange?: string;
+}
+
+export interface CodeScanPayload {
+  code: string;
+  language?: string;
+  context?: string;
+}
+
+export interface CodeScanResponse {
+  language: string;
+  complexitySummary: {
+    timeComplexity: string;
+    spaceComplexity: string;
+    maintainabilityScore: number;
+  };
+  findings: CodeIssueFinding[];
+  suggestedMentorFocus: string[];
+  mentorFocusNotes?: string;
+  providerUsed: AiProvider;
+}
+
+

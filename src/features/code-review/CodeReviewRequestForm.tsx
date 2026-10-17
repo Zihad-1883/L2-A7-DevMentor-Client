@@ -38,6 +38,7 @@ import {
   type CreateCodeReviewFormData,
 } from "@/lib/validations/code-review.schema";
 import type { CodeReviewTier } from "@/types/code-review.types";
+import CodePreScanWidget from "./CodePreScanWidget";
 
 const PROGRAMMING_LANGUAGES = [
   { value: "typescript", label: "TypeScript" },
@@ -239,11 +240,10 @@ export default function CodeReviewRequestForm() {
           {/* Quick Review (10 credits) */}
           <div
             onClick={() => setTier("QUICK")}
-            className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${
-              tier === "QUICK"
+            className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${tier === "QUICK"
                 ? "bg-surface-raised/90 border-amber ring-2 ring-amber/20 shadow-xs"
                 : "bg-surface border-border hover:border-border/80 hover:bg-surface-raised/40"
-            }`}
+              }`}
           >
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -282,11 +282,10 @@ export default function CodeReviewRequestForm() {
           {/* Deep Architectural Review (50 credits) */}
           <div
             onClick={() => setTier("DEEP")}
-            className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${
-              tier === "DEEP"
+            className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${tier === "DEEP"
                 ? "bg-surface-raised/90 border-amber ring-2 ring-amber/20 shadow-xs"
                 : "bg-surface border-border hover:border-border/80 hover:bg-surface-raised/40"
-            }`}
+              }`}
           >
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -342,9 +341,8 @@ export default function CodeReviewRequestForm() {
               if (fieldErrors.title) setFieldErrors((p) => ({ ...p, title: "" }));
             }}
             placeholder="e.g. Optimize Prisma nested joins & reduce N+1 query latency in dashboard API"
-            className={`h-11 bg-background text-sm ${
-              fieldErrors.title ? "border-rose focus-visible:ring-rose/20" : ""
-            }`}
+            className={`h-11 bg-background text-sm ${fieldErrors.title ? "border-rose focus-visible:ring-rose/20" : ""
+              }`}
           />
           {fieldErrors.title ? (
             <p className="text-xs text-rose flex items-center gap-1 mt-1">
@@ -370,11 +368,10 @@ export default function CodeReviewRequestForm() {
               if (fieldErrors.description) setFieldErrors((p) => ({ ...p, description: "" }));
             }}
             placeholder="Explain what specific challenges you're experiencing, edge cases you worry about, or performance goals you want to hit..."
-            className={`w-full p-3.5 rounded-xl border bg-background text-text-primary text-sm focus:outline-none focus:ring-2 transition-all resize-y ${
-              fieldErrors.description
+            className={`w-full p-3.5 rounded-xl border bg-background text-text-primary text-sm focus:outline-none focus:ring-2 transition-all resize-y ${fieldErrors.description
                 ? "border-rose focus:ring-rose/20"
                 : "border-border focus:border-amber focus:ring-amber/20"
-            }`}
+              }`}
           />
           {fieldErrors.description && (
             <p className="text-xs text-rose flex items-center gap-1">
@@ -399,11 +396,10 @@ export default function CodeReviewRequestForm() {
                 setSubmissionMode("snippet");
                 setFieldErrors((p) => ({ ...p, codeSnippet: "", githubRepoUrl: "", attachmentUrl: "" }));
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                submissionMode === "snippet"
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${submissionMode === "snippet"
                   ? "bg-surface text-text-primary shadow-2xs font-bold"
                   : "text-text-muted hover:text-text-secondary"
-              }`}
+                }`}
             >
               <FileCode className="size-3.5" /> Direct Snippet
             </button>
@@ -413,11 +409,10 @@ export default function CodeReviewRequestForm() {
                 setSubmissionMode("github");
                 setFieldErrors((p) => ({ ...p, codeSnippet: "", githubRepoUrl: "", attachmentUrl: "" }));
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                submissionMode === "github"
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${submissionMode === "github"
                   ? "bg-surface text-text-primary shadow-2xs font-bold"
                   : "text-text-muted hover:text-text-secondary"
-              }`}
+                }`}
             >
               <GitPullRequest className="size-3.5" /> GitHub Repository
             </button>
@@ -427,11 +422,10 @@ export default function CodeReviewRequestForm() {
                 setSubmissionMode("patch");
                 setFieldErrors((p) => ({ ...p, codeSnippet: "", githubRepoUrl: "", attachmentUrl: "" }));
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                submissionMode === "patch"
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${submissionMode === "patch"
                   ? "bg-surface text-text-primary shadow-2xs font-bold"
                   : "text-text-muted hover:text-text-secondary"
-              }`}
+                }`}
             >
               <FileDiff className="size-3.5 text-amber" /> Diff Patch / File
             </button>
@@ -492,6 +486,21 @@ export default function CodeReviewRequestForm() {
                 />
               </div>
 
+              {/* AI Feature 3: Automated Code Review Pre-Scan */}
+              <CodePreScanWidget
+                code={codeSnippet}
+                language={language}
+                context={title || description}
+                onApplyNotes={(notes) => {
+                  setDescription((prev) =>
+                    prev
+                      ? `${prev}\n\n[AI Suggested Focus]: ${notes}`
+                      : `[AI Suggested Focus]: ${notes}`
+                  );
+                  toast.success("AI focus notes appended to review description!");
+                }}
+              />
+
               {fieldErrors.codeSnippet && (
                 <p className="text-xs text-rose flex items-center gap-1 mt-1">
                   <AlertCircle className="size-3" /> {fieldErrors.codeSnippet}
@@ -516,9 +525,8 @@ export default function CodeReviewRequestForm() {
                   if (fieldErrors.githubRepoUrl) setFieldErrors((p) => ({ ...p, githubRepoUrl: "" }));
                 }}
                 placeholder="https://github.com/your-username/your-repository"
-                className={`h-11 bg-background text-sm font-mono ${
-                  fieldErrors.githubRepoUrl ? "border-rose focus-visible:ring-rose/20" : ""
-                }`}
+                className={`h-11 bg-background text-sm font-mono ${fieldErrors.githubRepoUrl ? "border-rose focus-visible:ring-rose/20" : ""
+                  }`}
               />
               {fieldErrors.githubRepoUrl ? (
                 <p className="text-xs text-rose flex items-center gap-1 mt-1">
@@ -644,11 +652,10 @@ export default function CodeReviewRequestForm() {
                   const file = e.dataTransfer.files?.[0];
                   if (file) handleFileUpload(file);
                 }}
-                className={`p-6 sm:p-8 rounded-2xl border-2 border-dashed transition-all text-center flex flex-col items-center justify-center cursor-pointer ${
-                  fieldErrors.attachmentUrl
+                className={`p-6 sm:p-8 rounded-2xl border-2 border-dashed transition-all text-center flex flex-col items-center justify-center cursor-pointer ${fieldErrors.attachmentUrl
                     ? "border-rose bg-rose/5"
                     : "border-border hover:border-amber/50 bg-surface-raised/40 hover:bg-surface-raised/80"
-                } ${isUploadingAttachment ? "opacity-60 pointer-events-none" : ""}`}
+                  } ${isUploadingAttachment ? "opacity-60 pointer-events-none" : ""}`}
               >
                 {isUploadingAttachment ? (
                   <div className="flex flex-col items-center gap-2 py-2">

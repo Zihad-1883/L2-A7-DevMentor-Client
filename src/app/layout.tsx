@@ -5,6 +5,7 @@ import QueryProvider from "@/components/providers/QueryProvider";
 import AuthProvider from "@/components/providers/AuthProvider";
 import ToastProvider from "@/components/providers/ToastProvider";
 import ThemeProvider from "@/components/providers/ThemeProvider";
+import DevMentorAiBot from "@/features/ai/DevMentorAiBot";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-body",
@@ -84,7 +85,10 @@ export default function RootLayout({
         >
           <QueryProvider>
             <AuthProvider>
-              <ToastProvider>{children}</ToastProvider>
+              <ToastProvider>
+                {children}
+                <DevMentorAiBot />
+              </ToastProvider>
             </AuthProvider>
           </QueryProvider>
         </ThemeProvider>

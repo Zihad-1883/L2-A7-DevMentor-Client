@@ -10,6 +10,7 @@ import { loginSchema, type LoginInput } from "@/lib/validations/auth.schema";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import DemoLoginButtons from "./DemoLoginButtons";
+import GoogleAuthButton from "./GoogleAuthButton";
 import { toast } from "sonner";
 import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
 
@@ -151,7 +152,8 @@ export default function LoginForm() {
         </Button>
       </form>
 
-      <div className="pt-2">
+      <div className="pt-3 space-y-3">
+        <GoogleAuthButton />
         <DemoLoginButtons />
       </div>
 

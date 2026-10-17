@@ -12,6 +12,7 @@ import {
 } from "@/lib/validations/auth.schema";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import GoogleAuthButton from "./GoogleAuthButton";
 import { toast } from "sonner";
 import { User, Mail, Lock, Loader2, ArrowRight } from "lucide-react";
 
@@ -179,6 +180,10 @@ export default function RegisterForm() {
           )}
         </Button>
       </form>
+
+      <div className="pt-3">
+        <GoogleAuthButton />
+      </div>
 
       <div className="mt-6 text-center text-xs text-text-muted border-t border-border/40 pt-4">
         Already have an account?{" "}

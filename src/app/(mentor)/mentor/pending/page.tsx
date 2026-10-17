@@ -37,7 +37,7 @@ export default function MentorPendingPage() {
   } = useQuery({
     queryKey: queryKeys.users.me,
     queryFn: () => userService.getMyProfile(),
-    refetchInterval: 1000 * 30, // Poll every 30s in case admin approves
+    refetchInterval: 1000 * 30,
   });
 
   const mentorProfile = profile?.mentorProfile;

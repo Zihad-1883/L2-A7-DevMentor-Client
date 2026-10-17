@@ -28,7 +28,7 @@ export default function MentorProfilePage() {
   } = useQuery({
     queryKey: queryKeys.users.me,
     queryFn: () => userService.getMyProfile(),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 
   const publicProfileHref = profile?.mentorProfile?.id

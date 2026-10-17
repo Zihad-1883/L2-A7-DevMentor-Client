@@ -7,19 +7,56 @@ import { useAuthContext } from "@/components/providers/AuthProvider";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Coins, User as UserIcon, LogOut, Sparkles } from "lucide-react";
+import ThemeToggle from "@/components/shared/ThemeToggle";
+import ProfileDropdown from "@/components/shared/ProfileDropdown";
 
 export default function Navbar() {
   const pathname = usePathname();
   const { user, isAuthenticated, role } = useAuthContext();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-  const navLinks = [
+  // Exactly 4 public routes for logged-out visitors
+  const publicNavLinks = [
     { label: "How It Works", href: "/how-it-works" },
     { label: "Cohorts", href: "/cohorts" },
-    { label: "Code Reviews", href: "/dashboard/code-reviews" },
-    { label: "Exams", href: "/exams" },
     { label: "Mentors", href: "/mentors" },
+    { label: "Skill Exams", href: "/exams" },
   ];
+
+  // 6+ contextual routes for authenticated users depending on role
+  const getLoggedInNavLinks = () => {
+    if (role === "admin") {
+      return [
+        { label: "Overview", href: "/admin" },
+        { label: "Mentors Queue", href: "/admin/mentors" },
+        { label: "Cohorts Queue", href: "/admin/cohorts" },
+        { label: "Users", href: "/admin/users" },
+        { label: "Payouts", href: "/admin/payouts" },
+        { label: "Settings", href: "/admin/settings" },
+      ];
+    }
+    if (role === "mentor") {
+      return [
+        { label: "Sprints Pool", href: "/mentor/sprints" },
+        { label: "My Cohorts", href: "/mentor/cohorts" },
+        { label: "Code Reviews", href: "/mentor/code-reviews" },
+        { label: "Earnings", href: "/mentor/earnings" },
+        { label: "Exams", href: "/mentor/exams" },
+        { label: "Directory", href: "/mentors" },
+      ];
+    }
+    // Student (default)
+    return [
+      { label: "How It Works", href: "/how-it-works" },
+      { label: "Cohorts", href: "/cohorts" },
+      { label: "Mentors", href: "/mentors" },
+      { label: "Code Reviews", href: "/dashboard/code-reviews" },
+      { label: "Exams", href: "/dashboard/exams" },
+      { label: "My Sprints", href: "/dashboard/sprints" },
+    ];
+  };
+
+  const navLinks = isAuthenticated ? getLoggedInNavLinks() : publicNavLinks;
 
   const getDashboardHref = () => {
     if (role === "admin") return "/admin";
@@ -30,8 +67,8 @@ export default function Navbar() {
   return (
     <header className="fixed top-0 left-0 right-0 w-full z-50 bg-surface/90 backdrop-blur-xl border-b border-border/40 shadow-xs">
       <div className="h-20 max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between gap-6">
-        <div className="flex items-center gap-10">
-          <Link href="/" className="flex items-center gap-2 group">
+        <div className="flex items-center gap-8">
+          <Link href="/" className="flex items-center gap-2 group shrink-0">
             <span className="font-serif text-2xl text-text-primary tracking-tight font-bold group-hover:text-amber transition-colors">
               DevMentor<span className="text-amber font-serif">.</span>
             </span>
@@ -44,7 +81,7 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${isActive
+                  className={`px-3 py-1.5 rounded-lg text-xs xl:text-sm font-medium transition-all ${isActive
                     ? "text-text-primary bg-surface-raised font-semibold"
                     : "text-text-muted hover:text-text-primary hover:bg-surface-raised/60"
                     }`}
@@ -57,63 +94,24 @@ export default function Navbar() {
         </div>
 
         <div className="hidden lg:flex items-center gap-3">
+          {/* Apply as Mentor Button strictly for students (logged-out or role === student) */}
           {(!isAuthenticated || role === "student") && (
             <Link
               href="/apply-mentor"
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary hover:text-amber hover:bg-surface-raised transition-colors flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary hover:text-amber hover:bg-surface-raised transition-colors flex items-center gap-1.5 border border-border/70"
             >
               <Sparkles className="size-3 text-amber" />
-              Apply as Mentor
+              <span>Apply as Mentor</span>
             </Link>
           )}
 
-          {isAuthenticated ? (
-            <>
-              {/* User Avatar + Profile / Logout */}
-              <div className="flex items-center gap-2 pl-2 border-l border-border/80">
-                <Link
-                  href={getDashboardHref()}
-                  className="flex items-center gap-2 group hover:opacity-90 transition-opacity"
-                  title={user?.name || "User Profile"}
-                >
-                  {user?.image ? (
-                    <img
-                      src={user.image}
-                      alt={user.name || "User"}
-                      className="size-9 rounded-full object-cover border border-border shadow-xs"
-                    />
-                  ) : (
-                    <div className="size-9 rounded-full bg-amber-light text-amber font-serif font-bold text-xs flex items-center justify-center border border-amber/30 shadow-xs group-hover:scale-105 transition-transform">
-                      {user?.name
-                        ? user.name
-                          .split(" ")
-                          .map((p) => p[0])
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase()
-                        : "DM"}
-                    </div>
-                  )}
-                </Link>
+          {/* Global Theme Toggle */}
+          <ThemeToggle />
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      localStorage.removeItem("devmentor_cached_role");
-                    } catch {}
-                    await signOut();
-                    window.location.assign("/login");
-                  }}
-                  className="h-8 px-2.5 text-xs text-text-muted hover:text-orange hover:bg-surface-raised gap-1.5 cursor-pointer"
-                  title="Sign Out"
-                >
-                  <LogOut className="size-3.5" />
-                  <span className="hidden md:inline">Logout</span>
-                </Button>
-              </div>
-            </>
+          {isAuthenticated ? (
+            <div className="pl-2 border-l border-border/80">
+              <ProfileDropdown />
+            </div>
           ) : (
             <>
               <Link
@@ -154,6 +152,10 @@ export default function Navbar() {
             </Link>
           ))}
           <div className="pt-3 border-t border-border flex flex-col gap-2">
+            <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-surface-raised mb-1">
+              <span className="text-xs font-medium text-text-secondary">Switch Theme</span>
+              <ThemeToggle />
+            </div>
             {isAuthenticated ? (
               <>
                 <div className="flex items-center gap-3 p-2 rounded-lg bg-surface-raised mb-2">

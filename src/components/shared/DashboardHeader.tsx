@@ -7,6 +7,7 @@ import { useUiStore } from "@/store/ui.store";
 import { useWallet } from "@/hooks/useWallet";
 import { Menu, Plus } from "lucide-react";
 import CreditDisplay from "./CreditDisplay";
+import ThemeToggle from "./ThemeToggle";
 
 export default function DashboardHeader() {
   const { role } = useAuthContext();
@@ -58,6 +59,9 @@ export default function DashboardHeader() {
             </Link>
           </div>
         )}
+
+        {/* Theme Mode Switcher */}
+        <ThemeToggle />
       </div>
     </header>
   );

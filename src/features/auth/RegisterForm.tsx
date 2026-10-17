@@ -77,7 +77,7 @@ export default function RegisterForm() {
     <div className="rounded-2xl border border-border bg-surface p-6 sm:p-8 shadow-xs">
       <div className="space-y-1.5 text-center mb-6">
         <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
-          Create an account 🚀
+          Create an account 
         </h1>
         <p className="text-sm text-text-muted">
           Start accelerating your developer skills with 1-on-1 sprint mentorship

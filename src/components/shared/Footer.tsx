@@ -78,38 +78,41 @@ export default function Footer() {
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-text-primary">Platform</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/how-it-works" className="text-text-muted hover:text-text-primary transition-colors">
-                  About DevMentor
-                </Link>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-text-primary">Contact &amp; Support</h3>
+            <ul className="space-y-2 text-xs text-text-muted">
+              <li className="leading-relaxed">
+                <span className="font-semibold text-text-secondary">Office:</span> Level 4, Mirpur DOHS, Dhaka
               </li>
               <li>
-                <Link href="/login" className="text-text-muted hover:text-text-primary transition-colors">
-                  Sign In
-                </Link>
+                <span className="font-semibold text-text-secondary">Helpline:</span>{" "}
+                <a href="tel:01322810874" className="hover:text-amber transition-colors">
+                  01322-810874
+                </a>
               </li>
               <li>
-                <Link href="/register" className="text-text-muted hover:text-text-primary transition-colors">
-                  Create Account
-                </Link>
+                <span className="font-semibold text-text-secondary">Support:</span>{" "}
+                <a href="mailto:support@devmentor.com" className="hover:text-amber transition-colors">
+                  support@devmentor.com
+                </a>
+              </li>
+              <li className="text-[11px] text-text-muted/80 pt-1">
+                (Sat - Thu: 10:00 AM – 7:00 PM)
               </li>
             </ul>
           </div>
         </div>
 
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-text-muted">
-          <p>© 2026 DevMentor. Built by a developer, for developers.</p>
+          <p>© 2026 DevMentor. Built for engineers, by engineers.</p>
           <div className="flex items-center gap-6">
-            <Link href="#" className="hover:text-text-primary transition-colors">
-              Privacy Policy
+            <Link href="/how-it-works" className="hover:text-text-primary transition-colors">
+              How It Works
             </Link>
-            <Link href="#" className="hover:text-text-primary transition-colors">
-              Terms of Service
+            <Link href="/mentors" className="hover:text-text-primary transition-colors">
+              Mentors Directory
             </Link>
-            <Link href="#" className="hover:text-text-primary transition-colors">
-              Security
+            <Link href="/cohorts" className="hover:text-text-primary transition-colors">
+              Group Cohorts
             </Link>
           </div>
         </div>

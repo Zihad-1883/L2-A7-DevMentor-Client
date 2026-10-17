@@ -19,6 +19,9 @@ import { Button } from "@/components/ui/button";
 import StatCard from "@/components/shared/StatCard";
 import MentorCard from "@/features/mentor/MentorCard";
 import HeroInteractiveMockup from "@/features/landing/HeroInteractiveMockup";
+import TechStackExplorer from "@/features/landing/TechStackExplorer";
+import TestimonialsSection from "@/features/landing/TestimonialsSection";
+import FaqSection from "@/features/landing/FaqSection";
 import { MotionFadeIn, MotionStagger } from "@/components/shared/MotionWrappers";
 import type { MentorProfileItem } from "@/services/mentor.service";
 
@@ -89,8 +92,8 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col w-full overflow-hidden">
-      {/* HERO SECTION */}
-      <section className="relative w-full max-w-7xl mx-auto px-6 lg:px-12 pt-8 sm:pt-14 pb-16 lg:pb-24">
+      {/* HERO SECTION (Calibrated to 60–70% screen height) */}
+      <section className="relative w-full max-w-7xl mx-auto px-6 lg:px-12 pt-6 sm:pt-10 pb-12 lg:pb-16 min-h-[60vh] lg:min-h-[68vh] flex items-center">
         <div className="absolute top-6 left-1/2 -translate-x-1/2 w-4/5 h-80 bg-linear-to-br from-amber-light/40 via-amber/10 to-transparent blur-3xl -z-10 pointer-events-none rounded-full" />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
@@ -570,7 +573,16 @@ export default async function HomePage() {
         </MotionFadeIn>
       </section>
 
-      {/* CTA BANNER */}
+      {/* SECTION 7: TECH STACKS & CATEGORIES EXPLORER */}
+      <TechStackExplorer />
+
+      {/* SECTION 8: STUDENT SUCCESS STORIES & TESTIMONIALS */}
+      <TestimonialsSection />
+
+      {/* SECTION 9: FREQUENTLY ASKED QUESTIONS */}
+      <FaqSection />
+
+      {/* SECTION 10: FINAL CALL TO ACTION BANNER */}
       <section className="my-12 max-w-7xl mx-auto px-6 lg:px-12 w-full">
         <MotionFadeIn direction="up">
           <div className="rounded-3xl p-10 lg:p-14 bg-linear-to-r from-amber-hover via-amber to-amber-hover text-white text-center shadow-[0_20px_40px_-12px_rgba(217,119,6,0.35)] relative overflow-hidden">

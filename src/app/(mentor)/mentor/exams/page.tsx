@@ -36,7 +36,6 @@ export default function MentorExamsPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<"ALL" | ExamStatus>("ALL");
 
-  // Fetch Mentor's Exams
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["mentor", "exams", "list"],
     queryFn: () => examService.getMentorExams(1, 50),
@@ -47,7 +46,6 @@ export default function MentorExamsPage() {
     return Array.isArray(data?.data) ? data.data : [];
   }, [data]);
 
-  // Filter exams
   const filteredExams = React.useMemo(() => {
     return exams.filter((exam) => {
       const matchesStatus =
@@ -62,7 +60,6 @@ export default function MentorExamsPage() {
     });
   }, [exams, statusFilter, searchQuery]);
 
-  // Metrics
   const totalExams = exams.length;
   const publishedCount = exams.filter((e) => e.status === "PUBLISHED").length;
   const draftCount = exams.filter((e) => e.status === "DRAFT").length;
@@ -71,7 +68,6 @@ export default function MentorExamsPage() {
     0
   );
 
-  // Publish Draft Mutation
   const publishMutation = useMutation({
     mutationFn: (examId: string) => examService.publishExam(examId),
     onSuccess: (updated) => {
@@ -84,7 +80,6 @@ export default function MentorExamsPage() {
     },
   });
 
-  // Delete / Archive Mutation
   const [deleteExamTarget, setDeleteExamTarget] = React.useState<Exam | null>(null);
   const deleteMutation = useMutation({
     mutationFn: (examId: string) => examService.deleteExam(examId),

@@ -61,25 +61,21 @@ export default function MentorCohortDetailPage() {
   const queryClient = useQueryClient();
   const cohortId = typeof params?.id === "string" ? params.id : "";
 
-  // Active Tab: "sessions" | "students" | "settings"
   const [activeTab, setActiveTab] = React.useState<"sessions" | "students" | "settings">("sessions");
   const [studentSearchQuery, setStudentSearchQuery] = React.useState("");
   const [copiedEmail, setCopiedEmail] = React.useState<string | null>(null);
 
-  // Modals
   const [isAddSessionOpen, setIsAddSessionOpen] = React.useState(false);
   const [editingSession, setEditingSession] = React.useState<CohortSessionItem | null>(null);
   const [activeResourceSessionId, setActiveResourceSessionId] = React.useState<string | null>(null);
   const [isEditCohortOpen, setIsEditCohortOpen] = React.useState(false);
 
-  // Form states for Add/Edit Session
   const [sessionTitle, setSessionTitle] = React.useState("");
   const [sessionDateTime, setSessionDateTime] = React.useState("");
   const [sessionDuration, setSessionDuration] = React.useState<number>(60);
   const [sessionCreditCost, setSessionCreditCost] = React.useState<number>(0);
   const [sessionJoinLink, setSessionJoinLink] = React.useState("");
 
-  // Confirmation Modal State
   const [confirmDialog, setConfirmDialog] = React.useState<{
     isOpen: boolean;
     title: string;
@@ -94,20 +90,17 @@ export default function MentorCohortDetailPage() {
     onConfirm: () => { },
   });
 
-  // Form states for Add Resource
   const [resTitle, setResTitle] = React.useState("");
   const [resType, setResType] = React.useState<"LINK" | "FILE" | "NOTE" | "CODE_SNIPPET">("LINK");
   const [resUrl, setResUrl] = React.useState("");
   const [resContent, setResContent] = React.useState("");
 
-  // Form states for Edit Cohort
   const [editTitle, setEditTitle] = React.useState("");
   const [editDescription, setEditDescription] = React.useState("");
   const [editCapacity, setEditCapacity] = React.useState<number>(20);
   const [editDurationWeeks, setEditDurationWeeks] = React.useState<number>(6);
   const [editTotalCost, setEditTotalCost] = React.useState<number>(50);
 
-  // 1. Fetch Cohort Details
   const {
     data: cohort,
     isLoading: isCohortLoading,
@@ -120,7 +113,6 @@ export default function MentorCohortDetailPage() {
     staleTime: 1000 * 20,
   });
 
-  // 2. Fetch Cohort Sessions
   const {
     data: sessionsData,
     isLoading: isSessionsLoading,
@@ -134,7 +126,6 @@ export default function MentorCohortDetailPage() {
 
   const sessions = sessionsData || cohort?.sessions || [];
 
-  // 3. Fetch Enrolled Students Roster
   const {
     data: enrollmentsData,
     isLoading: isEnrollmentsLoading,
@@ -162,13 +153,11 @@ export default function MentorCohortDetailPage() {
     );
   }, [enrollments, studentSearchQuery]);
 
-  // Credit Budget & Economics Calculations
   const totalCohortBudget = cohort?.totalCost ?? 0;
   const isFreeCohort = totalCohortBudget === 0;
   const allocatedCredits = sessions.reduce((acc, s) => acc + (s.creditCost || 0), 0);
   const remainingCredits = Math.max(0, totalCohortBudget - allocatedCredits);
 
-  // Maximum allowed credits for the active session (accounting for editing session's existing cost)
   const maxAllowedForSession = isFreeCohort
     ? 0
     : editingSession
@@ -191,7 +180,6 @@ export default function MentorCohortDetailPage() {
     setIsEditCohortOpen(true);
   };
 
-  // Mutation: Add Session
   const addSessionMutation = useMutation({
     mutationFn: async () => {
       const parsedCost = isFreeCohort ? 0 : Number(sessionCreditCost);
@@ -222,7 +210,6 @@ export default function MentorCohortDetailPage() {
     },
   });
 
-  // Mutation: Update Session
   const updateSessionMutation = useMutation({
     mutationFn: async () => {
       if (!editingSession) return;
@@ -253,7 +240,6 @@ export default function MentorCohortDetailPage() {
     },
   });
 
-  // Mutation: Delete Session
   const deleteSessionMutation = useMutation({
     mutationFn: (sessionId: string) => cohortService.deleteCohortSession(sessionId),
     onSuccess: () => {
@@ -266,7 +252,6 @@ export default function MentorCohortDetailPage() {
     },
   });
 
-  // Mutation: Complete Session
   const completeSessionMutation = useMutation({
     mutationFn: (sessionId: string) => cohortService.completeCohortSession(sessionId),
     onSuccess: () => {
@@ -279,7 +264,6 @@ export default function MentorCohortDetailPage() {
     },
   });
 
-  // Mutation: Add Resource to Session
   const addResourceMutation = useMutation({
     mutationFn: async () => {
       if (!activeResourceSessionId) return;
@@ -303,7 +287,6 @@ export default function MentorCohortDetailPage() {
     },
   });
 
-  // Mutation: Remove Resource from Session
   const removeResourceMutation = useMutation({
     mutationFn: ({ sessionId, resourceId }: { sessionId: string; resourceId: string }) =>
       cohortService.removeSessionResource(sessionId, resourceId),
@@ -316,7 +299,6 @@ export default function MentorCohortDetailPage() {
     },
   });
 
-  // Mutation: Update Cohort Settings
   const updateCohortMutation = useMutation({
     mutationFn: async (payload: UpdateCohortInput) => {
       return await cohortService.updateCohort(cohortId, payload);
@@ -352,7 +334,6 @@ export default function MentorCohortDetailPage() {
     setSessionTitle(sess.title || "");
     try {
       const dt = new Date(sess.scheduledAt);
-      // Format to YYYY-MM-DDTHH:mm for datetime-local input
       const iso = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000)
         .toISOString()
         .slice(0, 16);
@@ -1149,9 +1130,7 @@ export default function MentorCohortDetailPage() {
         </div>
       )}
 
-      {/* ========================================================================= */}
       {/* MODAL 1: Add / Edit Session Modal */}
-      {/* ========================================================================= */}
       {(isAddSessionOpen || Boolean(editingSession)) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div
@@ -1334,9 +1313,7 @@ export default function MentorCohortDetailPage() {
         </div>
       )}
 
-      {/* ========================================================================= */}
       {/* MODAL 2: Add Learning Resource Modal */}
-      {/* ========================================================================= */}
       {Boolean(activeResourceSessionId) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div
@@ -1461,9 +1438,7 @@ export default function MentorCohortDetailPage() {
         </div>
       )}
 
-      {/* ========================================================================= */}
       {/* MODAL 3: Edit Cohort Details Modal */}
-      {/* ========================================================================= */}
       {isEditCohortOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div

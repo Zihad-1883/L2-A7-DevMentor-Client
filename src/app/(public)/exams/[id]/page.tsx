@@ -32,7 +32,6 @@ export default function ExamDetailPage() {
   const { user } = useAuthContext();
   const isMentor = user?.role === "mentor";
 
-  // Query live DB exam by ID directly from backend
   const {
     data: directExamData,
     isPending: isPendingDirect,
@@ -50,7 +49,6 @@ export default function ExamDetailPage() {
     staleTime: 30000,
   });
 
-  // Query mentor's created exams (shares queryKey ["mentor", "exams", "list"] from mentor hub)
   const {
     data: mentorExamsData,
     isPending: isPendingMentorExams,
@@ -68,7 +66,6 @@ export default function ExamDetailPage() {
     staleTime: 30000,
   });
 
-  // Query student's available exams (disabled if user is mentor)
   const {
     data: availableExamsData,
     isPending: isPendingAvailableExams,
@@ -86,18 +83,15 @@ export default function ExamDetailPage() {
     staleTime: 30000,
   });
 
-  // Check if exam is already present synchronously in React Query cache
   const cachedExam = React.useMemo(() => {
     if (directExamData) return directExamData;
 
-    // Check mentor exams cache
     const mentorCache = queryClient.getQueryData<{ data?: Exam[] }>(["mentor", "exams", "list"]);
     if (mentorCache?.data) {
       const match = mentorCache.data.find((e) => e.id === examId);
       if (match) return match;
     }
 
-    // Check public exams cache
     const availableCache = queryClient.getQueryData<{ data?: Exam[] }>([
       "public",
       "available-exams",
@@ -111,18 +105,15 @@ export default function ExamDetailPage() {
     return null;
   }, [directExamData, queryClient, examId]);
 
-  // Resolve exam from direct query, cache, mentor query, or public query
   const exam: Exam | null = React.useMemo(() => {
     if (directExamData) return directExamData;
     if (cachedExam) return cachedExam;
 
-    // Check mentor's query data
     if (mentorExamsData?.data) {
       const foundInMentor = mentorExamsData.data.find((e) => e.id === examId);
       if (foundInMentor) return foundInMentor;
     }
 
-    // Check available student query data
     if (availableExamsData?.data) {
       const foundInAvailable = availableExamsData.data.find((e) => e.id === examId);
       if (foundInAvailable) return foundInAvailable;
@@ -131,7 +122,6 @@ export default function ExamDetailPage() {
     return null;
   }, [directExamData, cachedExam, mentorExamsData, availableExamsData, examId]);
 
-  // Active checking status
   const isChecking =
     !directExamData &&
     !cachedExam &&
@@ -141,7 +131,6 @@ export default function ExamDetailPage() {
       isFetchingMentorExams ||
       (!isMentor && (isPendingAvailableExams || isFetchingAvailableExams)));
 
-  // Mentor publish mutation
   const publishMutation = useMutation({
     mutationFn: async () => {
       if (!exam?.id) return;
@@ -157,7 +146,6 @@ export default function ExamDetailPage() {
     },
   });
 
-  // Loading Skeleton
   if (!exam && isChecking) {
     return (
       <div className="w-full min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
@@ -169,7 +157,6 @@ export default function ExamDetailPage() {
     );
   }
 
-  // Not Found State (only shown when not checking and still not found)
   if (!exam) {
     return (
       <div className="w-full min-h-screen bg-background flex items-center justify-center p-6">

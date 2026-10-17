@@ -27,7 +27,37 @@
   --terracotta-light: #ffedd5;
 
   --orange: #c2410c;
-  --orange-light: #ffedd5;
+  --foreground: var(--text-primary);
+}
+
+.dark {
+  /* Warm Slate & Obsidian Dark Mode Design Tokens */
+  --background: #0d0f15;
+  --surface: #141722;
+  --surface-raised: #1c2130;
+  --surface-dark: #090a0f;
+  --border: #252b3d;
+  --border-strong: #333b52;
+
+  --text-primary: #f3f4f6;
+  --text-secondary: #cbd5e1;
+  --text-muted: #8893a7;
+
+  --amber: #f59e0b;
+  --amber-hover: #fbbf24;
+  --amber-light: rgba(245, 158, 11, 0.15);
+  --amber-50: rgba(245, 158, 11, 0.08);
+
+  --emerald: #10b981;
+  --emerald-hover: #34d399;
+  --emerald-light: rgba(16, 185, 129, 0.15);
+
+  --terracotta: #fb7185;
+  --terracotta-hover: #f43f5e;
+  --terracotta-light: rgba(251, 113, 133, 0.15);
+
+  --orange: #fb923c;
+  --orange-light: rgba(251, 146, 60, 0.15);
 
   --foreground: var(--text-primary);
 }

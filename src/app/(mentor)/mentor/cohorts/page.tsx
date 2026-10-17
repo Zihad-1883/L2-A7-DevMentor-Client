@@ -30,7 +30,6 @@ export default function MentorCohortsPage() {
   const [statusFilter, setStatusFilter] = React.useState<string>("ALL");
   const [searchQuery, setSearchQuery] = React.useState<string>("");
 
-  // 1. Fetch Mentor's Created Cohorts
   const {
     data: cohortsData,
     isLoading,
@@ -44,7 +43,6 @@ export default function MentorCohortsPage() {
 
   const cohorts = cohortsData || [];
 
-  // Filter cohorts
   const filteredCohorts = React.useMemo(() => {
     return cohorts.filter((cohort) => {
       const matchesStatus =

@@ -78,7 +78,7 @@ export default function LoginForm() {
     <div className="rounded-2xl border border-border bg-surface p-6 sm:p-8 shadow-xs">
       <div className="space-y-1.5 text-center mb-6">
         <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
-          Welcome back 👋
+          Welcome back 
         </h1>
         <p className="text-sm text-text-muted">
           Sign in to access your sprints, cohorts, and reviews

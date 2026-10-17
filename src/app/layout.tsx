@@ -4,6 +4,7 @@ import "./globals.css";
 import QueryProvider from "@/components/providers/QueryProvider";
 import AuthProvider from "@/components/providers/AuthProvider";
 import ToastProvider from "@/components/providers/ToastProvider";
+import ThemeProvider from "@/components/providers/ThemeProvider";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-body",
@@ -73,13 +74,20 @@ export default function RootLayout({
     >
       <body
         suppressHydrationWarning
-        className="min-h-full flex flex-col bg-background text-text-primary font-sans"
+        className="min-h-full flex flex-col bg-background text-text-primary font-sans transition-colors duration-200"
       >
-        <QueryProvider>
-          <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
-          </AuthProvider>
-        </QueryProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <QueryProvider>
+            <AuthProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </AuthProvider>
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

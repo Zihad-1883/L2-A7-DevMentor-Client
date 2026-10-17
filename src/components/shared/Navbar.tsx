@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Coins, User as UserIcon, LogOut, Sparkles } from "lucide-react";
+import { Menu, X, Coins, User as UserIcon, LogOut, Sparkles, ChevronDown, Info, Mail, HelpCircle, Shield, FileText } from "lucide-react";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import ProfileDropdown from "@/components/shared/ProfileDropdown";
 
@@ -14,13 +14,35 @@ export default function Navbar() {
   const pathname = usePathname();
   const { user, isAuthenticated, role } = useAuthContext();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [moreDropdownOpen, setMoreDropdownOpen] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  // Exactly 4 public routes for logged-out visitors
+  // Close dropdown on click outside
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setMoreDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Exactly 4 primary public routes
   const publicNavLinks = [
     { label: "How It Works", href: "/how-it-works" },
     { label: "Cohorts", href: "/cohorts" },
     { label: "Mentors", href: "/mentors" },
     { label: "Skill Exams", href: "/exams" },
+  ];
+
+  // Additional informational resources
+  const infoLinks = [
+    { label: "About Us", href: "/about", icon: Info },
+    { label: "Contact Support", href: "/contact", icon: Mail },
+    { label: "FAQ / Help Desk", href: "/faq", icon: HelpCircle },
+    { label: "Terms of Service", href: "/terms", icon: FileText },
+    { label: "Privacy Policy", href: "/privacy", icon: Shield },
   ];
 
   // 6+ contextual routes for authenticated users depending on role
@@ -58,6 +80,8 @@ export default function Navbar() {
 
   const navLinks = isAuthenticated ? getLoggedInNavLinks() : publicNavLinks;
 
+  const isInfoActive = ["/about", "/contact", "/faq", "/terms", "/privacy"].includes(pathname);
+
   const getDashboardHref = () => {
     if (role === "admin") return "/admin";
     if (role === "mentor") return "/mentor";
@@ -67,7 +91,7 @@ export default function Navbar() {
   return (
     <header className="fixed top-0 left-0 right-0 w-full z-50 bg-surface/90 backdrop-blur-xl border-b border-border/40 shadow-xs">
       <div className="h-20 max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between gap-6">
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-6 xl:gap-8">
           <Link href="/" className="flex items-center gap-2 group shrink-0">
             <span className="font-serif text-2xl text-text-primary tracking-tight font-bold group-hover:text-amber transition-colors">
               DevMentor<span className="text-amber font-serif">.</span>
@@ -90,6 +114,45 @@ export default function Navbar() {
                 </Link>
               );
             })}
+
+            {/* Informational Dropdown (About, Contact, FAQ, Policies) */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
+                className={`px-3 py-1.5 rounded-lg text-xs xl:text-sm font-medium transition-all flex items-center gap-1 ${isInfoActive || moreDropdownOpen
+                    ? "text-text-primary bg-surface-raised font-semibold"
+                    : "text-text-muted hover:text-text-primary hover:bg-surface-raised/60"
+                  }`}
+                aria-expanded={moreDropdownOpen}
+              >
+                <span>Company</span>
+                <ChevronDown className={`size-3.5 transition-transform duration-200 ${moreDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {moreDropdownOpen && (
+                <div className="absolute left-0 mt-2 w-56 rounded-xl bg-surface border border-border shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  {infoLinks.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMoreDropdownOpen(false)}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${isActive
+                            ? "bg-amber-light text-amber font-semibold"
+                            : "text-text-secondary hover:text-text-primary hover:bg-surface-raised"
+                          }`}
+                      >
+                        <Icon className="size-4 shrink-0 opacity-80" />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </nav>
         </div>
 
@@ -140,7 +203,8 @@ export default function Navbar() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="lg:hidden border-b border-border bg-surface px-6 py-4 space-y-2">
+        <div className="lg:hidden border-b border-border bg-surface px-6 py-4 space-y-2 max-h-[calc(100vh-5rem)] overflow-y-auto">
+          <p className="px-3 pt-1 text-[10px] font-mono uppercase tracking-wider text-text-muted">Explore</p>
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -151,6 +215,25 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+
+          <p className="px-3 pt-3 text-[10px] font-mono uppercase tracking-wider text-text-muted border-t border-border/60">Company & Help</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {infoLinks.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-text-muted hover:text-text-primary hover:bg-surface-raised"
+                >
+                  <Icon className="size-3.5 opacity-70" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+
           <div className="pt-3 border-t border-border flex flex-col gap-2">
             <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-surface-raised mb-1">
               <span className="text-xs font-medium text-text-secondary">Switch Theme</span>
@@ -201,7 +284,7 @@ export default function Navbar() {
                   onClick={async () => {
                     try {
                       localStorage.removeItem("devmentor_cached_role");
-                    } catch {}
+                    } catch { }
                     setMobileMenuOpen(false);
                     await signOut();
                     window.location.assign("/login");

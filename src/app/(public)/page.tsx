@@ -22,6 +22,7 @@ import HeroInteractiveMockup from "@/features/landing/HeroInteractiveMockup";
 import TechStackExplorer from "@/features/landing/TechStackExplorer";
 import TestimonialsSection from "@/features/landing/TestimonialsSection";
 import FaqSection from "@/features/landing/FaqSection";
+import SmartAiMatcher from "@/features/ai/SmartAiMatcher";
 import { MotionFadeIn, MotionStagger } from "@/components/shared/MotionWrappers";
 import type { MentorProfileItem } from "@/services/mentor.service";
 
@@ -419,6 +420,9 @@ export default async function HomePage() {
               </Link>
             </div>
           </MotionFadeIn>
+
+          {/* AI Feature 2: Smart Discovery Assistant */}
+          <SmartAiMatcher />
 
           {featuredMentors.length > 0 ? (
             <MotionStagger staggerDelay={0.15} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

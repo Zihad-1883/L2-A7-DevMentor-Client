@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CohortCard from "@/features/cohort/CohortCard";
+import SmartAiMatcher from "@/features/ai/SmartAiMatcher";
 import type { CohortItem } from "@/services/cohort.service";
 import type { Metadata } from "next";
 
@@ -65,6 +66,9 @@ export default async function CohortsPage() {
 
       {/* Cohorts Grid */}
       <section className="max-w-7xl mx-auto px-6 lg:px-12 py-16">
+        {/* Feature 2: Smart AI Mentor & Cohort Discovery Widget */}
+        <SmartAiMatcher />
+
         {cohorts.length === 0 ? (
           <div className="text-center py-20 bg-surface rounded-3xl border border-border p-8">
             <BookOpen className="size-12 text-amber mx-auto mb-4" />

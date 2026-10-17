@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import MentorCard from "@/features/mentor/MentorCard";
 import MentorFilters from "@/features/mentor/MentorFilters";
+import SmartAiMatcher from "@/features/ai/SmartAiMatcher";
 import { Button } from "@/components/ui/button";
 import type { MentorProfileItem } from "@/services/mentor.service";
 
@@ -160,6 +161,9 @@ export default async function MentorsPage({
 
       {/* Main Directory & Filter Grid */}
       <main className="max-w-7xl mx-auto px-6 lg:px-12 py-12">
+        {/* Feature 2: Smart AI Mentor & Cohort Discovery Widget */}
+        <SmartAiMatcher />
+
         <Suspense fallback={<div className="h-28 bg-surface rounded-2xl animate-pulse mb-8" />}>
           <MentorFilters totalCount={total} />
         </Suspense>

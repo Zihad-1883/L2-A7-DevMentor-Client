@@ -8,6 +8,7 @@ import { useWallet } from "@/hooks/useWallet";
 import { Menu, Plus } from "lucide-react";
 import CreditDisplay from "./CreditDisplay";
 import ThemeToggle from "./ThemeToggle";
+import ProfileDropdown from "./ProfileDropdown";
 
 export default function DashboardHeader() {
   const { role } = useAuthContext();
@@ -62,6 +63,11 @@ export default function DashboardHeader() {
 
         {/* Theme Mode Switcher */}
         <ThemeToggle />
+
+        {/* User Profile Dropdown Menu */}
+        <div className="pl-2 border-l border-border/80">
+          <ProfileDropdown />
+        </div>
       </div>
     </header>
   );

@@ -8,6 +8,7 @@ import { queryKeys } from "@/lib/query-keys";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import PlatformStatsGrid from "@/features/admin/PlatformStatsGrid";
 import RevenueChart from "@/features/admin/RevenueChart";
+import UserRoleDistributionChart from "@/features/admin/UserRoleDistributionChart";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   ShieldAlert,
@@ -172,7 +173,18 @@ export default function AdminDashboardPage() {
       ) : (
         <>
           <PlatformStatsGrid stats={stats} />
-          <RevenueChart data={stats.monthlyRevenue} />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7">
+              <RevenueChart data={stats.monthlyRevenue} />
+            </div>
+            <div className="lg:col-span-5">
+              <UserRoleDistributionChart
+                totalUsers={stats.totalUsers}
+                totalStudents={stats.totalStudents}
+                totalMentors={stats.totalMentors}
+              />
+            </div>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="border border-border/80 shadow-xs bg-surface">
               <CardHeader className="pb-3 border-b border-border/60">

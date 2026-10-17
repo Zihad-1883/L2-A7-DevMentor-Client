@@ -13,6 +13,8 @@ import {
   RefreshCw,
   Coins,
   ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,8 @@ import type { PayoutStatus } from "@/types/payout.types";
 export default function AdminPayoutsPage() {
   const [statusFilter, setStatusFilter] = React.useState<"ALL" | PayoutStatus>("ALL");
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [page, setPage] = React.useState(1);
+  const ITEMS_PER_PAGE = 8;
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["admin", "payouts", statusFilter],
@@ -56,6 +60,23 @@ export default function AdminPayoutsPage() {
       );
     });
   }, [payouts, searchQuery]);
+
+  const totalPages = Math.ceil(filteredPayouts.length / ITEMS_PER_PAGE) || 1;
+  const safePage = Math.min(page, totalPages);
+  const paginatedPayouts = React.useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredPayouts.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredPayouts, safePage]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    setPage(1);
+  };
+
+  const handleStatusChange = (status: "ALL" | PayoutStatus) => {
+    setStatusFilter(status);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-16">
@@ -165,7 +186,7 @@ export default function AdminPayoutsPage() {
             type="text"
             placeholder="Search by mentor name, email, or bKash number..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10 h-10 text-xs bg-surface-raised rounded-xl"
           />
         </div>
@@ -176,7 +197,7 @@ export default function AdminPayoutsPage() {
           </span>
           <button
             type="button"
-            onClick={() => setStatusFilter("ALL")}
+            onClick={() => handleStatusChange("ALL")}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
               statusFilter === "ALL"
                 ? "bg-amber text-white"
@@ -187,7 +208,7 @@ export default function AdminPayoutsPage() {
           </button>
           <button
             type="button"
-            onClick={() => setStatusFilter("PENDING")}
+            onClick={() => handleStatusChange("PENDING")}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
               statusFilter === "PENDING"
                 ? "bg-amber text-white"
@@ -198,7 +219,7 @@ export default function AdminPayoutsPage() {
           </button>
           <button
             type="button"
-            onClick={() => setStatusFilter("PROCESSED")}
+            onClick={() => handleStatusChange("PROCESSED")}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
               statusFilter === "PROCESSED"
                 ? "bg-amber text-white"
@@ -209,7 +230,7 @@ export default function AdminPayoutsPage() {
           </button>
           <button
             type="button"
-            onClick={() => setStatusFilter("REJECTED")}
+            onClick={() => handleStatusChange("REJECTED")}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
               statusFilter === "REJECTED"
                 ? "bg-amber text-white"
@@ -280,14 +301,49 @@ export default function AdminPayoutsPage() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {filteredPayouts.map((payout) => (
-            <PayoutApprovalCard
-              key={payout.id}
-              payout={payout}
-              onProcessed={() => refetch()}
-            />
-          ))}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {paginatedPayouts.map((payout) => (
+              <PayoutApprovalCard
+                key={payout.id}
+                payout={payout}
+                onProcessed={() => refetch()}
+              />
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 border-t border-border/70">
+              <span className="text-xs text-text-muted">
+                Showing Page <strong className="text-text-primary">{page}</strong> of{" "}
+                <strong className="text-text-primary">{totalPages}</strong> ({filteredPayouts.length} total)
+              </span>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="h-8 px-2.5 text-xs gap-1 border-border"
+                >
+                  <ChevronLeft className="size-3.5" />
+                  <span>Previous</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="h-8 px-2.5 text-xs gap-1 border-border"
+                >
+                  <span>Next</span>
+                  <ChevronRight className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

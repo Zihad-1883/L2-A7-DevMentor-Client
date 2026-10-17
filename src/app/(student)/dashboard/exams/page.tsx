@@ -17,6 +17,8 @@ import {
   XCircle,
   ExternalLink,
   BookOpen,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { examService } from "@/services/exam.service";
@@ -59,6 +61,16 @@ export default function StudentExamsPage() {
       (e.techStackTags && e.techStackTags.some((t) => t.toLowerCase().includes(q)))
     );
   });
+
+  const [page, setPage] = React.useState(1);
+  const ITEMS_PER_PAGE = 6;
+  const totalPages = Math.ceil(filteredExams.length / ITEMS_PER_PAGE) || 1;
+  const safePage = Math.min(page, totalPages);
+
+  const paginatedExams = React.useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredExams.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredExams, safePage]);
 
   const passedCount = myAttempts.filter((a) => a.isPassed).length;
 
@@ -140,61 +152,96 @@ export default function StudentExamsPage() {
               ))}
             </div>
           ) : filteredExams.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredExams.map((exam) => (
-                <div
-                  key={exam.id}
-                  className="p-6 rounded-2xl bg-surface border border-border hover:border-amber/40 hover:shadow-md transition-all flex flex-col justify-between group"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-surface-raised text-text-muted border border-border">
-                        {exam.category || "Engineering"}
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${exam.isFree
-                          ? "bg-emerald-light text-emerald border-emerald/20"
-                          : "bg-amber-light text-amber border-amber/20"
-                          }`}
-                      >
-                        {exam.isFree ? "Free Practice" : "Cohort Exam"}
-                      </span>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {paginatedExams.map((exam) => (
+                  <div
+                    key={exam.id}
+                    className="p-6 rounded-2xl bg-surface border border-border hover:border-amber/40 hover:shadow-md transition-all flex flex-col justify-between group"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-surface-raised text-text-muted border border-border">
+                          {exam.category || "Engineering"}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${exam.isFree
+                            ? "bg-emerald-light text-emerald border-emerald/20"
+                            : "bg-amber-light text-amber border-amber/20"
+                            }`}
+                        >
+                          {exam.isFree ? "Free Practice" : "Cohort Exam"}
+                        </span>
+                      </div>
+
+                      <h3 className="font-serif text-base font-bold text-text-primary group-hover:text-amber transition-colors line-clamp-2">
+                        {exam.title}
+                      </h3>
+
+                      <p className="text-xs text-text-secondary line-clamp-2">
+                        {exam.description || "Timed multiple-choice evaluation."}
+                      </p>
+
+                      {/* Metadata specs */}
+                      <div className="flex items-center gap-4 text-xs text-text-muted pt-2 border-t border-border/60">
+                        <span className="flex items-center gap-1">
+                          <Clock className="size-3.5 text-amber" /> {exam.durationMinutes}m
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <HelpCircle className="size-3.5 text-amber" /> {exam.totalQuestions} MCQs
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Award className="size-3.5 text-emerald" /> {exam.passMark || 65}% Pass
+                        </span>
+                      </div>
                     </div>
 
-                    <h3 className="font-serif text-base font-bold text-text-primary group-hover:text-amber transition-colors line-clamp-2">
-                      {exam.title}
-                    </h3>
-
-                    <p className="text-xs text-text-secondary line-clamp-2">
-                      {exam.description || "Timed multiple-choice evaluation."}
-                    </p>
-
-                    {/* Metadata specs */}
-                    <div className="flex items-center gap-4 text-xs text-text-muted pt-2 border-t border-border/60">
-                      <span className="flex items-center gap-1">
-                        <Clock className="size-3.5 text-amber" /> {exam.durationMinutes}m
+                    <div className="pt-5 mt-4 border-t border-border/60 flex items-center justify-between gap-3">
+                      <span className="text-[11px] text-text-muted truncate max-w-[120px]">
+                        By {exam.mentor?.name || "DevMentor"}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <HelpCircle className="size-3.5 text-amber" /> {exam.totalQuestions} MCQs
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Award className="size-3.5 text-emerald" /> {exam.passMark || 65}% Pass
-                      </span>
+                      <Link href={`/dashboard/exams/${exam.id}/attempt`}>
+                        <Button size="sm" className="bg-amber text-white hover:bg-amber-hover text-xs font-semibold gap-1.5 cursor-pointer">
+                          Start Exam <ArrowRight className="size-3.5" />
+                        </Button>
+                      </Link>
                     </div>
                   </div>
+                ))}
+              </div>
 
-                  <div className="pt-5 mt-4 border-t border-border/60 flex items-center justify-between gap-3">
-                    <span className="text-[11px] text-text-muted truncate max-w-[120px]">
-                      By {exam.mentor?.name || "DevMentor"}
-                    </span>
-                    <Link href={`/dashboard/exams/${exam.id}/attempt`}>
-                      <Button size="sm" className="bg-amber text-white hover:bg-amber-hover text-xs font-semibold gap-1.5 cursor-pointer">
-                        Start Exam <ArrowRight className="size-3.5" />
-                      </Button>
-                    </Link>
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-border/70">
+                  <span className="text-xs text-text-muted">
+                    Showing Page <strong className="text-text-primary">{page}</strong> of{" "}
+                    <strong className="text-text-primary">{totalPages}</strong> ({filteredExams.length} total)
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page <= 1}
+                      className="h-8 px-2.5 text-xs gap-1 border-border"
+                    >
+                      <ChevronLeft className="size-3.5" />
+                      <span>Previous</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page >= totalPages}
+                      className="h-8 px-2.5 text-xs gap-1 border-border"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="size-3.5" />
+                    </Button>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           ) : (
             <div className="text-center py-16 bg-surface-raised/30 rounded-2xl border border-dashed border-border p-6">

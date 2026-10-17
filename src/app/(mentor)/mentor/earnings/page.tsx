@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/hooks/useWallet";
 import PayoutRequestForm from "@/features/wallet/PayoutRequestForm";
+import MentorEarningsTimelineChart from "@/features/mentor/MentorEarningsTimelineChart";
 import { formatDate } from "@/lib/utils";
 
 export default function MentorEarningsPage() {
@@ -220,6 +221,13 @@ export default function MentorEarningsPage() {
           </div>
         </div>
       </div>
+
+      {/* 2.5 Timeline Visualization Chart */}
+      <MentorEarningsTimelineChart
+        totalEarned={totalEarned}
+        totalWithdrawn={totalWithdrawn}
+        transactions={transactions}
+      />
 
       {/* 3. Main Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

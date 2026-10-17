@@ -18,6 +18,7 @@ import {
   AlertCircle,
   ExternalLink,
   ChevronRight,
+  ChevronLeft,
   Code2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -92,8 +93,8 @@ export default function MentorSprintPoolPage() {
     activeTab === "claimed"
       ? myClaimedSprints
       : activeTab === "direct"
-      ? directSprints
-      : broadcastPoolSprints;
+        ? directSprints
+        : broadcastPoolSprints;
 
   const isLoading = activeTab === "claimed" ? isMySprintsLoading : isPoolLoading;
   const error = activeTab === "claimed" ? mySprintsError : poolError;
@@ -123,6 +124,16 @@ export default function MentorSprintPoolPage() {
       return matchesTag && matchesSearch;
     });
   }, [rawSprints, selectedTag, searchQuery]);
+
+  const [page, setPage] = React.useState(1);
+  const ITEMS_PER_PAGE = 6;
+  const totalPages = Math.ceil(filteredSprints.length / ITEMS_PER_PAGE) || 1;
+  const safePage = Math.min(page, totalPages);
+
+  const paginatedSprints = React.useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredSprints.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredSprints, safePage]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-12">
@@ -157,19 +168,17 @@ export default function MentorSprintPoolPage() {
         <button
           type="button"
           onClick={() => setActiveTab("direct")}
-          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 shrink-0 ${
-            activeTab === "direct"
+          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 shrink-0 ${activeTab === "direct"
               ? "text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 font-bold"
               : "text-text-muted hover:text-text-primary"
-          }`}
+            }`}
         >
           <span>🎯 Direct to You</span>
           <span
-            className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-              directSprints.length > 0
+            className={`px-2 py-0.5 rounded-full text-xs font-bold ${directSprints.length > 0
                 ? "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-800"
                 : "bg-surface-raised text-text-muted border border-border"
-            }`}
+              }`}
           >
             {directSprints.length}
           </span>
@@ -178,11 +187,10 @@ export default function MentorSprintPoolPage() {
         <button
           type="button"
           onClick={() => setActiveTab("pool")}
-          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 shrink-0 ${
-            activeTab === "pool"
+          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 shrink-0 ${activeTab === "pool"
               ? "text-amber border-b-2 border-amber font-bold"
               : "text-text-muted hover:text-text-primary"
-          }`}
+            }`}
         >
           <span>🌐 Open Broadcast Pool</span>
           <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-surface-raised text-text-muted border border-border">
@@ -193,11 +201,10 @@ export default function MentorSprintPoolPage() {
         <button
           type="button"
           onClick={() => setActiveTab("claimed")}
-          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 shrink-0 ${
-            activeTab === "claimed"
+          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 shrink-0 ${activeTab === "claimed"
               ? "text-emerald border-b-2 border-emerald font-bold"
               : "text-text-muted hover:text-text-primary"
-          }`}
+            }`}
         >
           <span>✅ My Claimed Sprints</span>
           <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-surface-raised text-text-muted border border-border">
@@ -290,17 +297,17 @@ export default function MentorSprintPoolPage() {
             activeTab === "direct"
               ? "No direct sprint requests pending"
               : activeTab === "claimed"
-              ? "No claimed sprints yet"
-              : "No open sprints found"
+                ? "No claimed sprints yet"
+                : "No open sprints found"
           }
           description={
             searchQuery || selectedTag !== "All"
               ? "No student sprint requests match your active filters. Try picking another tag or clearing your search."
               : activeTab === "direct"
-              ? "You currently have no pending direct requests. When students select you for 1-on-1 sprint coaching, their private requests will appear here."
-              : activeTab === "claimed"
-              ? "You haven't claimed any student sprints yet. Check Direct requests or the Open Broadcast Pool to begin mentoring!"
-              : "There are currently no unclaimed sprint requests in the pool. Check back soon!"
+                ? "You currently have no pending direct requests. When students select you for 1-on-1 sprint coaching, their private requests will appear here."
+                : activeTab === "claimed"
+                  ? "You haven't claimed any student sprints yet. Check Direct requests or the Open Broadcast Pool to begin mentoring!"
+                  : "There are currently no unclaimed sprint requests in the pool. Check back soon!"
           }
           icon={Code2}
           action={
@@ -316,106 +323,140 @@ export default function MentorSprintPoolPage() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {filteredSprints.map((sprint) => {
-            const sessionsCount = sprint.sessions?.length || sprint.durationDays || 5;
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {paginatedSprints.map((sprint) => {
+              const sessionsCount = sprint.sessions?.length || sprint.durationDays || 5;
 
-            return (
-              <div
-                key={sprint.id}
-                className="flex flex-col justify-between p-6 rounded-2xl bg-surface border border-border hover:border-amber/40 shadow-xs hover:shadow-sm transition-all group"
-              >
-                <div className="space-y-4">
-                  {/* Top Meta info */}
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <StatusBadge status={sprint.status} />
-                      {sprint.targetMentorId && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
-                          🎯 Direct Request • Only Visible To You
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1.5 text-xs text-text-muted">
-                      <Clock className="size-3.5" />
-                      <span>{sprint.durationDays} Days ({sessionsCount} sessions)</span>
-                    </div>
-                  </div>
-
-                  {/* Title & Description */}
-                  <div>
-                    <h2 className="font-serif text-lg font-bold text-text-primary group-hover:text-amber transition-colors line-clamp-1">
-                      {sprint.title}
-                    </h2>
-                    <p className="text-xs text-text-secondary mt-1.5 line-clamp-3 leading-relaxed">
-                      {sprint.description || "No specific details provided for this sprint request."}
-                    </p>
-                  </div>
-
-                  {/* Tech Stack Pills */}
-                  {sprint.techStackTags && sprint.techStackTags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {sprint.techStackTags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-amber-light/70 text-amber border border-amber/20"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Student & Date Info */}
-                  <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs text-text-muted">
-                    <div className="flex items-center gap-2">
-                      <div className="size-6 rounded-full bg-surface-raised border border-border flex items-center justify-center font-bold text-[10px] text-text-primary">
-                        {sprint.student?.name ? sprint.student.name.charAt(0).toUpperCase() : "S"}
+              return (
+                <div
+                  key={sprint.id}
+                  className="flex flex-col justify-between p-6 rounded-2xl bg-surface border border-border hover:border-amber/40 shadow-xs hover:shadow-sm transition-all group"
+                >
+                  <div className="space-y-4">
+                    {/* Top Meta info */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <StatusBadge status={sprint.status} />
+                        {sprint.targetMentorId && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+                            🎯 Direct Request • Only Visible To You
+                          </span>
+                        )}
                       </div>
-                      <span className="font-medium text-text-primary">
-                        {sprint.student?.name || "Student"}
-                      </span>
+
+                      <div className="flex items-center gap-1.5 text-xs text-text-muted">
+                        <Clock className="size-3.5" />
+                        <span>{sprint.durationDays} Days ({sessionsCount} sessions)</span>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      <Calendar className="size-3.5" />
-                      <span>Starts {formatDate(sprint.startDate)}</span>
+                    {/* Title & Description */}
+                    <div>
+                      <h2 className="font-serif text-lg font-bold text-text-primary group-hover:text-amber transition-colors line-clamp-1">
+                        {sprint.title}
+                      </h2>
+                      <p className="text-xs text-text-secondary mt-1.5 line-clamp-3 leading-relaxed">
+                        {sprint.description || "No specific details provided for this sprint request."}
+                      </p>
+                    </div>
+
+                    {/* Tech Stack Pills */}
+                    {sprint.techStackTags && sprint.techStackTags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {sprint.techStackTags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-amber-light/70 text-amber border border-amber/20"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Student & Date Info */}
+                    <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs text-text-muted">
+                      <div className="flex items-center gap-2">
+                        <div className="size-6 rounded-full bg-surface-raised border border-border flex items-center justify-center font-bold text-[10px] text-text-primary">
+                          {sprint.student?.name ? sprint.student.name.charAt(0).toUpperCase() : "S"}
+                        </div>
+                        <span className="font-medium text-text-primary">
+                          {sprint.student?.name || "Student"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <Calendar className="size-3.5" />
+                        <span>Starts {formatDate(sprint.startDate)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Bottom Action Footer */}
-                <div className="pt-5 mt-5 border-t border-border/80 flex items-center justify-between gap-3">
-                  <span className="text-xs text-text-muted">
-                    {activeTab === "claimed"
-                      ? "Claimed Mentorship Sprint"
-                      : sprint.targetMentorId
-                      ? "Private Direct Request"
-                      : "Unclaimed Student Request"}
-                  </span>
-
-                  <Link href={`/mentor/sprints/${sprint.id}`}>
-                    <Button
-                      size="sm"
-                      className={`font-semibold text-xs h-9 px-4 shadow-2xs gap-1.5 cursor-pointer text-white ${
-                        sprint.targetMentorId && sprint.status === "PENDING_CLAIM"
-                          ? "bg-purple-600 hover:bg-purple-700"
-                          : "bg-amber hover:bg-amber-hover"
-                      }`}
-                    >
+                  {/* Bottom Action Footer */}
+                  <div className="pt-5 mt-5 border-t border-border/80 flex items-center justify-between gap-3">
+                    <span className="text-xs text-text-muted">
                       {activeTab === "claimed"
-                        ? "Manage Sprint"
+                        ? "Claimed Mentorship Sprint"
                         : sprint.targetMentorId
-                        ? "Review & Accept"
-                        : "View Details & Claim"}{" "}
-                      <ArrowRight className="size-3.5" />
-                    </Button>
-                  </Link>
+                          ? "Private Direct Request"
+                          : "Unclaimed Student Request"}
+                    </span>
+
+                    <Link href={`/mentor/sprints/${sprint.id}`}>
+                      <Button
+                        size="sm"
+                        className={`font-semibold text-xs h-9 px-4 shadow-2xs gap-1.5 cursor-pointer text-white ${sprint.targetMentorId && sprint.status === "PENDING_CLAIM"
+                            ? "bg-purple-600 hover:bg-purple-700"
+                            : "bg-amber hover:bg-amber-hover"
+                          }`}
+                      >
+                        {activeTab === "claimed"
+                          ? "Manage Sprint"
+                          : sprint.targetMentorId
+                            ? "Review & Accept"
+                            : "View Details & Claim"}{" "}
+                        <ArrowRight className="size-3.5" />
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 border-t border-border/70">
+              <span className="text-xs text-text-muted">
+                Showing Page <strong className="text-text-primary">{page}</strong> of{" "}
+                <strong className="text-text-primary">{totalPages}</strong> ({filteredSprints.length} total)
+              </span>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="h-8 px-2.5 text-xs gap-1 border-border"
+                >
+                  <ChevronLeft className="size-3.5" />
+                  <span>Previous</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="h-8 px-2.5 text-xs gap-1 border-border"
+                >
+                  <span>Next</span>
+                  <ChevronRight className="size-3.5" />
+                </Button>
               </div>
-            );
-          })}
+            </div>
+          )}
         </div>
       )}
     </div>

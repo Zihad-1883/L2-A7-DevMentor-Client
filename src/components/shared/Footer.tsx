@@ -104,15 +104,21 @@ export default function Footer() {
 
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-text-muted">
           <p>© 2026 DevMentor. Built for engineers, by engineers.</p>
-          <div className="flex items-center gap-6">
-            <Link href="/how-it-works" className="hover:text-text-primary transition-colors">
-              How It Works
+          <div className="flex flex-wrap items-center gap-5">
+            <Link href="/about" className="hover:text-text-primary transition-colors">
+              About Us
             </Link>
-            <Link href="/mentors" className="hover:text-text-primary transition-colors">
-              Mentors Directory
+            <Link href="/contact" className="hover:text-text-primary transition-colors">
+              Contact
             </Link>
-            <Link href="/cohorts" className="hover:text-text-primary transition-colors">
-              Group Cohorts
+            <Link href="/faq" className="hover:text-text-primary transition-colors">
+              FAQ
+            </Link>
+            <Link href="/terms" className="hover:text-text-primary transition-colors">
+              Terms of Service
+            </Link>
+            <Link href="/privacy" className="hover:text-text-primary transition-colors">
+              Privacy Policy
             </Link>
           </div>
         </div>

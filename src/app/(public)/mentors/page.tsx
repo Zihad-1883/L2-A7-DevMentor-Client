@@ -23,7 +23,10 @@ async function getMentors(searchParams: {
   search?: string;
   tag?: string;
   experienceLevel?: string;
-}): Promise<MentorProfileItem[]> {
+  offering?: string;
+  sortBy?: string;
+  page?: string;
+}): Promise<{ mentors: MentorProfileItem[]; total: number; page: number; totalPages: number }> {
   const backendUrl =
     process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
@@ -34,37 +37,63 @@ async function getMentors(searchParams: {
     if (searchParams.tag) params.set("tag", searchParams.tag);
     if (searchParams.experienceLevel) params.set("experienceLevel", searchParams.experienceLevel);
     if (searchParams.search) params.set("search", searchParams.search);
-    params.set("limit", "50");
+    params.set("limit", "100");
 
     const res = await fetch(`${backendUrl}/api/v1/mentors?${params.toString()}`, {
       next: { revalidate: 60 },
     });
 
-    if (!res.ok) return [];
+    if (!res.ok) return { mentors: [], total: 0, page: 1, totalPages: 1 };
     const json = await res.json();
-    const list = (json?.data?.mentors as MentorProfileItem[] | undefined) || [];
+    let list = (json?.data?.mentors as MentorProfileItem[] | undefined) || [];
 
-    return list.filter((m) => {
-      if (searchParams.experienceLevel && m.experienceLevel !== searchParams.experienceLevel) {
-        return false;
-      }
-      if (searchParams.tag) {
-        const hasTag = m.techStackTags.some(
-          (t) => t.toLowerCase() === searchParams.tag?.toLowerCase()
-        );
-        if (!hasTag) return false;
-      }
-      if (searchParams.search) {
-        const query = searchParams.search.toLowerCase();
+    // Filter by Experience Level
+    if (searchParams.experienceLevel) {
+      list = list.filter((m) => m.experienceLevel === searchParams.experienceLevel);
+    }
+
+    // Filter by Technology Tag
+    if (searchParams.tag) {
+      list = list.filter((m) =>
+        m.techStackTags.some((t) => t.toLowerCase() === searchParams.tag?.toLowerCase())
+      );
+    }
+
+    // Filter by Search Query (Name, Bio, Tag)
+    if (searchParams.search) {
+      const query = searchParams.search.toLowerCase();
+      list = list.filter((m) => {
         const matchesName = m.user?.name?.toLowerCase().includes(query);
         const matchesBio = m.bio?.toLowerCase().includes(query);
         const matchesTag = m.techStackTags.some((t) => t.toLowerCase().includes(query));
-        if (!matchesName && !matchesBio && !matchesTag) return false;
-      }
-      return true;
-    });
+        return matchesName || matchesBio || matchesTag;
+      });
+    }
+
+    // Filter 3: Offering / Availability
+    if (searchParams.offering === "sprint") {
+      list = list.filter((m) => m.approvalStatus === "APPROVED");
+    }
+
+    // Sorting
+    const sortBy = searchParams.sortBy || "newest";
+    if (sortBy === "seniority") {
+      const rank: Record<string, number> = { LEAD: 4, SENIOR: 3, MID: 2, JUNIOR: 1 };
+      list.sort((a, b) => (rank[b.experienceLevel] || 0) - (rank[a.experienceLevel] || 0));
+    } else if (sortBy === "name_asc") {
+      list.sort((a, b) => (a.user?.name || "").localeCompare(b.user?.name || ""));
+    }
+
+    // Client-side pagination (8 per page for clean 2 rows of 4 columns)
+    const page = Math.max(1, parseInt(searchParams.page || "1", 10));
+    const pageSize = 8;
+    const total = list.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const paginated = list.slice((page - 1) * pageSize, page * pageSize);
+
+    return { mentors: paginated, total, page, totalPages };
   } catch {
-    return [];
+    return { mentors: [], total: 0, page: 1, totalPages: 1 };
   }
 }
 
@@ -75,10 +104,24 @@ export default async function MentorsPage({
     search?: string;
     tag?: string;
     experienceLevel?: string;
+    offering?: string;
+    sortBy?: string;
+    page?: string;
   }>;
 }) {
   const resolvedParams = await searchParams;
-  const mentors = await getMentors(resolvedParams);
+  const { mentors, total, page, totalPages } = await getMentors(resolvedParams);
+
+  const buildPageUrl = (newPage: number) => {
+    const p = new URLSearchParams();
+    if (resolvedParams.search) p.set("search", resolvedParams.search);
+    if (resolvedParams.tag) p.set("tag", resolvedParams.tag);
+    if (resolvedParams.experienceLevel) p.set("experienceLevel", resolvedParams.experienceLevel);
+    if (resolvedParams.offering) p.set("offering", resolvedParams.offering);
+    if (resolvedParams.sortBy) p.set("sortBy", resolvedParams.sortBy);
+    p.set("page", String(newPage));
+    return `/mentors?${p.toString()}`;
+  };
 
   return (
     <div className="w-full min-h-screen bg-background">
@@ -118,7 +161,7 @@ export default async function MentorsPage({
       {/* Main Directory & Filter Grid */}
       <main className="max-w-7xl mx-auto px-6 lg:px-12 py-12">
         <Suspense fallback={<div className="h-28 bg-surface rounded-2xl animate-pulse mb-8" />}>
-          <MentorFilters totalCount={mentors.length} />
+          <MentorFilters totalCount={total} />
         </Suspense>
 
         {mentors.length === 0 ? (
@@ -139,11 +182,35 @@ export default async function MentorsPage({
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mentors.map((mentor) => (
-              <MentorCard key={mentor.id} mentor={mentor} />
-            ))}
-          </div>
+          <>
+            {/* Strict 4-Column Desktop Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+              {mentors.map((mentor) => (
+                <MentorCard key={mentor.id} mentor={mentor} />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 pt-6 border-t border-border/60">
+                <Link href={buildPageUrl(page - 1)} className={page <= 1 ? "pointer-events-none opacity-40" : ""}>
+                  <Button variant="outline" size="sm" disabled={page <= 1} className="text-xs font-semibold">
+                    Previous
+                  </Button>
+                </Link>
+
+                <span className="text-xs font-medium text-text-muted px-2">
+                  Page <strong className="text-text-primary">{page}</strong> of <strong>{totalPages}</strong>
+                </span>
+
+                <Link href={buildPageUrl(page + 1)} className={page >= totalPages ? "pointer-events-none opacity-40" : ""}>
+                  <Button variant="outline" size="sm" disabled={page >= totalPages} className="text-xs font-semibold">
+                    Next
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>

@@ -22,12 +22,9 @@ export default function LoginForm() {
 
   const [isLoading, setIsLoading] = React.useState(false);
 
-  // If already authenticated, inform the user and redirect to their role dashboard
+  // If already authenticated, redirect to role dashboard
   React.useEffect(() => {
-    if (!isPending && isAuthenticated) {
-      toast.info("You are already logged in!", {
-        description: "Redirecting you to your dashboard...",
-      });
+    if (!isPending && isAuthenticated && !isLoading) {
       const target =
         redirectTo && redirectTo.startsWith(`/${role === "student" ? "dashboard" : role}`)
           ? redirectTo
@@ -38,7 +35,7 @@ export default function LoginForm() {
           : "/dashboard";
       router.replace(target);
     }
-  }, [isPending, isAuthenticated, role, redirectTo, router]);
+  }, [isPending, isAuthenticated, role, redirectTo, router, isLoading]);
 
   const {
     register,

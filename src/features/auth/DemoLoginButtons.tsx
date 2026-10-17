@@ -75,11 +75,11 @@ export default function DemoLoginButtons({ onSuccess }: DemoLoginButtonsProps) {
           ? redirectTo
           : acc.redirect;
 
-      window.location.assign(targetUrl);
+      router.replace(targetUrl);
+      router.refresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : null;
       toast.error(msg || "Network error during demo login. Please check server.");
-    } finally {
       setLoadingRole(null);
     }
   };

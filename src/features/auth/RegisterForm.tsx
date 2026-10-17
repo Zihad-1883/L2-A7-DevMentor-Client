@@ -21,12 +21,9 @@ export default function RegisterForm() {
   const { isAuthenticated, isPending, role } = useAuthContext();
   const [isLoading, setIsLoading] = React.useState(false);
 
-  // If already authenticated, inform the user and redirect to their role dashboard
+  // If already authenticated, redirect to role dashboard
   React.useEffect(() => {
-    if (!isPending && isAuthenticated) {
-      toast.info("You are already logged in!", {
-        description: "Redirecting you to your dashboard...",
-      });
+    if (!isPending && isAuthenticated && !isLoading) {
       const target =
         role === "mentor"
           ? "/mentor"
@@ -35,7 +32,7 @@ export default function RegisterForm() {
             : "/dashboard";
       router.replace(target);
     }
-  }, [isPending, isAuthenticated, role, router]);
+  }, [isPending, isAuthenticated, role, router, isLoading]);
 
   const {
     register,

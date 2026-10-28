@@ -101,7 +101,7 @@ export default function ProfileDropdown() {
           </div>
         )}
 
-        <span className="hidden sm:inline text-xs font-semibold text-text-primary max-w-[100px] truncate">
+        <span className="hidden sm:inline text-xs font-semibold text-text-primary max-w-[130px] truncate shrink-0">
           {name.split(" ")[0]}
         </span>
 

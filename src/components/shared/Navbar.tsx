@@ -38,6 +38,7 @@ export default function Navbar() {
 
   // Additional informational resources
   const infoLinks = [
+    { label: "How It Works", href: "/how-it-works", icon: Sparkles },
     { label: "About Us", href: "/about", icon: Info },
     { label: "Contact Support", href: "/contact", icon: Mail },
     { label: "FAQ / Help Desk", href: "/faq", icon: HelpCircle },
@@ -67,20 +68,20 @@ export default function Navbar() {
         { label: "Directory", href: "/mentors" },
       ];
     }
-    // Student (default)
+    // Student (default) - Streamlined for clean desktop & laptop responsiveness
     return [
-      { label: "How It Works", href: "/how-it-works" },
+      { label: "Dashboard", href: "/dashboard" },
       { label: "Cohorts", href: "/cohorts" },
       { label: "Mentors", href: "/mentors" },
+      { label: "My Sprints", href: "/dashboard/sprints" },
       { label: "Code Reviews", href: "/dashboard/code-reviews" },
       { label: "Exams", href: "/dashboard/exams" },
-      { label: "My Sprints", href: "/dashboard/sprints" },
     ];
   };
 
   const navLinks = isAuthenticated ? getLoggedInNavLinks() : publicNavLinks;
 
-  const isInfoActive = ["/about", "/contact", "/faq", "/terms", "/privacy"].includes(pathname);
+  const isInfoActive = ["/how-it-works", "/about", "/contact", "/faq", "/terms", "/privacy"].includes(pathname);
 
   const getDashboardHref = () => {
     if (role === "admin") return "/admin";
@@ -90,22 +91,22 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 w-full z-50 bg-surface/90 backdrop-blur-xl border-b border-border/40 shadow-xs">
-      <div className="h-20 max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between gap-6">
-        <div className="flex items-center gap-6 xl:gap-8">
+      <div className="h-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex items-center justify-between gap-3 lg:gap-4 xl:gap-8">
+        <div className="flex items-center gap-3 lg:gap-4 xl:gap-7 min-w-0">
           <Link href="/" className="flex items-center gap-2 group shrink-0">
             <span className="font-serif text-2xl text-text-primary tracking-tight font-bold group-hover:text-amber transition-colors">
               DevMentor<span className="text-amber font-serif">.</span>
             </span>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 shrink-0">
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-3 py-1.5 rounded-lg text-xs xl:text-sm font-medium transition-all ${isActive
+                  className={`px-2.5 py-1.5 xl:px-3 rounded-lg text-xs xl:text-sm font-medium transition-all shrink-0 whitespace-nowrap ${isActive
                     ? "text-text-primary bg-surface-raised font-semibold"
                     : "text-text-muted hover:text-text-primary hover:bg-surface-raised/60"
                     }`}
@@ -120,7 +121,7 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
-                className={`px-3 py-1.5 rounded-lg text-xs xl:text-sm font-medium transition-all flex items-center gap-1 ${isInfoActive || moreDropdownOpen
+                className={`px-2.5 py-1.5 xl:px-3 rounded-lg text-xs xl:text-sm font-medium transition-all flex items-center gap-1 shrink-0 whitespace-nowrap cursor-pointer ${isInfoActive || moreDropdownOpen
                     ? "text-text-primary bg-surface-raised font-semibold"
                     : "text-text-muted hover:text-text-primary hover:bg-surface-raised/60"
                   }`}
@@ -156,12 +157,12 @@ export default function Navbar() {
           </nav>
         </div>
 
-        <div className="hidden lg:flex items-center gap-3">
-          {/* Apply as Mentor Button strictly for students (logged-out or role === student) */}
+        <div className="hidden lg:flex items-center gap-2 xl:gap-3 shrink-0">
+          {/* Apply as Mentor Button strictly for students - hidden on mid-desktop (lg) to give breathing room, visible on xl+ */}
           {(!isAuthenticated || role === "student") && (
             <Link
               href="/apply-mentor"
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary hover:text-amber hover:bg-surface-raised transition-colors flex items-center gap-1.5 border border-border/70"
+              className="hidden xl:flex px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary hover:text-amber hover:bg-surface-raised transition-colors items-center gap-1.5 border border-border/70 shrink-0"
             >
               <Sparkles className="size-3 text-amber" />
               <span>Apply as Mentor</span>
@@ -172,7 +173,7 @@ export default function Navbar() {
           <ThemeToggle />
 
           {isAuthenticated ? (
-            <div className="pl-2 border-l border-border/80">
+            <div className="pl-1 xl:pl-2 border-l border-border/80">
               <ProfileDropdown />
             </div>
           ) : (

@@ -77,6 +77,7 @@ export default function StudentCohortDetailPage() {
       // Invalidate and refetch sessions and user wallet
       queryClient.invalidateQueries({ queryKey: queryKeys.cohorts.sessions(cohortId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.wallet.me });
+      refetchSessions();
     },
     onError: (err: unknown) => {
       const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
